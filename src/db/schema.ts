@@ -1,9 +1,13 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const DATABASE_VERSION = 3;
+export const DATABASE_VERSION = 5;
 
 type UserVersionRow = {
   user_version: number;
+};
+
+type TableInfoRow = {
+  name: string;
 };
 
 export async function migrateDatabase(db: SQLiteDatabase) {
@@ -185,5 +189,122 @@ export async function migrateDatabase(db: SQLiteDatabase) {
 
       await db.execAsync('PRAGMA user_version = 3');
     });
+  }
+
+  if (currentVersion < 4) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          event_date TEXT NOT NULL,
+          start_time TEXT,
+          location TEXT,
+          opponent TEXT,
+          notes TEXT NOT NULL DEFAULT '',
+          attendance_status TEXT NOT NULL DEFAULT 'not_marked',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS event_player_signups (
+          event_id INTEGER NOT NULL,
+          player_id INTEGER NOT NULL,
+          signup_status TEXT NOT NULL DEFAULT 'unknown',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (event_id, player_id),
+          FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+          FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+        );
+      `);
+
+      await ensureEventsColumnAsync(db, 'start_time', 'TEXT');
+      await ensureEventsColumnAsync(db, 'location', 'TEXT');
+      await ensureEventsColumnAsync(db, 'opponent', 'TEXT');
+      await ensureEventsColumnAsync(db, 'notes', "TEXT NOT NULL DEFAULT ''");
+      await ensureEventsColumnAsync(db, 'attendance_status', "TEXT NOT NULL DEFAULT 'not_marked'");
+      await ensureEventsColumnAsync(db, 'created_at', "TEXT NOT NULL DEFAULT ''");
+      await ensureEventsColumnAsync(db, 'updated_at', "TEXT NOT NULL DEFAULT ''");
+
+      await db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_events_event_date
+          ON events (event_date);
+
+        CREATE INDEX IF NOT EXISTS idx_events_attendance_status
+          ON events (attendance_status);
+
+        CREATE INDEX IF NOT EXISTS idx_event_player_signups_player_id
+          ON event_player_signups (player_id);
+
+        CREATE TRIGGER IF NOT EXISTS trg_events_updated_at
+        AFTER UPDATE ON events
+        FOR EACH ROW
+        BEGIN
+          UPDATE events
+          SET updated_at = datetime('now')
+          WHERE id = OLD.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS trg_event_player_signups_updated_at
+        AFTER UPDATE ON event_player_signups
+        FOR EACH ROW
+        BEGIN
+          UPDATE event_player_signups
+          SET updated_at = datetime('now')
+          WHERE event_id = OLD.event_id
+            AND player_id = OLD.player_id;
+        END;
+      `);
+
+      await db.execAsync('PRAGMA user_version = 4');
+    });
+  }
+
+  if (currentVersion < 5) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS event_attendance (
+          event_id INTEGER NOT NULL,
+          player_id INTEGER NOT NULL,
+          is_present INTEGER NOT NULL DEFAULT 0,
+          is_late INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (event_id, player_id),
+          FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+          FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_event_attendance_player_id
+          ON event_attendance (player_id);
+
+        CREATE TRIGGER IF NOT EXISTS trg_event_attendance_updated_at
+        AFTER UPDATE ON event_attendance
+        FOR EACH ROW
+        BEGIN
+          UPDATE event_attendance
+          SET updated_at = datetime('now')
+          WHERE event_id = OLD.event_id
+            AND player_id = OLD.player_id;
+        END;
+      `);
+
+      await db.execAsync('PRAGMA user_version = 5');
+    });
+  }
+}
+
+async function ensureEventsColumnAsync(
+  db: SQLiteDatabase,
+  columnName: string,
+  columnDefinition: string
+) {
+  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(events)');
+  const hasColumn = rows.some((row) => row.name === columnName);
+
+  if (!hasColumn) {
+    await db.execAsync(`ALTER TABLE events ADD COLUMN ${columnName} ${columnDefinition}`);
   }
 }

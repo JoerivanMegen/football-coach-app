@@ -3,7 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type FeatureScreenPlaceholderProps = {
@@ -32,7 +32,7 @@ export function FeatureScreenPlaceholder({
       paddingBottom: insets.bottom,
     },
     web: {
-      paddingTop: Spacing.five,
+      paddingTop: PageTopPadding,
       paddingBottom: Spacing.five,
     },
   });
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.five,
+    paddingTop: PageTopPadding,
   },
   header: {
     gap: Spacing.two,
