@@ -1,6 +1,4 @@
-import DateTimePicker, {
-  type DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -557,13 +555,17 @@ function BirthDatePickerField({
   const theme = useTheme();
   const selectedDate = parseDisplayDateToDate(value) ?? new Date(2012, 0, 1);
 
-  function handleChange(event: DateTimePickerEvent, date?: Date) {
+  function handleValueChange(_: unknown, date: Date) {
     if (Platform.OS === 'android') {
       onClose();
     }
 
-    if (event.type === 'set' && date) {
-      onChange(formatDateForDisplay(date));
+    onChange(formatDateForDisplay(date));
+  }
+
+  function handleDismiss() {
+    if (Platform.OS === 'android') {
+      onClose();
     }
   }
 
@@ -587,15 +589,37 @@ function BirthDatePickerField({
       </Pressable>
 
       {isOpen ? (
-        <DateTimePicker
-          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-          maximumDate={new Date()}
-          mode="date"
-          onChange={handleChange}
-          value={selectedDate}
-        />
+        <>
+          <DateTimePicker
+            display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+            maximumDate={new Date()}
+            mode="date"
+            onDismiss={handleDismiss}
+            onValueChange={handleValueChange}
+            value={selectedDate}
+          />
+          {Platform.OS === 'ios' ? <PickerDoneButton onPress={onClose} /> : null}
+        </>
       ) : null}
     </ThemedView>
+  );
+}
+
+function PickerDoneButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Confirm birth date"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.primaryButton,
+        styles.pickerDoneButton,
+        pressed && styles.pressed,
+      ]}>
+      <ThemedText type="smallBold" style={styles.primaryButtonText}>
+        Done
+      </ThemedText>
+    </Pressable>
   );
 }
 
@@ -864,6 +888,10 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     minHeight: 48,
     paddingHorizontal: Spacing.three,
+  },
+  pickerDoneButton: {
+    alignSelf: 'flex-end',
+    marginTop: Spacing.one,
   },
   positionGrid: {
     flexDirection: 'row',
