@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const DATABASE_VERSION = 4;
+export const DATABASE_VERSION = 5;
 
 type UserVersionRow = {
   user_version: number;
@@ -259,6 +259,39 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       `);
 
       await db.execAsync('PRAGMA user_version = 4');
+    });
+  }
+
+  if (currentVersion < 5) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS event_attendance (
+          event_id INTEGER NOT NULL,
+          player_id INTEGER NOT NULL,
+          is_present INTEGER NOT NULL DEFAULT 0,
+          is_late INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (event_id, player_id),
+          FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+          FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_event_attendance_player_id
+          ON event_attendance (player_id);
+
+        CREATE TRIGGER IF NOT EXISTS trg_event_attendance_updated_at
+        AFTER UPDATE ON event_attendance
+        FOR EACH ROW
+        BEGIN
+          UPDATE event_attendance
+          SET updated_at = datetime('now')
+          WHERE event_id = OLD.event_id
+            AND player_id = OLD.player_id;
+        END;
+      `);
+
+      await db.execAsync('PRAGMA user_version = 5');
     });
   }
 }

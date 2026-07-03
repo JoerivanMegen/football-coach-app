@@ -29,6 +29,21 @@ export type EventPlayerSignupInput = {
   signupStatus: SignupStatus;
 };
 
+export type EventAttendancePlayer = {
+  playerId: number;
+  firstName: string;
+  lastName: string;
+  signupStatus: SignupStatus;
+  isPresent: boolean;
+  isLate: boolean;
+};
+
+export type EventAttendanceInput = {
+  playerId: number;
+  isPresent: boolean;
+  isLate: boolean;
+};
+
 export type CreateEventInput = {
   type: EventType;
   title: string;
@@ -38,4 +53,8 @@ export type CreateEventInput = {
   opponent?: string | null;
   notes?: string;
   playerSignups?: EventPlayerSignupInput[];
+};
+
+export type UpdateEventInput = CreateEventInput & {
+  id: number;
 };

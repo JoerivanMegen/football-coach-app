@@ -1,6 +1,6 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { SymbolView } from "expo-symbols";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,27 +11,27 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { getPlayerPositionLabel } from '@/features/players/player-position-labels';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
 import {
   archivePlayerAsync,
   createPlayerAsync,
   listPlayersAsync,
   updatePlayerAsync,
-} from '@/features/players/player-repository';
+} from "@/features/players/player-repository";
 import {
   PLAYER_POSITIONS,
   type CreatePlayerInput,
   type Player,
   type PlayerPosition,
-} from '@/features/players/player-types';
-import { DEFAULT_LOCALE } from '@/i18n/locales';
-import { useTheme } from '@/hooks/use-theme';
+} from "@/features/players/player-types";
+import { useTheme } from "@/hooks/use-theme";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
 
 type PlayerFormState = {
   firstName: string;
@@ -43,18 +43,18 @@ type PlayerFormState = {
 };
 
 const emptyFormState: PlayerFormState = {
-  firstName: '',
-  lastName: '',
-  nickName: '',
-  birthDate: '',
+  firstName: "",
+  lastName: "",
+  nickName: "",
+  birthDate: "",
   position: null,
-  kitNumber: '',
+  kitNumber: "",
 };
 
-const WarningColor = '#F59E0B';
-const WarningTextColor = '#111827';
-const ErrorColor = '#B42318';
-const ActionTextColor = '#ffffff';
+const WarningColor = "#F59E0B";
+const WarningTextColor = "#111827";
+const ErrorColor = "#B42318";
+const ActionTextColor = "#ffffff";
 
 export default function PlayersScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -72,7 +72,7 @@ export default function PlayersScreen() {
       ...safeAreaInsets,
       bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
     }),
-    [safeAreaInsets]
+    [safeAreaInsets],
   );
 
   const contentPlatformStyle = Platform.select({
@@ -83,7 +83,7 @@ export default function PlayersScreen() {
       paddingBottom: insets.bottom,
     },
     web: {
-      paddingTop: Spacing.five,
+      paddingTop: PageTopPadding,
       paddingBottom: Spacing.five,
     },
   });
@@ -96,8 +96,8 @@ export default function PlayersScreen() {
       const nextPlayers = await listPlayersAsync();
       setPlayers(nextPlayers);
     } catch (error) {
-      console.warn('Failed to load players', error);
-      Alert.alert('Could not load players', 'Please try again.');
+      console.warn("Failed to load players", error);
+      Alert.alert("Could not load players", "Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -113,8 +113,8 @@ export default function PlayersScreen() {
         }
       })
       .catch((error: unknown) => {
-        console.warn('Failed to load players', error);
-        Alert.alert('Could not load players', 'Please try again.');
+        console.warn("Failed to load players", error);
+        Alert.alert("Could not load players", "Please try again.");
       })
       .finally(() => {
         if (isMounted) {
@@ -139,10 +139,10 @@ export default function PlayersScreen() {
     setForm({
       firstName: player.firstName,
       lastName: player.lastName,
-      nickName: player.nickName ?? '',
+      nickName: player.nickName ?? "",
       birthDate: formatIsoDateForDisplay(player.birthDate),
       position: player.position,
-      kitNumber: player.kitNumber === null ? '' : String(player.kitNumber),
+      kitNumber: player.kitNumber === null ? "" : String(player.kitNumber),
     });
     setIsBirthDatePickerOpen(false);
     setIsFormOpen(true);
@@ -160,41 +160,61 @@ export default function PlayersScreen() {
     const firstName = normalizeNameInput(form.firstName);
     const lastName = normalizeNameInput(form.lastName);
     const nickName = normalizeNameInput(form.nickName);
-    const kitNumber = form.kitNumber.trim() ? Number(form.kitNumber.trim()) : null;
+    const kitNumber = form.kitNumber.trim()
+      ? Number(form.kitNumber.trim())
+      : null;
     const birthDate = parseDisplayDateToIsoDate(form.birthDate);
 
     if (!firstName || !lastName) {
-      Alert.alert('Missing required fields', 'First name and last name are required.');
+      Alert.alert(
+        "Missing required fields",
+        "First name and last name are required.",
+      );
       return;
     }
 
     if (!isValidNameInput(firstName)) {
-      Alert.alert('Invalid first name', 'Use letters only, with single spaces between names.');
+      Alert.alert(
+        "Invalid first name",
+        "Use letters only, with single spaces between names.",
+      );
       return;
     }
 
     if (!isValidNameInput(lastName)) {
-      Alert.alert('Invalid last name', 'Use letters only, with single spaces between names.');
+      Alert.alert(
+        "Invalid last name",
+        "Use letters only, with single spaces between names.",
+      );
       return;
     }
 
     if (nickName && !isValidNameInput(nickName)) {
-      Alert.alert('Invalid nickname', 'Use letters only, with single spaces between names.');
+      Alert.alert(
+        "Invalid nickname",
+        "Use letters only, with single spaces between names.",
+      );
       return;
     }
 
     if (form.birthDate.trim() && !birthDate) {
-      Alert.alert('Invalid birth date', 'Use DD-MM-YYYY, for example 24-09-2012.');
+      Alert.alert(
+        "Invalid birth date",
+        "Use DD-MM-YYYY, for example 24-09-2012.",
+      );
       return;
     }
 
     if (!form.position) {
-      Alert.alert('Missing required fields', 'Choose a player position.');
+      Alert.alert("Missing required fields", "Choose a player position.");
       return;
     }
 
     if (kitNumber !== null && (!Number.isInteger(kitNumber) || kitNumber < 0)) {
-      Alert.alert('Invalid kit number', 'Use a whole number, or leave it empty.');
+      Alert.alert(
+        "Invalid kit number",
+        "Use a whole number, or leave it empty.",
+      );
       return;
     }
 
@@ -231,8 +251,11 @@ export default function PlayersScreen() {
       setEditingPlayerId(null);
       await loadPlayers();
     } catch (error) {
-      console.warn('Failed to save player', error);
-      Alert.alert('Could not save player', 'Please check the details and try again.');
+      console.warn("Failed to save player", error);
+      Alert.alert(
+        "Could not save player",
+        "Please check the details and try again.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -242,21 +265,21 @@ export default function PlayersScreen() {
     const playerName = `${player.firstName} ${player.lastName}`;
     const message = `Delete ${playerName}? This will remove the player from the active squad list.`;
 
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       if (globalThis.confirm(message)) {
         void archivePlayer(player);
       }
       return;
     }
 
-    Alert.alert('Delete player', message, [
+    Alert.alert("Delete player", message, [
       {
-        text: 'Cancel',
-        style: 'cancel',
+        text: "Cancel",
+        style: "cancel",
       },
       {
-        text: 'Delete',
-        style: 'destructive',
+        text: "Delete",
+        style: "destructive",
         onPress: () => {
           void archivePlayer(player);
         },
@@ -269,8 +292,8 @@ export default function PlayersScreen() {
       await archivePlayerAsync(player.id);
       await loadPlayers();
     } catch (error) {
-      console.warn('Failed to delete player', error);
-      Alert.alert('Could not delete player', 'Please try again.');
+      console.warn("Failed to delete player", error);
+      Alert.alert("Could not delete player", "Please try again.");
     }
   }
 
@@ -279,7 +302,8 @@ export default function PlayersScreen() {
       <ScrollView
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
-        contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}>
+        contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      >
         <ThemedView style={styles.container}>
           <ThemedView style={styles.header}>
             <ThemedView style={styles.titleGroup}>
@@ -295,9 +319,13 @@ export default function PlayersScreen() {
               accessibilityRole="button"
               accessibilityLabel="Add player"
               onPress={openAddPlayerForm}
-              style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}>
+              style={({ pressed }) => [
+                styles.addButton,
+                pressed && styles.pressed,
+              ]}
+            >
               <SymbolView
-                name={{ ios: 'plus', android: 'add', web: 'add' }}
+                name={{ ios: "plus", android: "add", web: "add" }}
                 tintColor="#ffffff"
                 size={18}
               />
@@ -314,24 +342,40 @@ export default function PlayersScreen() {
           ) : players.length === 0 ? (
             <ThemedView type="backgroundElement" style={styles.emptyPanel}>
               <ThemedText type="smallBold">No players yet</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
+              <ThemedText
+                type="small"
+                themeColor="textSecondary"
+                style={styles.emptyText}
+              >
                 Add your first player to start building the squad.
               </ThemedText>
             </ThemedView>
           ) : (
             <ThemedView style={styles.playerList}>
               {players.map((player) => (
-                <ThemedView key={player.id} type="backgroundElement" style={styles.playerRow}>
-                  <ThemedView type="backgroundElement" style={styles.playerNameGroup}>
+                <ThemedView
+                  key={player.id}
+                  type="backgroundElement"
+                  style={styles.playerRow}
+                >
+                  <ThemedView
+                    type="backgroundElement"
+                    style={styles.playerNameGroup}
+                  >
                     <ThemedText type="default">
                       {player.firstName} {player.lastName}
                     </ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
                       {getPlayerPositionLabel(player.position, DEFAULT_LOCALE)}
-                      {player.kitNumber !== null ? ` · #${player.kitNumber}` : ''}
+                      {player.kitNumber !== null
+                        ? ` · #${player.kitNumber}`
+                        : ""}
                     </ThemedText>
                   </ThemedView>
-                  <ThemedView type="backgroundElement" style={styles.playerActions}>
+                  <ThemedView
+                    type="backgroundElement"
+                    style={styles.playerActions}
+                  >
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Edit ${player.firstName} ${player.lastName}`}
@@ -340,9 +384,10 @@ export default function PlayersScreen() {
                         styles.rowActionButton,
                         styles.editButton,
                         pressed && styles.pressed,
-                      ]}>
+                      ]}
+                    >
                       <SymbolView
-                        name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+                        name={{ ios: "pencil", android: "edit", web: "edit" }}
                         tintColor={WarningTextColor}
                         size={16}
                       />
@@ -355,9 +400,14 @@ export default function PlayersScreen() {
                         styles.rowActionButton,
                         styles.deleteButton,
                         pressed && styles.pressed,
-                      ]}>
+                      ]}
+                    >
                       <SymbolView
-                        name={{ ios: 'trash', android: 'delete', web: 'delete' }}
+                        name={{
+                          ios: "trash",
+                          android: "delete",
+                          web: "delete",
+                        }}
                         tintColor={ActionTextColor}
                         size={16}
                       />
@@ -370,60 +420,83 @@ export default function PlayersScreen() {
         </ThemedView>
       </ScrollView>
 
-      <Modal visible={isFormOpen} animationType="slide" transparent onRequestClose={closeForm}>
+      <Modal
+        visible={isFormOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={closeForm}
+      >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}>
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalOverlay}
+        >
           <Pressable style={styles.modalBackdrop} onPress={closeForm} />
           <ThemedView style={styles.modalSheet}>
             <ThemedView style={styles.modalHeader}>
               <ThemedText type="default">
-                {editingPlayerId === null ? 'Add player' : 'Edit player'}
+                {editingPlayerId === null ? "Add player" : "Edit player"}
               </ThemedText>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close"
                 onPress={closeForm}
-                style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  pressed && styles.pressed,
+                ]}
+              >
                 <SymbolView
-                  name={{ ios: 'xmark', android: 'close', web: 'close' }}
+                  name={{ ios: "xmark", android: "close", web: "close" }}
                   tintColor={theme.text}
                   size={18}
                 />
               </Pressable>
             </ThemedView>
 
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.formContent}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.formContent}
+            >
               <PlayerTextInput
                 label="First name"
                 required
                 value={form.firstName}
-                onChangeText={(firstName) => setForm((current) => ({ ...current, firstName }))}
+                onChangeText={(firstName) =>
+                  setForm((current) => ({ ...current, firstName }))
+                }
               />
               <PlayerTextInput
                 label="Last name"
                 required
                 value={form.lastName}
-                onChangeText={(lastName) => setForm((current) => ({ ...current, lastName }))}
+                onChangeText={(lastName) =>
+                  setForm((current) => ({ ...current, lastName }))
+                }
               />
               <PlayerTextInput
                 label="Nickname"
                 value={form.nickName}
-                onChangeText={(nickName) => setForm((current) => ({ ...current, nickName }))}
+                onChangeText={(nickName) =>
+                  setForm((current) => ({ ...current, nickName }))
+                }
               />
-              {Platform.OS === 'web' ? (
+              {Platform.OS === "web" ? (
                 <PlayerTextInput
                   label="Birth date"
                   placeholder="DD-MM-YYYY"
                   value={form.birthDate}
-                  onChangeText={(birthDate) => setForm((current) => ({ ...current, birthDate }))}
+                  onChangeText={(birthDate) =>
+                    setForm((current) => ({ ...current, birthDate }))
+                  }
                 />
               ) : (
                 <BirthDatePickerField
                   isOpen={isBirthDatePickerOpen}
                   value={form.birthDate}
                   onOpen={() => setIsBirthDatePickerOpen(true)}
-                  onChange={(birthDate) => setForm((current) => ({ ...current, birthDate }))}
+                  onChange={(birthDate) =>
+                    setForm((current) => ({ ...current, birthDate }))
+                  }
                   onClose={() => setIsBirthDatePickerOpen(false)}
                 />
               )}
@@ -431,7 +504,9 @@ export default function PlayersScreen() {
                 label="Kit number"
                 keyboardType="number-pad"
                 value={form.kitNumber}
-                onChangeText={(kitNumber) => setForm((current) => ({ ...current, kitNumber }))}
+                onChangeText={(kitNumber) =>
+                  setForm((current) => ({ ...current, kitNumber }))
+                }
               />
 
               <ThemedView style={styles.fieldGroup}>
@@ -445,11 +520,22 @@ export default function PlayersScreen() {
                         key={position}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
-                        onPress={() => setForm((current) => ({ ...current, position }))}
-                        style={({ pressed }) => [styles.positionOption, pressed && styles.pressed]}>
+                        onPress={() =>
+                          setForm((current) => ({ ...current, position }))
+                        }
+                        style={({ pressed }) => [
+                          styles.positionOption,
+                          pressed && styles.pressed,
+                        ]}
+                      >
                         <ThemedView
-                          type={isSelected ? 'backgroundSelected' : 'backgroundElement'}
-                          style={styles.positionOptionInner}>
+                          type={
+                            isSelected
+                              ? "backgroundSelected"
+                              : "backgroundElement"
+                          }
+                          style={styles.positionOptionInner}
+                        >
                           <ThemedText type="smallBold">
                             {getPlayerPositionLabel(position, DEFAULT_LOCALE)}
                           </ThemedText>
@@ -465,7 +551,11 @@ export default function PlayersScreen() {
               <Pressable
                 accessibilityRole="button"
                 onPress={closeForm}
-                style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
+                style={({ pressed }) => [
+                  styles.secondaryButton,
+                  pressed && styles.pressed,
+                ]}
+              >
                 <ThemedText type="smallBold">Cancel</ThemedText>
               </Pressable>
               <Pressable
@@ -476,13 +566,14 @@ export default function PlayersScreen() {
                   styles.primaryButton,
                   pressed && styles.pressed,
                   isSaving && styles.disabledButton,
-                ]}>
+                ]}
+              >
                 <ThemedText type="smallBold" style={styles.primaryButtonText}>
                   {isSaving
-                    ? 'Saving...'
+                    ? "Saving..."
                     : editingPlayerId === null
-                      ? 'Save player'
-                      : 'Update player'}
+                      ? "Save player"
+                      : "Update player"}
                 </ThemedText>
               </Pressable>
             </ThemedView>
@@ -499,7 +590,7 @@ type PlayerTextInputProps = {
   onChangeText: (value: string) => void;
   placeholder?: string;
   required?: boolean;
-  keyboardType?: 'default' | 'number-pad';
+  keyboardType?: "default" | "number-pad";
 };
 
 function PlayerTextInput({
@@ -508,7 +599,7 @@ function PlayerTextInput({
   onChangeText,
   placeholder,
   required,
-  keyboardType = 'default',
+  keyboardType = "default",
 }: PlayerTextInputProps) {
   const theme = useTheme();
 
@@ -516,7 +607,7 @@ function PlayerTextInput({
     <ThemedView style={styles.fieldGroup}>
       <ThemedText type="smallBold">
         {label}
-        {required ? ' *' : ''}
+        {required ? " *" : ""}
       </ThemedText>
       <TextInput
         autoCapitalize="none"
@@ -556,7 +647,7 @@ function BirthDatePickerField({
   const selectedDate = parseDisplayDateToDate(value) ?? new Date(2012, 0, 1);
 
   function handleValueChange(_: unknown, date: Date) {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       onClose();
     }
 
@@ -564,7 +655,7 @@ function BirthDatePickerField({
   }
 
   function handleDismiss() {
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       onClose();
     }
   }
@@ -579,26 +670,33 @@ function BirthDatePickerField({
           styles.datePickerButton,
           { backgroundColor: theme.backgroundElement },
           pressed && styles.pressed,
-        ]}>
+        ]}
+      >
         <SymbolView
-          name={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }}
+          name={{
+            ios: "calendar",
+            android: "calendar_month",
+            web: "calendar_month",
+          }}
           tintColor={theme.text}
           size={18}
         />
-        <ThemedText type="smallBold">{value || 'Choose birth date'}</ThemedText>
+        <ThemedText type="smallBold">{value || "Choose birth date"}</ThemedText>
       </Pressable>
 
       {isOpen ? (
         <>
           <DateTimePicker
-            display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+            display={Platform.OS === "ios" ? "spinner" : "calendar"}
             maximumDate={new Date()}
             mode="date"
             onDismiss={handleDismiss}
             onValueChange={handleValueChange}
             value={selectedDate}
           />
-          {Platform.OS === 'ios' ? <PickerDoneButton onPress={onClose} /> : null}
+          {Platform.OS === "ios" ? (
+            <PickerDoneButton onPress={onClose} />
+          ) : null}
         </>
       ) : null}
     </ThemedView>
@@ -615,7 +713,8 @@ function PickerDoneButton({ onPress }: { onPress: () => void }) {
         styles.primaryButton,
         styles.pickerDoneButton,
         pressed && styles.pressed,
-      ]}>
+      ]}
+    >
       <ThemedText type="smallBold" style={styles.primaryButtonText}>
         Done
       </ThemedText>
@@ -631,10 +730,10 @@ function parseDisplayDateToIsoDate(value: string) {
   }
 
   return [
-    String(date.getFullYear()).padStart(4, '0'),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('-');
+    String(date.getFullYear()).padStart(4, "0"),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 function parseDisplayDateToDate(value: string) {
@@ -669,28 +768,28 @@ function parseDisplayDateToDate(value: string) {
 
 function formatDateForDisplay(date: Date) {
   return [
-    String(date.getDate()).padStart(2, '0'),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getFullYear()).padStart(4, '0'),
-  ].join('-');
+    String(date.getDate()).padStart(2, "0"),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getFullYear()).padStart(4, "0"),
+  ].join("-");
 }
 
 function formatIsoDateForDisplay(value: string | null) {
   if (!value) {
-    return '';
+    return "";
   }
 
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
   if (!match) {
-    return '';
+    return "";
   }
 
-  return [match[3], match[2], match[1]].join('-');
+  return [match[3], match[2], match[1]].join("-");
 }
 
 function normalizeNameInput(value: string) {
-  return value.trim().replace(/\s+/g, ' ');
+  return value.trim().replace(/\s+/g, " ");
 }
 
 function isValidNameInput(value: string) {
@@ -701,7 +800,7 @@ function findDuplicatePlayer(
   firstName: string,
   lastName: string,
   players: Player[],
-  ignoredPlayerId: number | null
+  ignoredPlayerId: number | null,
 ) {
   const normalizedFirstName = normalizePlayerNameForDuplicateCheck(firstName);
   const normalizedLastName = normalizePlayerNameForDuplicateCheck(lastName);
@@ -709,33 +808,35 @@ function findDuplicatePlayer(
   return players.find(
     (player) =>
       player.id !== ignoredPlayerId &&
-      normalizePlayerNameForDuplicateCheck(player.firstName) === normalizedFirstName &&
-      normalizePlayerNameForDuplicateCheck(player.lastName) === normalizedLastName
+      normalizePlayerNameForDuplicateCheck(player.firstName) ===
+        normalizedFirstName &&
+      normalizePlayerNameForDuplicateCheck(player.lastName) ===
+        normalizedLastName,
   );
 }
 
 function normalizePlayerNameForDuplicateCheck(value: string) {
-  return value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 
 function confirmDuplicatePlayer(playerName: string, onConfirm: () => void) {
   const message = `"${playerName}" already exists. Are you sure you want to add another one?`;
 
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     if (globalThis.confirm(message)) {
       onConfirm();
     }
     return;
   }
 
-  Alert.alert('Possible duplicate player', message, [
+  Alert.alert("Possible duplicate player", message, [
     {
-      text: 'Cancel',
-      style: 'cancel',
+      text: "Cancel",
+      style: "cancel",
     },
     {
-      text: 'Add anyway',
-      style: 'default',
+      text: "Add anyway",
+      style: "default",
       onPress: onConfirm,
     },
   ]);
@@ -746,21 +847,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
   },
   container: {
     flexGrow: 1,
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.six,
+    paddingTop: PageTopPadding,
   },
   header: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
+    alignItems: "flex-start",
+    flexDirection: "row",
     gap: Spacing.three,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   titleGroup: {
     flex: 1,
@@ -773,41 +874,41 @@ const styles = StyleSheet.create({
     maxWidth: 560,
   },
   addButton: {
-    alignItems: 'center',
-    backgroundColor: '#1C7C54',
+    alignItems: "center",
+    backgroundColor: "#1C7C54",
     borderRadius: Spacing.three,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.one,
     minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
   addButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   pressed: {
     opacity: 0.7,
   },
   emptyPanel: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: Spacing.three,
     gap: Spacing.two,
     minHeight: 180,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: Spacing.four,
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
   },
   playerList: {
     gap: Spacing.two,
   },
   playerRow: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: Spacing.three,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.two,
     minHeight: 76,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: Spacing.three,
   },
   playerNameGroup: {
@@ -815,17 +916,17 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   playerActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.one,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   rowActionButton: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: Spacing.two,
     height: 40,
     minHeight: 40,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 40,
   },
   editButton: {
@@ -836,35 +937,35 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   modalBackdrop: {
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
     bottom: 0,
     left: 0,
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 0,
   },
   modalSheet: {
-    alignSelf: 'center',
+    alignSelf: "center",
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,
-    maxHeight: '92%',
+    maxHeight: "92%",
     maxWidth: MaxContentWidth,
     padding: Spacing.three,
-    width: '100%',
+    width: "100%",
   },
   modalHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   iconButton: {
-    alignItems: 'center',
+    alignItems: "center",
     height: 40,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 40,
   },
   formContent: {
@@ -882,54 +983,54 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   datePickerButton: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: Spacing.two,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.two,
     minHeight: 48,
     paddingHorizontal: Spacing.three,
   },
   pickerDoneButton: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginTop: Spacing.one,
   },
   positionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.two,
   },
   positionOption: {
     minWidth: 136,
   },
   positionOptionInner: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: Spacing.two,
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: Spacing.three,
   },
   formActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: Spacing.two,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   secondaryButton: {
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: Spacing.two,
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: Spacing.three,
   },
   primaryButton: {
-    alignItems: 'center',
-    backgroundColor: '#1C7C54',
+    alignItems: "center",
+    backgroundColor: "#1C7C54",
     borderRadius: Spacing.two,
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: Spacing.three,
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   disabledButton: {
     opacity: 0.5,

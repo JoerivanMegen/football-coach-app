@@ -26,6 +26,9 @@ import { useTheme } from '@/hooks/use-theme';
 
 type EventWizardProps = {
   visible: boolean;
+  initialForm?: EventWizardFormState | null;
+  title?: string;
+  saveButtonLabel?: string;
   onClose: () => void;
   onSave: (form: EventWizardFormState) => Promise<void>;
 };
@@ -43,10 +46,19 @@ function createEmptyEventWizardFormState(): EventWizardFormState {
   };
 }
 
-export function EventWizard({ visible, onClose, onSave }: EventWizardProps) {
+export function EventWizard({
+  visible,
+  initialForm,
+  title = 'Add event',
+  saveButtonLabel = 'Save event',
+  onClose,
+  onSave,
+}: EventWizardProps) {
   const theme = useTheme();
   const [players, setPlayers] = useState<Player[]>([]);
-  const [form, setForm] = useState<EventWizardFormState>(() => createEmptyEventWizardFormState());
+  const [form, setForm] = useState<EventWizardFormState>(
+    () => initialForm ?? createEmptyEventWizardFormState()
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [wizardStep, setWizardStep] = useState<EventWizardStep>(0);
 
@@ -129,7 +141,7 @@ export function EventWizard({ visible, onClose, onSave }: EventWizardProps) {
 
   function resetWizard() {
     setWizardStep(0);
-    setForm(createEmptyEventWizardFormState());
+    setForm(initialForm ?? createEmptyEventWizardFormState());
   }
 
   return (
@@ -141,7 +153,7 @@ export function EventWizard({ visible, onClose, onSave }: EventWizardProps) {
         <ThemedView style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
-              <ThemedText type="default">Add event</ThemedText>
+              <ThemedText type="default">{title}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 Step {wizardStep + 1} of {EventWizardStepLabels.length}:{' '}
                 {EventWizardStepLabels[wizardStep]}
@@ -195,7 +207,7 @@ export function EventWizard({ visible, onClose, onSave }: EventWizardProps) {
                 isSaving && styles.disabledButton,
               ]}>
               <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                {wizardStep === 3 ? (isSaving ? 'Saving...' : 'Save event') : 'Next'}
+                {wizardStep === 3 ? (isSaving ? 'Saving...' : saveButtonLabel) : 'Next'}
               </ThemedText>
             </Pressable>
           </ThemedView>

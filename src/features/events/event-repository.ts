@@ -6,8 +6,11 @@ import {
   EventAttendanceStatuses,
   type CoachEvent,
   type CreateEventInput,
+  type EventAttendanceInput,
+  type EventAttendancePlayer,
   type EventAttendanceStatus,
   type EventPlayerSignupInput,
+  type UpdateEventInput,
 } from '@/features/events/event-types';
 
 type EventRow = {
@@ -29,6 +32,15 @@ type EventRow = {
 
 type TableInfoRow = {
   name: string;
+};
+
+type EventAttendancePlayerRow = {
+  player_id: number;
+  first_name: string;
+  last_name: string;
+  signup_status: string | null;
+  is_present: number | null;
+  is_late: number | null;
 };
 
 export async function listEventsAsync() {
@@ -101,6 +113,138 @@ export async function createEventAsync(input: CreateEventInput) {
   });
 }
 
+export async function updateEventAsync(input: UpdateEventInput) {
+  const db = await getDatabaseAsync();
+  await ensureEventStorageAsync(db);
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `
+        UPDATE events
+        SET
+          type = ?,
+          title = ?,
+          event_date = ?,
+          start_time = ?,
+          location = ?,
+          opponent = ?,
+          notes = ?
+        WHERE id = ?
+      `,
+      [
+        normalizeEventType(input.type),
+        normalizeRequiredText(input.title, 'title'),
+        normalizeRequiredText(input.eventDate, 'eventDate'),
+        normalizeOptionalText(input.startTime),
+        normalizeOptionalText(input.location),
+        normalizeOptionalText(input.opponent),
+        input.notes?.trim() ?? '',
+        input.id,
+      ]
+    );
+
+    await db.runAsync('DELETE FROM event_player_signups WHERE event_id = ?', [input.id]);
+
+    for (const signup of input.playerSignups ?? []) {
+      await db.runAsync(
+        `
+          INSERT INTO event_player_signups (
+            event_id,
+            player_id,
+            signup_status
+          )
+          VALUES (?, ?, ?)
+        `,
+        [input.id, signup.playerId, normalizeSignupStatus(signup.signupStatus)]
+      );
+    }
+  });
+}
+
+export async function deleteEventAsync(eventId: number) {
+  const db = await getDatabaseAsync();
+  await ensureEventStorageAsync(db);
+
+  await db.runAsync('DELETE FROM events WHERE id = ?', [eventId]);
+}
+
+export async function listEventAttendancePlayersAsync(eventId: number) {
+  const db = await getDatabaseAsync();
+  await ensureEventStorageAsync(db);
+
+  const rows = await db.getAllAsync<EventAttendancePlayerRow>(
+    `
+      SELECT
+        players.id AS player_id,
+        players.first_name,
+        players.last_name,
+        event_player_signups.signup_status,
+        event_attendance.is_present,
+        event_attendance.is_late
+      FROM players
+      LEFT JOIN event_player_signups
+        ON event_player_signups.player_id = players.id
+       AND event_player_signups.event_id = ?
+      LEFT JOIN event_attendance
+        ON event_attendance.player_id = players.id
+       AND event_attendance.event_id = ?
+      WHERE players.is_active = 1
+      ORDER BY
+        CASE COALESCE(event_player_signups.signup_status, 'unknown')
+          WHEN 'available' THEN 0
+          WHEN 'unknown' THEN 1
+          WHEN 'unavailable' THEN 2
+          ELSE 3
+        END,
+        players.last_name COLLATE NOCASE,
+        players.first_name COLLATE NOCASE
+    `,
+    [eventId, eventId]
+  );
+
+  return rows.map(mapAttendancePlayerRow);
+}
+
+export async function saveEventAttendanceAsync(eventId: number, attendance: EventAttendanceInput[]) {
+  const db = await getDatabaseAsync();
+  await ensureEventStorageAsync(db);
+
+  await db.withTransactionAsync(async () => {
+    for (const playerAttendance of attendance) {
+      await db.runAsync(
+        `
+          INSERT INTO event_attendance (
+            event_id,
+            player_id,
+            is_present,
+            is_late
+          )
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(event_id, player_id)
+          DO UPDATE SET
+            is_present = excluded.is_present,
+            is_late = excluded.is_late
+        `,
+        [
+          eventId,
+          playerAttendance.playerId,
+          Number(playerAttendance.isPresent),
+          Number(playerAttendance.isPresent && playerAttendance.isLate),
+        ]
+      );
+    }
+
+    await db.runAsync(
+      `
+        UPDATE events
+        SET attendance_status = 'marked'
+        WHERE id = ?
+      `,
+      [eventId]
+    );
+  });
+}
+
 async function ensureEventStorageAsync(db: SQLiteDatabase) {
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS events (
@@ -127,6 +271,18 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
       FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
       FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS event_attendance (
+      event_id INTEGER NOT NULL,
+      player_id INTEGER NOT NULL,
+      is_present INTEGER NOT NULL DEFAULT 0,
+      is_late INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (event_id, player_id),
+      FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE,
+      FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+    );
   `);
 
   await ensureEventsColumnAsync(db, 'start_time', 'TEXT');
@@ -147,6 +303,9 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
     CREATE INDEX IF NOT EXISTS idx_event_player_signups_player_id
       ON event_player_signups (player_id);
 
+    CREATE INDEX IF NOT EXISTS idx_event_attendance_player_id
+      ON event_attendance (player_id);
+
     CREATE TRIGGER IF NOT EXISTS trg_events_updated_at
     AFTER UPDATE ON events
     FOR EACH ROW
@@ -166,7 +325,17 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
         AND player_id = OLD.player_id;
     END;
 
-    PRAGMA user_version = 4;
+    CREATE TRIGGER IF NOT EXISTS trg_event_attendance_updated_at
+    AFTER UPDATE ON event_attendance
+    FOR EACH ROW
+    BEGIN
+      UPDATE event_attendance
+      SET updated_at = datetime('now')
+      WHERE event_id = OLD.event_id
+        AND player_id = OLD.player_id;
+    END;
+
+    PRAGMA user_version = 5;
   `);
 }
 
@@ -199,6 +368,21 @@ function mapEventRow(row: EventRow): CoachEvent {
     unknownCount: row.unknown_count,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function mapAttendancePlayerRow(row: EventAttendancePlayerRow): EventAttendancePlayer {
+  const signupStatus = normalizeSignupStatus(row.signup_status ?? 'unknown');
+  const hasSavedAttendance = row.is_present !== null;
+  const isPresent = hasSavedAttendance ? row.is_present === 1 : signupStatus === 'available';
+
+  return {
+    playerId: row.player_id,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    signupStatus,
+    isPresent,
+    isLate: isPresent && row.is_late === 1,
   };
 }
 
