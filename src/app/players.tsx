@@ -30,6 +30,8 @@ import {
   type Player,
   type PlayerPosition,
 } from "@/features/players/player-types";
+import { listPlayerAttendanceStatsAsync } from "@/features/player-stats/player-stats-repository";
+import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
 import { useTheme } from "@/hooks/use-theme";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
 
@@ -54,17 +56,20 @@ const emptyFormState: PlayerFormState = {
 const WarningColor = "#F59E0B";
 const WarningTextColor = "#111827";
 const ErrorColor = "#B42318";
+const StatsColor = "#2563EB";
 const ActionTextColor = "#ffffff";
 
 export default function PlayersScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const [players, setPlayers] = useState<Player[]>([]);
+  const [playerStats, setPlayerStats] = useState<PlayerAttendanceStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBirthDatePickerOpen, setIsBirthDatePickerOpen] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
+  const [selectedStatsPlayerId, setSelectedStatsPlayerId] = useState<number | null>(null);
   const [form, setForm] = useState<PlayerFormState>(emptyFormState);
 
   const insets = useMemo(
@@ -93,8 +98,12 @@ export default function PlayersScreen() {
     setIsLoading(true);
 
     try {
-      const nextPlayers = await listPlayersAsync();
+      const [nextPlayers, nextPlayerStats] = await Promise.all([
+        listPlayersAsync(),
+        listPlayerAttendanceStatsAsync(),
+      ]);
       setPlayers(nextPlayers);
+      setPlayerStats(nextPlayerStats);
     } catch (error) {
       console.warn("Failed to load players", error);
       Alert.alert("Could not load players", "Please try again.");
@@ -106,10 +115,11 @@ export default function PlayersScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    listPlayersAsync()
-      .then((nextPlayers) => {
+    Promise.all([listPlayersAsync(), listPlayerAttendanceStatsAsync()])
+      .then(([nextPlayers, nextPlayerStats]) => {
         if (isMounted) {
           setPlayers(nextPlayers);
+          setPlayerStats(nextPlayerStats);
         }
       })
       .catch((error: unknown) => {
@@ -297,6 +307,13 @@ export default function PlayersScreen() {
     }
   }
 
+  const playerStatsById = useMemo(
+    () => new Map(playerStats.map((stats) => [stats.playerId, stats])),
+    [playerStats],
+  );
+  const selectedStatsPlayer =
+    players.find((player) => player.id === selectedStatsPlayerId) ?? null;
+
   return (
     <>
       <ScrollView
@@ -353,67 +370,13 @@ export default function PlayersScreen() {
           ) : (
             <ThemedView style={styles.playerList}>
               {players.map((player) => (
-                <ThemedView
+                <PlayerCard
                   key={player.id}
-                  type="backgroundElement"
-                  style={styles.playerRow}
-                >
-                  <ThemedView
-                    type="backgroundElement"
-                    style={styles.playerNameGroup}
-                  >
-                    <ThemedText type="default">
-                      {player.firstName} {player.lastName}
-                    </ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {getPlayerPositionLabel(player.position, DEFAULT_LOCALE)}
-                      {player.kitNumber !== null
-                        ? ` · #${player.kitNumber}`
-                        : ""}
-                    </ThemedText>
-                  </ThemedView>
-                  <ThemedView
-                    type="backgroundElement"
-                    style={styles.playerActions}
-                  >
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Edit ${player.firstName} ${player.lastName}`}
-                      onPress={() => openEditPlayerForm(player)}
-                      style={({ pressed }) => [
-                        styles.rowActionButton,
-                        styles.editButton,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <SymbolView
-                        name={{ ios: "pencil", android: "edit", web: "edit" }}
-                        tintColor={WarningTextColor}
-                        size={16}
-                      />
-                    </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Delete ${player.firstName} ${player.lastName}`}
-                      onPress={() => handleArchivePlayer(player)}
-                      style={({ pressed }) => [
-                        styles.rowActionButton,
-                        styles.deleteButton,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <SymbolView
-                        name={{
-                          ios: "trash",
-                          android: "delete",
-                          web: "delete",
-                        }}
-                        tintColor={ActionTextColor}
-                        size={16}
-                      />
-                    </Pressable>
-                  </ThemedView>
-                </ThemedView>
+                  player={player}
+                  onArchivePlayer={handleArchivePlayer}
+                  onEditPlayer={openEditPlayerForm}
+                  onOpenStats={() => setSelectedStatsPlayerId(player.id)}
+                />
               ))}
             </ThemedView>
           )}
@@ -580,7 +543,302 @@ export default function PlayersScreen() {
           </ThemedView>
         </KeyboardAvoidingView>
       </Modal>
+
+      <PlayerProfileStatsModal
+        player={selectedStatsPlayer}
+        stats={
+          selectedStatsPlayer
+            ? playerStatsById.get(selectedStatsPlayer.id) ?? createEmptyPlayerStats(selectedStatsPlayer)
+            : null
+        }
+        visible={selectedStatsPlayer !== null}
+        onClose={() => setSelectedStatsPlayerId(null)}
+      />
     </>
+  );
+}
+
+function PlayerCard({
+  player,
+  onArchivePlayer,
+  onEditPlayer,
+  onOpenStats,
+}: {
+  player: Player;
+  onArchivePlayer: (player: Player) => void;
+  onEditPlayer: (player: Player) => void;
+  onOpenStats: () => void;
+}) {
+  return (
+    <ThemedView type="backgroundElement" style={styles.playerCard}>
+      <ThemedView type="backgroundElement" style={styles.playerRow}>
+        <ThemedView type="backgroundElement" style={styles.playerToggle}>
+          <ThemedView type="backgroundElement" style={styles.playerNameGroup}>
+            <ThemedText type="default">
+              {player.firstName} {player.lastName}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {getPlayerPositionLabel(player.position, DEFAULT_LOCALE)}
+              {player.kitNumber !== null ? ` · #${player.kitNumber}` : ""}
+            </ThemedText>
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.playerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`View stats for ${player.firstName} ${player.lastName}`}
+            onPress={onOpenStats}
+            style={({ pressed }) => [
+              styles.rowActionButton,
+              styles.statsButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <SymbolView
+              name={{ ios: "chart.bar.xaxis", android: "bar_chart", web: "bar_chart" }}
+              tintColor={ActionTextColor}
+              size={16}
+            />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${player.firstName} ${player.lastName}`}
+            onPress={() => onEditPlayer(player)}
+            style={({ pressed }) => [
+              styles.rowActionButton,
+              styles.editButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <SymbolView
+              name={{ ios: "pencil", android: "edit", web: "edit" }}
+              tintColor={WarningTextColor}
+              size={16}
+            />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${player.firstName} ${player.lastName}`}
+            onPress={() => onArchivePlayer(player)}
+            style={({ pressed }) => [
+              styles.rowActionButton,
+              styles.deleteButton,
+              pressed && styles.pressed,
+            ]}
+          >
+            <SymbolView
+              name={{ ios: "trash", android: "delete", web: "delete" }}
+              tintColor={ActionTextColor}
+              size={16}
+            />
+          </Pressable>
+        </ThemedView>
+      </ThemedView>
+    </ThemedView>
+  );
+}
+
+function PlayerProfileStatsModal({
+  onClose,
+  player,
+  stats,
+  visible,
+}: {
+  onClose: () => void;
+  player: Player | null;
+  stats: PlayerAttendanceStats | null;
+  visible: boolean;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.modalOverlay}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={onClose} />
+        <ThemedView style={styles.modalSheet}>
+          <ThemedView style={styles.modalHeader}>
+            <ThemedView style={styles.statsModalTitleGroup}>
+              <ThemedText type="subtitle" style={styles.statsModalPlayerName}>
+                {player ? `${player.firstName} ${player.lastName}` : "Player stats"}
+              </ThemedText>
+              {player ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  {getPlayerPositionLabel(player.position, DEFAULT_LOCALE)}
+                  {player.kitNumber !== null ? ` · #${player.kitNumber}` : ""}
+                </ThemedText>
+              ) : null}
+            </ThemedView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close player statistics"
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <SymbolView
+                name={{ ios: "xmark", android: "close", web: "close" }}
+                tintColor={theme.text}
+                size={18}
+              />
+            </Pressable>
+          </ThemedView>
+
+          <ScrollView contentContainerStyle={styles.statsModalContent}>
+            {stats ? <PlayerStatsPanel stats={stats} /> : null}
+          </ScrollView>
+        </ThemedView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
+  const hasMarkedEvents = stats.totalEvents + stats.teamEvents > 0;
+
+  if (!hasMarkedEvents) {
+    return (
+      <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
+        <ThemedText type="smallBold">No marked attendance yet</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          These stats update after attendance is saved for an event.
+        </ThemedText>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.statsSections}>
+      <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
+        <ThemedText type="smallBold">Attendance</ThemedText>
+        <ThemedView type="backgroundElement" style={styles.statList}>
+          <PlayerStatRow
+            label="Football"
+            value={formatPercentage(stats.attendancePercentage)}
+            detail={`${stats.attendedEvents}/${stats.totalEvents} attended`}
+          />
+          <PlayerStatRow
+            label="Training"
+            value={formatPercentage(stats.trainingAttendancePercentage)}
+            detail={`${stats.trainingAttended}/${stats.trainingEvents} attended`}
+          />
+          <PlayerStatRow
+            label="Matches"
+            value={formatPercentage(stats.matchAttendancePercentage)}
+            detail={`${stats.matchAttended}/${stats.matchEvents} attended`}
+          />
+          <PlayerStatRow
+            label="Late"
+            value={formatPercentage(stats.latePercentage)}
+            detail={`${stats.lateCount} ${stats.lateCount === 1 ? "time" : "times"}`}
+          />
+          <PlayerStatRow
+            label="Available but absent"
+            value={String(stats.availableButAbsentCount)}
+            detail="signed available, did not attend"
+          />
+          <PlayerStatRow
+            label="Out but attended"
+            value={String(stats.signedOutButAttendedCount)}
+            detail="signed out, still attended"
+          />
+        </ThemedView>
+      </ThemedView>
+
+      <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
+        <ThemedText type="smallBold">Match data</ThemedText>
+        <ThemedView type="backgroundElement" style={styles.statList}>
+          <PlayerStatRow
+            label="Matches played"
+            value={String(stats.matchAttended)}
+            detail={`${stats.matchEvents} marked matches`}
+          />
+          <PlayerStatRow
+            label="Total minutes"
+            value={String(stats.totalMatchMinutes)}
+            detail="recorded match minutes"
+          />
+          <PlayerStatRow
+            label="Average minutes"
+            value={formatNullableNumber(stats.averageMatchMinutes)}
+            detail="per match with minutes"
+          />
+          <PlayerStatRow
+            label="Average rating"
+            value={formatNullableNumber(stats.averageMatchRating)}
+            detail="per rated match"
+          />
+        </ThemedView>
+        <RecentMatchRatings ratings={stats.recentMatchRatings.map((rating) => rating.rating)} />
+      </ThemedView>
+
+      <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
+        <ThemedText type="smallBold">Team events</ThemedText>
+        <ThemedView type="backgroundElement" style={styles.statList}>
+          <PlayerStatRow
+            label="Attendance"
+            value={formatPercentage(stats.teamEventAttendancePercentage)}
+            detail={`${stats.teamEventsAttended}/${stats.teamEvents} attended`}
+          />
+        </ThemedView>
+      </ThemedView>
+    </ThemedView>
+  );
+}
+
+function RecentMatchRatings({ ratings }: { ratings: number[] }) {
+  return (
+    <ThemedView type="backgroundElement" style={styles.recentRatingsGroup}>
+      <ThemedText type="smallBold">Recent form</ThemedText>
+      {ratings.length === 0 ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          No match ratings yet.
+        </ThemedText>
+      ) : (
+        <ThemedView type="backgroundElement" style={styles.recentRatingList}>
+          {ratings.map((rating, index) => (
+            <ThemedView
+              key={`${rating}-${index}`}
+              style={[styles.recentRatingPill, getRecentRatingStyle(rating)]}>
+              <ThemedText
+                type="smallBold"
+                style={[styles.recentRatingText, getRecentRatingTextStyle(rating)]}>
+                {rating}
+              </ThemedText>
+            </ThemedView>
+          ))}
+        </ThemedView>
+      )}
+    </ThemedView>
+  );
+}
+
+function PlayerStatRow({
+  detail,
+  label,
+  value,
+}: {
+  detail: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <ThemedView type="backgroundElement" style={styles.statRow}>
+      <ThemedView type="backgroundElement" style={styles.statRowText}>
+        <ThemedText type="smallBold">{label}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {detail}
+        </ThemedText>
+      </ThemedView>
+      <ThemedText type="default" style={styles.statRowValue}>
+        {value}
+      </ThemedText>
+    </ThemedView>
   );
 }
 
@@ -842,6 +1100,60 @@ function confirmDuplicatePlayer(playerName: string, onConfirm: () => void) {
   ]);
 }
 
+function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
+  return {
+    playerId: player.id,
+    firstName: player.firstName,
+    lastName: player.lastName,
+    nickName: player.nickName,
+    position: player.position,
+    totalEvents: 0,
+    attendedEvents: 0,
+    attendancePercentage: null,
+    trainingEvents: 0,
+    trainingAttended: 0,
+    trainingAttendancePercentage: null,
+    matchEvents: 0,
+    matchAttended: 0,
+    matchAttendancePercentage: null,
+    teamEvents: 0,
+    teamEventsAttended: 0,
+    teamEventAttendancePercentage: null,
+    totalMatchMinutes: 0,
+    averageMatchMinutes: null,
+    averageMatchRating: null,
+    lateCount: 0,
+    latePercentage: null,
+    availableButAbsentCount: 0,
+    signedOutButAttendedCount: 0,
+    recentMatchRatings: [],
+  };
+}
+
+function formatPercentage(value: number | null) {
+  return value === null ? "-" : `${value}%`;
+}
+
+function formatNullableNumber(value: number | null) {
+  return value === null ? "-" : String(value);
+}
+
+function getRecentRatingStyle(rating: number) {
+  if (rating >= 8) {
+    return styles.recentRatingGood;
+  }
+
+  if (rating >= 5) {
+    return styles.recentRatingOk;
+  }
+
+  return styles.recentRatingPoor;
+}
+
+function getRecentRatingTextStyle(rating: number) {
+  return rating >= 5 && rating < 8 ? styles.recentRatingTextDark : styles.recentRatingTextLight;
+}
+
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
@@ -902,14 +1214,22 @@ const styles = StyleSheet.create({
   playerList: {
     gap: Spacing.two,
   },
+  playerCard: {
+    borderRadius: Spacing.three,
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
   playerRow: {
     alignItems: "center",
-    borderRadius: Spacing.three,
     flexDirection: "row",
     gap: Spacing.two,
-    minHeight: 76,
-    justifyContent: "center",
-    padding: Spacing.three,
+    minHeight: 52,
+  },
+  playerToggle: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: Spacing.two,
   },
   playerNameGroup: {
     flex: 1,
@@ -932,8 +1252,81 @@ const styles = StyleSheet.create({
   editButton: {
     backgroundColor: WarningColor,
   },
+  statsButton: {
+    backgroundColor: StatsColor,
+  },
   deleteButton: {
     backgroundColor: ErrorColor,
+  },
+  playerStatsPanel: {
+    borderRadius: Spacing.two,
+    gap: Spacing.two,
+    padding: Spacing.three,
+  },
+  statsSections: {
+    gap: Spacing.three,
+  },
+  statList: {
+    gap: Spacing.two,
+  },
+  statRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.three,
+    justifyContent: "space-between",
+    minHeight: 48,
+  },
+  statRowText: {
+    flex: 1,
+    gap: Spacing.half,
+  },
+  statRowValue: {
+    textAlign: "right",
+  },
+  recentRatingsGroup: {
+    gap: Spacing.two,
+  },
+  recentRatingList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.one,
+  },
+  recentRatingPill: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  recentRatingGood: {
+    backgroundColor: "#1C7C54",
+  },
+  recentRatingOk: {
+    backgroundColor: WarningColor,
+  },
+  recentRatingPoor: {
+    backgroundColor: ErrorColor,
+  },
+  recentRatingText: {
+    textAlign: "center",
+  },
+  recentRatingTextLight: {
+    color: "#ffffff",
+  },
+  recentRatingTextDark: {
+    color: WarningTextColor,
+  },
+  statsModalTitleGroup: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  statsModalPlayerName: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  statsModalContent: {
+    gap: Spacing.three,
+    paddingBottom: Spacing.one,
   },
   modalOverlay: {
     flex: 1,
