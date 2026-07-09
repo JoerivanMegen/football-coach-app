@@ -15,7 +15,6 @@ export type PlayerAttendanceStats = {
   position: PlayerPosition;
   totalEvents: number;
   attendedEvents: number;
-  attendancePercentage: number | null;
   trainingEvents: number;
   trainingAttended: number;
   trainingAttendancePercentage: number | null;

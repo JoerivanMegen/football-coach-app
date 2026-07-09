@@ -198,7 +198,6 @@ function mapPlayerAttendanceStatsRow(
     position: normalizePlayerPosition(row.position),
     totalEvents,
     attendedEvents,
-    attendancePercentage: calculatePercentage(attendedEvents, totalEvents),
     trainingEvents,
     trainingAttended,
     trainingAttendancePercentage: calculatePercentage(trainingAttended, trainingEvents),

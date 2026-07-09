@@ -16,7 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import {
+  BottomTabInset,
+  MaxContentWidth,
+  PageTopPadding,
+  Spacing,
+} from "@/constants/theme";
+import { listPlayerAttendanceStatsAsync } from "@/features/player-stats/player-stats-repository";
+import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
 import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
 import {
   archivePlayerAsync,
@@ -30,8 +37,6 @@ import {
   type Player,
   type PlayerPosition,
 } from "@/features/players/player-types";
-import { listPlayerAttendanceStatsAsync } from "@/features/player-stats/player-stats-repository";
-import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
 import { useTheme } from "@/hooks/use-theme";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
 
@@ -69,7 +74,10 @@ export default function PlayersScreen() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBirthDatePickerOpen, setIsBirthDatePickerOpen] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
-  const [selectedStatsPlayerId, setSelectedStatsPlayerId] = useState<number | null>(null);
+  const [selectedStatsPlayerId, setSelectedStatsPlayerId] = useState<
+    number | null
+  >(null);
+  const [isTeamStatsOpen, setIsTeamStatsOpen] = useState(false);
   const [form, setForm] = useState<PlayerFormState>(emptyFormState);
 
   const insets = useMemo(
@@ -79,7 +87,6 @@ export default function PlayersScreen() {
     }),
     [safeAreaInsets],
   );
-
   const contentPlatformStyle = Platform.select({
     android: {
       paddingTop: insets.top,
@@ -332,24 +339,43 @@ export default function PlayersScreen() {
               </ThemedText>
             </ThemedView>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add player"
-              onPress={openAddPlayerForm}
-              style={({ pressed }) => [
-                styles.addButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <SymbolView
-                name={{ ios: "plus", android: "add", web: "add" }}
-                tintColor="#ffffff"
-                size={18}
-              />
-              <ThemedText type="smallBold" style={styles.addButtonText}>
-                Add player
-              </ThemedText>
-            </Pressable>
+            <ThemedView style={styles.headerActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add player"
+                onPress={openAddPlayerForm}
+                style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}
+              >
+                <SymbolView
+                  name={{ ios: "plus", android: "add", web: "add" }}
+                  tintColor="#ffffff"
+                  size={18}
+                />
+                <ThemedText type="smallBold" style={styles.actionButtonText}>
+                  Add player
+                </ThemedText>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open team statistics"
+                onPress={() => setIsTeamStatsOpen(true)}
+                style={({ pressed }) => [styles.teamStatsButton, pressed && styles.pressed]}
+              >
+                <SymbolView
+                  name={{
+                    ios: "chart.bar.xaxis",
+                    android: "bar_chart",
+                    web: "bar_chart",
+                  }}
+                  tintColor="#ffffff"
+                  size={18}
+                />
+                <ThemedText type="smallBold" style={styles.actionButtonText}>
+                  Team stats
+                </ThemedText>
+              </Pressable>
+            </ThemedView>
           </ThemedView>
 
           {isLoading ? (
@@ -359,11 +385,7 @@ export default function PlayersScreen() {
           ) : players.length === 0 ? (
             <ThemedView type="backgroundElement" style={styles.emptyPanel}>
               <ThemedText type="smallBold">No players yet</ThemedText>
-              <ThemedText
-                type="small"
-                themeColor="textSecondary"
-                style={styles.emptyText}
-              >
+              <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
                 Add your first player to start building the squad.
               </ThemedText>
             </ThemedView>
@@ -548,11 +570,18 @@ export default function PlayersScreen() {
         player={selectedStatsPlayer}
         stats={
           selectedStatsPlayer
-            ? playerStatsById.get(selectedStatsPlayer.id) ?? createEmptyPlayerStats(selectedStatsPlayer)
+            ? (playerStatsById.get(selectedStatsPlayer.id) ??
+              createEmptyPlayerStats(selectedStatsPlayer))
             : null
         }
         visible={selectedStatsPlayer !== null}
         onClose={() => setSelectedStatsPlayerId(null)}
+      />
+
+      <TeamStatsModal
+        stats={playerStats}
+        visible={isTeamStatsOpen}
+        onClose={() => setIsTeamStatsOpen(false)}
       />
     </>
   );
@@ -596,7 +625,11 @@ function PlayerCard({
             ]}
           >
             <SymbolView
-              name={{ ios: "chart.bar.xaxis", android: "bar_chart", web: "bar_chart" }}
+              name={{
+                ios: "chart.bar.xaxis",
+                android: "bar_chart",
+                web: "bar_chart",
+              }}
               tintColor={ActionTextColor}
               size={16}
             />
@@ -653,7 +686,12 @@ function PlayerProfileStatsModal({
   const theme = useTheme();
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.modalOverlay}
@@ -663,7 +701,9 @@ function PlayerProfileStatsModal({
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.statsModalTitleGroup}>
               <ThemedText type="subtitle" style={styles.statsModalPlayerName}>
-                {player ? `${player.firstName} ${player.lastName}` : "Player stats"}
+                {player
+                  ? `${player.firstName} ${player.lastName}`
+                  : "Player stats"}
               </ThemedText>
               {player ? (
                 <ThemedText type="small" themeColor="textSecondary">
@@ -698,6 +738,182 @@ function PlayerProfileStatsModal({
   );
 }
 
+function TeamStatsModal({
+  onClose,
+  stats,
+  visible,
+}: {
+  onClose: () => void;
+  stats: PlayerAttendanceStats[];
+  visible: boolean;
+}) {
+  const safeAreaInsets = useSafeAreaInsets();
+  const theme = useTheme();
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <ThemedView
+        style={[
+          styles.teamStatsModalScreen,
+          {
+            paddingTop: safeAreaInsets.top + PageTopPadding,
+            paddingBottom: safeAreaInsets.bottom + Spacing.three,
+          },
+        ]}
+      >
+        <ThemedView style={styles.teamStatsModalHeader}>
+          <ThemedView style={styles.teamStatsModalTitleGroup}>
+            <ThemedText type="subtitle" style={styles.teamStatsModalTitle}>
+              Team stats
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Compare player attendance, match minutes, and recent form.
+            </ThemedText>
+          </ThemedView>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close team statistics"
+            onPress={onClose}
+            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
+          >
+            <SymbolView
+              name={{ ios: "xmark", android: "close", web: "close" }}
+              tintColor={theme.text}
+              size={18}
+            />
+          </Pressable>
+        </ThemedView>
+
+        {stats.length === 0 ? (
+          <ThemedView type="backgroundElement" style={styles.emptyPanel}>
+            <ThemedText type="smallBold">No team stats yet</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
+              Add players and mark attendance to build the team overview.
+            </ThemedText>
+          </ThemedView>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            contentContainerStyle={styles.teamStatsTableScrollContent}
+          >
+            <ThemedView type="backgroundElement" style={styles.teamStatsTable}>
+              <ThemedView type="backgroundSelected" style={styles.teamStatsTableHeaderRow}>
+                <TeamStatsHeaderCell label="Player" style={styles.teamStatsPlayerCell} />
+                <TeamStatsHeaderCell label="Training %" />
+                <TeamStatsHeaderCell label="Match %" />
+                <TeamStatsHeaderCell label="Late %" />
+                <TeamStatsHeaderCell label="Avg min" />
+                <TeamStatsHeaderCell label="Goals" />
+                <TeamStatsHeaderCell label="Assists" />
+                <TeamStatsHeaderCell label="Avg rating" />
+                <TeamStatsHeaderCell label="Last 5" style={styles.teamStatsRecentCell} />
+              </ThemedView>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {stats.map((playerStats) => (
+                  <ThemedView
+                    key={playerStats.playerId}
+                    type="backgroundElement"
+                    style={styles.teamStatsTableRow}
+                  >
+                    <ThemedView
+                      type="backgroundElement"
+                      style={[styles.teamStatsPlayerCell, styles.teamStatsPlayerDataCell]}
+                    >
+                      <ThemedText type="smallBold">
+                        {playerStats.firstName} {playerStats.lastName}
+                      </ThemedText>
+                      <ThemedText type="code" themeColor="textSecondary">
+                        {getPlayerPositionLabel(playerStats.position, DEFAULT_LOCALE)}
+                      </ThemedText>
+                    </ThemedView>
+                    <TeamStatsValueCell
+                      value={formatPercentage(playerStats.trainingAttendancePercentage)}
+                    />
+                    <TeamStatsValueCell
+                      value={formatPercentage(playerStats.matchAttendancePercentage)}
+                    />
+                    <TeamStatsValueCell value={formatPercentage(playerStats.latePercentage)} />
+                    <TeamStatsValueCell
+                      value={formatNullableNumber(playerStats.averageMatchMinutes)}
+                    />
+                    <TeamStatsValueCell value="-" />
+                    <TeamStatsValueCell value="-" />
+                    <TeamStatsValueCell
+                      value={formatNullableNumber(playerStats.averageMatchRating)}
+                    />
+                    <ThemedView type="backgroundElement" style={styles.teamStatsRecentCell}>
+                      <TeamStatsRecentRatings
+                        ratings={playerStats.recentMatchRatings.map((rating) => rating.rating)}
+                      />
+                    </ThemedView>
+                  </ThemedView>
+                ))}
+              </ScrollView>
+            </ThemedView>
+          </ScrollView>
+        )}
+      </ThemedView>
+    </Modal>
+  );
+}
+
+function TeamStatsHeaderCell({
+  label,
+  style,
+}: {
+  label: string;
+  style?: object;
+}) {
+  return (
+    <ThemedView type="backgroundSelected" style={[styles.teamStatsTableCell, style]}>
+      <ThemedText type="code" themeColor="textSecondary" style={styles.teamStatsHeaderText}>
+        {label}
+      </ThemedText>
+    </ThemedView>
+  );
+}
+
+function TeamStatsValueCell({ value }: { value: string }) {
+  return (
+    <ThemedView type="backgroundElement" style={styles.teamStatsTableCell}>
+      <ThemedText type="smallBold" style={styles.teamStatsValueText}>
+        {value}
+      </ThemedText>
+    </ThemedView>
+  );
+}
+
+function TeamStatsRecentRatings({ ratings }: { ratings: number[] }) {
+  if (ratings.length === 0) {
+    return (
+      <ThemedText type="small" themeColor="textSecondary">
+        -
+      </ThemedText>
+    );
+  }
+
+  return (
+    <ThemedView type="backgroundElement" style={styles.teamStatsRecentRatings}>
+      {ratings.map((rating, index) => (
+        <ThemedView
+          key={`${rating}-${index}`}
+          style={[styles.teamStatsRecentRatingPill, getRecentRatingStyle(rating)]}
+        >
+          <ThemedText
+            type="smallBold"
+            style={[styles.teamStatsRecentRatingText, getRecentRatingTextStyle(rating)]}
+          >
+            {rating}
+          </ThemedText>
+        </ThemedView>
+      ))}
+    </ThemedView>
+  );
+}
+
 function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
   const hasMarkedEvents = stats.totalEvents + stats.teamEvents > 0;
 
@@ -717,11 +933,6 @@ function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
       <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
         <ThemedText type="smallBold">Attendance</ThemedText>
         <ThemedView type="backgroundElement" style={styles.statList}>
-          <PlayerStatRow
-            label="Football"
-            value={formatPercentage(stats.attendancePercentage)}
-            detail={`${stats.attendedEvents}/${stats.totalEvents} attended`}
-          />
           <PlayerStatRow
             label="Training"
             value={formatPercentage(stats.trainingAttendancePercentage)}
@@ -774,7 +985,9 @@ function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
             detail="per rated match"
           />
         </ThemedView>
-        <RecentMatchRatings ratings={stats.recentMatchRatings.map((rating) => rating.rating)} />
+        <RecentMatchRatings
+          ratings={stats.recentMatchRatings.map((rating) => rating.rating)}
+        />
       </ThemedView>
 
       <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
@@ -804,10 +1017,15 @@ function RecentMatchRatings({ ratings }: { ratings: number[] }) {
           {ratings.map((rating, index) => (
             <ThemedView
               key={`${rating}-${index}`}
-              style={[styles.recentRatingPill, getRecentRatingStyle(rating)]}>
+              style={[styles.recentRatingPill, getRecentRatingStyle(rating)]}
+            >
               <ThemedText
                 type="smallBold"
-                style={[styles.recentRatingText, getRecentRatingTextStyle(rating)]}>
+                style={[
+                  styles.recentRatingText,
+                  getRecentRatingTextStyle(rating),
+                ]}
+              >
                 {rating}
               </ThemedText>
             </ThemedView>
@@ -1109,7 +1327,6 @@ function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
     position: player.position,
     totalEvents: 0,
     attendedEvents: 0,
-    attendancePercentage: null,
     trainingEvents: 0,
     trainingAttended: 0,
     trainingAttendancePercentage: null,
@@ -1151,7 +1368,9 @@ function getRecentRatingStyle(rating: number) {
 }
 
 function getRecentRatingTextStyle(rating: number) {
-  return rating >= 5 && rating < 8 ? styles.recentRatingTextDark : styles.recentRatingTextLight;
+  return rating >= 5 && rating < 8
+    ? styles.recentRatingTextDark
+    : styles.recentRatingTextLight;
 }
 
 const styles = StyleSheet.create({
@@ -1185,6 +1404,10 @@ const styles = StyleSheet.create({
   description: {
     maxWidth: 560,
   },
+  headerActions: {
+    alignItems: "flex-end",
+    gap: Spacing.two,
+  },
   addButton: {
     alignItems: "center",
     backgroundColor: "#1C7C54",
@@ -1194,7 +1417,16 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
-  addButtonText: {
+  teamStatsButton: {
+    alignItems: "center",
+    backgroundColor: StatsColor,
+    borderRadius: Spacing.three,
+    flexDirection: "row",
+    gap: Spacing.one,
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
+  actionButtonText: {
     color: "#ffffff",
   },
   pressed: {
@@ -1327,6 +1559,85 @@ const styles = StyleSheet.create({
   statsModalContent: {
     gap: Spacing.three,
     paddingBottom: Spacing.one,
+  },
+  teamStatsModalScreen: {
+    flex: 1,
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.four,
+  },
+  teamStatsModalHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: Spacing.three,
+    justifyContent: "space-between",
+  },
+  teamStatsModalTitleGroup: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  teamStatsModalTitle: {
+    lineHeight: 38,
+  },
+  teamStatsTableScrollContent: {
+    paddingBottom: Spacing.three,
+  },
+  teamStatsTable: {
+    borderRadius: Spacing.three,
+    minWidth: 1030,
+    overflow: "hidden",
+  },
+  teamStatsTableHeaderRow: {
+    flexDirection: "row",
+    minHeight: 48,
+  },
+  teamStatsTableRow: {
+    borderTopColor: "rgba(128, 128, 128, 0.18)",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    minHeight: 64,
+  },
+  teamStatsTableCell: {
+    justifyContent: "center",
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+    width: 92,
+  },
+  teamStatsPlayerCell: {
+    paddingLeft: Spacing.three,
+    paddingRight: Spacing.three,
+    width: 170,
+  },
+  teamStatsPlayerDataCell: {
+    paddingBottom: Spacing.three,
+    paddingTop: Spacing.three,
+  },
+  teamStatsRecentCell: {
+    justifyContent: "center",
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two,
+    width: 210,
+  },
+  teamStatsHeaderText: {
+    textTransform: "uppercase",
+  },
+  teamStatsValueText: {
+    textAlign: "center",
+  },
+  teamStatsRecentRatings: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.one,
+  },
+  teamStatsRecentRatingPill: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    height: 28,
+    justifyContent: "center",
+    width: 32,
+  },
+  teamStatsRecentRatingText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,
