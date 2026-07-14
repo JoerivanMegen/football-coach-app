@@ -41,6 +41,8 @@ type EventAttendancePlayerRow = {
   signup_status: string | null;
   is_present: number | null;
   is_late: number | null;
+  minutes_played: number | null;
+  match_rating: number | null;
 };
 
 export async function listEventsAsync() {
@@ -180,7 +182,9 @@ export async function listEventAttendancePlayersAsync(eventId: number) {
         players.last_name,
         event_player_signups.signup_status,
         event_attendance.is_present,
-        event_attendance.is_late
+        event_attendance.is_late,
+        event_attendance.minutes_played,
+        event_attendance.match_rating
       FROM players
       LEFT JOIN event_player_signups
         ON event_player_signups.player_id = players.id
@@ -217,19 +221,25 @@ export async function saveEventAttendanceAsync(eventId: number, attendance: Even
             event_id,
             player_id,
             is_present,
-            is_late
+            is_late,
+            minutes_played,
+            match_rating
           )
-          VALUES (?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?)
           ON CONFLICT(event_id, player_id)
           DO UPDATE SET
             is_present = excluded.is_present,
-            is_late = excluded.is_late
+            is_late = excluded.is_late,
+            minutes_played = excluded.minutes_played,
+            match_rating = excluded.match_rating
         `,
         [
           eventId,
           playerAttendance.playerId,
           Number(playerAttendance.isPresent),
           Number(playerAttendance.isPresent && playerAttendance.isLate),
+          playerAttendance.isPresent ? playerAttendance.minutesPlayed ?? null : null,
+          playerAttendance.isPresent ? playerAttendance.matchRating ?? null : null,
         ]
       );
     }
@@ -277,6 +287,8 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
       player_id INTEGER NOT NULL,
       is_present INTEGER NOT NULL DEFAULT 0,
       is_late INTEGER NOT NULL DEFAULT 0,
+      minutes_played INTEGER,
+      match_rating INTEGER,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (event_id, player_id),
@@ -292,6 +304,8 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
   await ensureEventsColumnAsync(db, 'attendance_status', "TEXT NOT NULL DEFAULT 'not_marked'");
   await ensureEventsColumnAsync(db, 'created_at', "TEXT NOT NULL DEFAULT ''");
   await ensureEventsColumnAsync(db, 'updated_at', "TEXT NOT NULL DEFAULT ''");
+  await ensureEventAttendanceColumnAsync(db, 'minutes_played', 'INTEGER');
+  await ensureEventAttendanceColumnAsync(db, 'match_rating', 'INTEGER');
 
   await db.execAsync(`
     CREATE INDEX IF NOT EXISTS idx_events_event_date
@@ -335,7 +349,7 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
         AND player_id = OLD.player_id;
     END;
 
-    PRAGMA user_version = 5;
+    PRAGMA user_version = 7;
   `);
 }
 
@@ -349,6 +363,19 @@ async function ensureEventsColumnAsync(
 
   if (!hasColumn) {
     await db.execAsync(`ALTER TABLE events ADD COLUMN ${columnName} ${columnDefinition}`);
+  }
+}
+
+async function ensureEventAttendanceColumnAsync(
+  db: SQLiteDatabase,
+  columnName: string,
+  columnDefinition: string
+) {
+  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(event_attendance)');
+  const hasColumn = rows.some((row) => row.name === columnName);
+
+  if (!hasColumn) {
+    await db.execAsync(`ALTER TABLE event_attendance ADD COLUMN ${columnName} ${columnDefinition}`);
   }
 }
 
@@ -383,6 +410,8 @@ function mapAttendancePlayerRow(row: EventAttendancePlayerRow): EventAttendanceP
     signupStatus,
     isPresent,
     isLate: isPresent && row.is_late === 1,
+    minutesPlayed: isPresent ? row.minutes_played : null,
+    matchRating: isPresent ? row.match_rating : null,
   };
 }
 

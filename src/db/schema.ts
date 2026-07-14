@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const DATABASE_VERSION = 5;
+export const DATABASE_VERSION = 7;
 
 type UserVersionRow = {
   user_version: number;
@@ -294,6 +294,22 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       await db.execAsync('PRAGMA user_version = 5');
     });
   }
+
+  if (currentVersion < 6) {
+    await db.withTransactionAsync(async () => {
+      await ensureEventAttendanceColumnAsync(db, 'minutes_played', 'INTEGER');
+
+      await db.execAsync('PRAGMA user_version = 6');
+    });
+  }
+
+  if (currentVersion < 7) {
+    await db.withTransactionAsync(async () => {
+      await ensureEventAttendanceColumnAsync(db, 'match_rating', 'INTEGER');
+
+      await db.execAsync('PRAGMA user_version = 7');
+    });
+  }
 }
 
 async function ensureEventsColumnAsync(
@@ -306,5 +322,18 @@ async function ensureEventsColumnAsync(
 
   if (!hasColumn) {
     await db.execAsync(`ALTER TABLE events ADD COLUMN ${columnName} ${columnDefinition}`);
+  }
+}
+
+async function ensureEventAttendanceColumnAsync(
+  db: SQLiteDatabase,
+  columnName: string,
+  columnDefinition: string
+) {
+  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(event_attendance)');
+  const hasColumn = rows.some((row) => row.name === columnName);
+
+  if (!hasColumn) {
+    await db.execAsync(`ALTER TABLE event_attendance ADD COLUMN ${columnName} ${columnDefinition}`);
   }
 }

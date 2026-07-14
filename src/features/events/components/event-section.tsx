@@ -329,12 +329,24 @@ function EventCardDetails({
 
   return (
     <ThemedView type="backgroundSelected" style={styles.eventDetailsPanel}>
-      <EventPlayerList title="Attended" players={presentPlayers} />
+      <EventPlayerList
+        title="Attended"
+        players={presentPlayers}
+        showMatchDetails={event.type === 'match'}
+      />
     </ThemedView>
   );
 }
 
-function EventPlayerList({ players, title }: { players: EventAttendancePlayer[]; title: string }) {
+function EventPlayerList({
+  players,
+  showMatchDetails,
+  title,
+}: {
+  players: EventAttendancePlayer[];
+  showMatchDetails: boolean;
+  title: string;
+}) {
   return (
     <ThemedView type="backgroundSelected" style={styles.detailList}>
       <ThemedText type="smallBold">{title}</ThemedText>
@@ -342,17 +354,55 @@ function EventPlayerList({ players, title }: { players: EventAttendancePlayer[];
         <ThemedText type="small" themeColor="textSecondary">
           None
         </ThemedText>
+      ) : showMatchDetails ? (
+        <MatchAttendanceTable players={players} />
       ) : (
         players.map((player) => (
-          <ThemedText
-            key={player.playerId}
-            type="small"
-            themeColor="textSecondary"
-            style={player.isLate && styles.latePlayerText}>
-            {player.firstName} {player.lastName}
-          </ThemedText>
+          <ThemedView key={player.playerId} type="backgroundSelected" style={styles.detailPlayerRow}>
+            <ThemedText
+              type="small"
+              themeColor="textSecondary"
+              style={player.isLate && styles.latePlayerText}>
+              {player.firstName} {player.lastName}
+            </ThemedText>
+          </ThemedView>
         ))
       )}
+    </ThemedView>
+  );
+}
+
+function MatchAttendanceTable({ players }: { players: EventAttendancePlayer[] }) {
+  return (
+    <ThemedView type="backgroundSelected" style={styles.matchAttendanceTable}>
+      <ThemedView type="backgroundSelected" style={styles.matchAttendanceHeaderRow}>
+        <ThemedText type="code" themeColor="textSecondary" style={styles.matchAttendanceNameCell}>
+          Name
+        </ThemedText>
+        <ThemedText type="code" themeColor="textSecondary" style={styles.matchAttendanceStatCell}>
+          Min
+        </ThemedText>
+        <ThemedText type="code" themeColor="textSecondary" style={styles.matchAttendanceStatCell}>
+          Rating
+        </ThemedText>
+      </ThemedView>
+
+      {players.map((player) => (
+        <ThemedView key={player.playerId} type="backgroundSelected" style={styles.matchAttendanceRow}>
+          <ThemedText
+            type="small"
+            themeColor="textSecondary"
+            style={[styles.matchAttendanceNameCell, player.isLate && styles.latePlayerText]}>
+            {player.firstName} {player.lastName}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.matchAttendanceStatCell}>
+            {player.minutesPlayed === null ? '-' : player.minutesPlayed}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary" style={styles.matchAttendanceStatCell}>
+            {player.matchRating === null ? '-' : player.matchRating}
+          </ThemedText>
+        </ThemedView>
+      ))}
     </ThemedView>
   );
 }
@@ -430,6 +480,29 @@ const styles = StyleSheet.create({
   },
   detailList: {
     gap: Spacing.one,
+  },
+  detailPlayerRow: {
+    gap: Spacing.half,
+  },
+  matchAttendanceTable: {
+    gap: Spacing.one,
+  },
+  matchAttendanceHeaderRow: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  matchAttendanceRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.two,
+    minHeight: 28,
+  },
+  matchAttendanceNameCell: {
+    flex: 1,
+  },
+  matchAttendanceStatCell: {
+    textAlign: 'right',
+    width: 56,
   },
   latePlayerText: {
     color: '#F59E0B',

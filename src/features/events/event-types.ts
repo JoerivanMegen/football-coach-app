@@ -36,12 +36,16 @@ export type EventAttendancePlayer = {
   signupStatus: SignupStatus;
   isPresent: boolean;
   isLate: boolean;
+  minutesPlayed: number | null;
+  matchRating: number | null;
 };
 
 export type EventAttendanceInput = {
   playerId: number;
   isPresent: boolean;
   isLate: boolean;
+  minutesPlayed?: number | null;
+  matchRating?: number | null;
 };
 
 export type CreateEventInput = {
