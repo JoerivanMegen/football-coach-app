@@ -19,6 +19,7 @@ import { ThemedView } from "@/components/themed-view";
 import {
   BottomTabInset,
   MaxContentWidth,
+  ModalBackgroundColor,
   PageTopPadding,
   Spacing,
 } from "@/constants/theme";
@@ -1330,6 +1331,9 @@ function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
     trainingEvents: 0,
     trainingAttended: 0,
     trainingAttendancePercentage: null,
+    recentTrainingEvents: 0,
+    recentTrainingAttended: 0,
+    recentTrainingAttendancePercentage: null,
     matchEvents: 0,
     matchAttended: 0,
     matchAttendancePercentage: null,
@@ -1561,6 +1565,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.one,
   },
   teamStatsModalScreen: {
+    backgroundColor: ModalBackgroundColor,
     flex: 1,
     gap: Spacing.three,
     paddingHorizontal: Spacing.four,
@@ -1653,6 +1658,7 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     alignSelf: "center",
+    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,

@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, ModalBackgroundColor, Spacing } from '@/constants/theme';
 
 export const eventWizardStyles = StyleSheet.create({
   modalOverlay: {
@@ -17,6 +17,7 @@ export const eventWizardStyles = StyleSheet.create({
   },
   modalSheet: {
     alignSelf: 'center',
+    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,

@@ -15,6 +15,8 @@ type PlayerAttendanceStatsRow = {
   attended_events: number;
   training_events: number;
   training_attended: number;
+  recent_training_events: number;
+  recent_training_attended: number;
   match_events: number;
   match_attended: number;
   team_events: number;
@@ -62,6 +64,29 @@ export async function listPlayerAttendanceStatsAsync() {
         AS training_events,
       COALESCE(SUM(CASE WHEN events.type = 'training' AND event_attendance.is_present = 1 THEN 1 ELSE 0 END), 0)
         AS training_attended,
+      COALESCE(
+        SUM(
+          CASE
+            WHEN events.type = 'training'
+             AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date('now', '-35 days')
+            THEN 1
+            ELSE 0
+          END
+        ),
+        0
+      ) AS recent_training_events,
+      COALESCE(
+        SUM(
+          CASE
+            WHEN events.type = 'training'
+             AND event_attendance.is_present = 1
+             AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date('now', '-35 days')
+            THEN 1
+            ELSE 0
+          END
+        ),
+        0
+      ) AS recent_training_attended,
       COALESCE(SUM(CASE WHEN events.type = 'match' THEN 1 ELSE 0 END), 0)
         AS match_events,
       COALESCE(SUM(CASE WHEN events.type = 'match' AND event_attendance.is_present = 1 THEN 1 ELSE 0 END), 0)
@@ -183,6 +208,8 @@ function mapPlayerAttendanceStatsRow(
   const attendedEvents = Number(row.attended_events);
   const trainingEvents = Number(row.training_events);
   const trainingAttended = Number(row.training_attended);
+  const recentTrainingEvents = Number(row.recent_training_events);
+  const recentTrainingAttended = Number(row.recent_training_attended);
   const matchEvents = Number(row.match_events);
   const matchAttended = Number(row.match_attended);
   const teamEvents = Number(row.team_events);
@@ -201,6 +228,12 @@ function mapPlayerAttendanceStatsRow(
     trainingEvents,
     trainingAttended,
     trainingAttendancePercentage: calculatePercentage(trainingAttended, trainingEvents),
+    recentTrainingEvents,
+    recentTrainingAttended,
+    recentTrainingAttendancePercentage: calculatePercentage(
+      recentTrainingAttended,
+      recentTrainingEvents
+    ),
     matchEvents,
     matchAttended,
     matchAttendancePercentage: calculatePercentage(matchAttended, matchEvents),

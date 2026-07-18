@@ -11,18 +11,23 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 
 type EventTypeStepProps = {
+  eventTypes?: readonly EventType[];
   selectedType: EventType | null;
   onSelectType: (type: EventType) => void;
 };
 
-export function EventTypeStep({ selectedType, onSelectType }: EventTypeStepProps) {
+export function EventTypeStep({
+  eventTypes = EventTypes,
+  selectedType,
+  onSelectType,
+}: EventTypeStepProps) {
   const theme = useTheme();
 
   return (
     <ThemedView style={styles.stepContent}>
       <ThemedText type="smallBold">Event type</ThemedText>
       <ThemedView style={styles.typeGrid}>
-        {EventTypes.map((type) => {
+        {eventTypes.map((type) => {
           const isSelected = selectedType === type;
 
           return (

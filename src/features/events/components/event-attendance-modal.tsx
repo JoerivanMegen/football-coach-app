@@ -14,7 +14,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
+import { ModalBackgroundColor, Spacing } from "@/constants/theme";
 import { getSignupStatusLabel } from "@/features/events/components/event-wizard/event-players-step";
 import type { SignupStatus } from "@/features/events/components/event-wizard/event-wizard-types";
 import {
@@ -557,6 +557,7 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     alignSelf: "center",
+    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,

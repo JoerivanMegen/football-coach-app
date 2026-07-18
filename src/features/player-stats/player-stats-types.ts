@@ -18,6 +18,9 @@ export type PlayerAttendanceStats = {
   trainingEvents: number;
   trainingAttended: number;
   trainingAttendancePercentage: number | null;
+  recentTrainingEvents: number;
+  recentTrainingAttended: number;
+  recentTrainingAttendancePercentage: number | null;
   matchEvents: number;
   matchAttended: number;
   matchAttendancePercentage: number | null;

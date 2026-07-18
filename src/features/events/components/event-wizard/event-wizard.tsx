@@ -26,6 +26,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type EventWizardProps = {
   visible: boolean;
+  eventTypes?: readonly EventType[];
   initialForm?: EventWizardFormState | null;
   title?: string;
   saveButtonLabel?: string;
@@ -48,6 +49,7 @@ function createEmptyEventWizardFormState(): EventWizardFormState {
 
 export function EventWizard({
   visible,
+  eventTypes,
   initialForm,
   title = 'Add event',
   saveButtonLabel = 'Save event',
@@ -182,7 +184,7 @@ export function EventWizard({
           </ThemedView>
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wizardScroll}>
-            {renderWizardStep(wizardStep, form, setForm, players, handleSelectType)}
+            {renderWizardStep(wizardStep, form, setForm, players, handleSelectType, eventTypes)}
           </ScrollView>
 
           <ThemedView style={styles.formActions}>
@@ -222,11 +224,18 @@ function renderWizardStep(
   form: EventWizardFormState,
   setForm: Dispatch<SetStateAction<EventWizardFormState>>,
   players: Player[],
-  handleSelectType: (type: EventType) => void
+  handleSelectType: (type: EventType) => void,
+  eventTypes?: readonly EventType[]
 ) {
   switch (wizardStep) {
     case 0:
-      return <EventTypeStep selectedType={form.type} onSelectType={handleSelectType} />;
+      return (
+        <EventTypeStep
+          eventTypes={eventTypes}
+          selectedType={form.type}
+          onSelectType={handleSelectType}
+        />
+      );
     case 1:
       return <EventDetailsStep form={form} onChangeForm={setForm} />;
     case 2:

@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-export const DATABASE_VERSION = 7;
+export const DATABASE_VERSION = 8;
 
 type UserVersionRow = {
   user_version: number;
@@ -308,6 +308,41 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       await ensureEventAttendanceColumnAsync(db, 'match_rating', 'INTEGER');
 
       await db.execAsync('PRAGMA user_version = 7');
+    });
+  }
+
+  if (currentVersion < 8) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS match_day_matches (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          opponent TEXT NOT NULL,
+          match_date TEXT NOT NULL,
+          start_time TEXT NOT NULL,
+          location TEXT NOT NULL,
+          category TEXT NOT NULL,
+          formation TEXT NOT NULL,
+          notes TEXT NOT NULL DEFAULT '',
+          player_statuses_json TEXT NOT NULL,
+          lineup_assignments_json TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_match_day_matches_date
+          ON match_day_matches (match_date, start_time);
+
+        CREATE TRIGGER IF NOT EXISTS trg_match_day_matches_updated_at
+        AFTER UPDATE ON match_day_matches
+        FOR EACH ROW
+        BEGIN
+          UPDATE match_day_matches
+          SET updated_at = datetime('now')
+          WHERE id = OLD.id;
+        END;
+      `);
+
+      await db.execAsync('PRAGMA user_version = 8');
     });
   }
 }

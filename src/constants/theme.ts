@@ -62,5 +62,6 @@ export const Spacing = {
 } as const;
 
 export const PageTopPadding = Spacing.two;
+export const ModalBackgroundColor = '#F5F5F5';
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;

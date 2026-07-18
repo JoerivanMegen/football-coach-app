@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -20,6 +21,7 @@ import type {
   EventType,
   EventWizardFormState,
 } from "@/features/events/components/event-wizard/event-wizard-types";
+import { EventTypes } from "@/features/events/components/event-wizard/event-wizard-types";
 import {
   createEventAsync,
   deleteEventAsync,
@@ -38,8 +40,12 @@ const eventTypeFilters = [
   { label: "Match", value: "match" },
   { label: "Other", value: "other" },
 ] satisfies { label: string; value: EventTypeFilter }[];
+const creatableEventTypes = EventTypes.filter(
+  (eventType) => eventType !== "match",
+);
 
 export default function EventsScreen() {
+  const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const [events, setEvents] = useState<CoachEvent[]>([]);
@@ -253,24 +259,45 @@ export default function EventsScreen() {
               </ThemedText>
             </ThemedView>
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add event"
-              onPress={openWizard}
-              style={({ pressed }) => [
-                styles.addButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <SymbolView
-                name={{ ios: "plus", android: "add", web: "add" }}
-                tintColor="#ffffff"
-                size={18}
-              />
-              <ThemedText type="smallBold" style={styles.addButtonText}>
-                Add event
-              </ThemedText>
-            </Pressable>
+            <ThemedView style={styles.headerActions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add event"
+                onPress={openWizard}
+                style={({ pressed }) => [
+                  styles.addButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <SymbolView
+                  name={{ ios: "plus", android: "add", web: "add" }}
+                  tintColor="#ffffff"
+                  size={18}
+                />
+                <ThemedText type="smallBold" style={styles.addButtonText}>
+                  Add event
+                </ThemedText>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Create match in Match Day"
+                onPress={() => router.push("/match-day")}
+                style={({ pressed }) => [
+                  styles.matchDayButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <SymbolView
+                  name={{ ios: "plus", android: "add", web: "add" }}
+                  tintColor="#ffffff"
+                  size={18}
+                />
+                <ThemedText type="smallBold" style={styles.matchDayButtonText}>
+                  Add match
+                </ThemedText>
+              </Pressable>
+            </ThemedView>
           </ThemedView>
 
           <ThemedView type="backgroundElement" style={styles.filterPanel}>
@@ -373,6 +400,7 @@ export default function EventsScreen() {
 
       {isWizardOpen ? (
         <EventWizard
+          eventTypes={wizardEditingEvent ? undefined : creatableEventTypes}
           initialForm={wizardInitialForm}
           saveButtonLabel={wizardEditingEvent ? "Save changes" : "Save event"}
           title={wizardEditingEvent ? "Edit event" : "Add event"}
@@ -497,7 +525,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
   container: {
     flexGrow: 1,
@@ -522,16 +550,35 @@ const styles = StyleSheet.create({
   description: {
     maxWidth: 560,
   },
+  headerActions: {
+    alignItems: "stretch",
+    backgroundColor: "transparent",
+    gap: Spacing.two,
+  },
   addButton: {
     alignItems: "center",
     backgroundColor: "#1C7C54",
     borderRadius: Spacing.three,
     flexDirection: "row",
     gap: Spacing.one,
+    justifyContent: "flex-start",
     minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
   addButtonText: {
+    color: "#ffffff",
+  },
+  matchDayButton: {
+    alignItems: "center",
+    backgroundColor: "#536DFE",
+    borderRadius: Spacing.three,
+    flexDirection: "row",
+    gap: Spacing.one,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
+  matchDayButtonText: {
     color: "#ffffff",
   },
   pressed: {
