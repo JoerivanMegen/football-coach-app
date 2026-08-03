@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { useColorScheme } from 'react-native';
 
@@ -23,13 +24,26 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="events">
-        <NativeTabs.Trigger.Label>Events</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+        <NativeTabs.Trigger.Label>Training</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          renderingMode="template"
+          src={
+            <NativeTabs.Trigger.VectorIcon
+              family={MaterialCommunityIcons}
+              name="traffic-cone"
+            />
+          }
+        />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="match-day">
         <NativeTabs.Trigger.Label>Match Day</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="sportscourt.fill" md="sports_soccer" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="share-position-playground">
+        <NativeTabs.Trigger.Label>Preview</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="photo.fill" md="image" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="settings">

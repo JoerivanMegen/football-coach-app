@@ -1,6 +1,6 @@
-export type EventWizardStep = 0 | 1 | 2 | 3;
+export type EventWizardStep = 0 | 1 | 2;
 
-export const EventWizardStepLabels = ['Type', 'Details', 'Players', 'Review'] as const;
+export const EventWizardStepLabels = ['Details', 'Players', 'Review'] as const;
 
 export const EventTypes = ['training', 'match', 'other'] as const;
 

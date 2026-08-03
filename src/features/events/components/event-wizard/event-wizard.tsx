@@ -7,18 +7,14 @@ import { ThemedView } from '@/components/themed-view';
 import {
   EventDetailsStep,
   formatDateForDisplay,
-  getDefaultTitleForEventType,
 } from '@/features/events/components/event-wizard/event-details-step';
 import { EventPlayersStep } from '@/features/events/components/event-wizard/event-players-step';
 import { EventReviewStep } from '@/features/events/components/event-wizard/event-review-step';
-import { EventTypeStep } from '@/features/events/components/event-wizard/event-type-step';
 import { eventWizardStyles as styles } from '@/features/events/components/event-wizard/event-wizard-styles';
 import {
   EventWizardStepLabels,
-  type EventType,
   type EventWizardFormState,
   type EventWizardStep,
-  type MatchLocation,
 } from '@/features/events/components/event-wizard/event-wizard-types';
 import { listPlayersAsync } from '@/features/players/player-repository';
 import type { Player } from '@/features/players/player-types';
@@ -26,7 +22,6 @@ import { useTheme } from '@/hooks/use-theme';
 
 type EventWizardProps = {
   visible: boolean;
-  eventTypes?: readonly EventType[];
   initialForm?: EventWizardFormState | null;
   title?: string;
   saveButtonLabel?: string;
@@ -36,8 +31,8 @@ type EventWizardProps = {
 
 function createEmptyEventWizardFormState(): EventWizardFormState {
   return {
-    type: null,
-    title: '',
+    type: 'training',
+    title: 'Training',
     date: formatDateForDisplay(new Date()),
     startTime: '',
     location: '',
@@ -49,7 +44,6 @@ function createEmptyEventWizardFormState(): EventWizardFormState {
 
 export function EventWizard({
   visible,
-  eventTypes,
   initialForm,
   title = 'Add event',
   saveButtonLabel = 'Save event',
@@ -83,7 +77,7 @@ export function EventWizard({
       })
       .catch((error: unknown) => {
         console.warn('Failed to load players for event wizard', error);
-        Alert.alert('Could not load players', 'You can still plan the event details.');
+        Alert.alert('Could not load players', 'You can still plan the training details.');
       });
 
     return () => {
@@ -98,26 +92,12 @@ export function EventWizard({
     }
   }
 
-  function handleSelectType(type: EventType) {
-    const defaultTitles = ['Training', 'Match'];
-
-    setForm((current) => ({
-      ...current,
-      type,
-      title:
-        !current.title || defaultTitles.includes(current.title)
-          ? getDefaultTitleForEventType(type)
-          : current.title,
-      location: getLocationForSelectedType(type, current.location),
-    }));
-  }
-
   function goToNextStep() {
     if (!validateWizardStep(wizardStep, form)) {
       return;
     }
 
-    setWizardStep((current) => Math.min(current + 1, 3) as EventWizardStep);
+    setWizardStep((current) => Math.min(current + 1, 2) as EventWizardStep);
   }
 
   function goToPreviousStep() {
@@ -125,8 +105,8 @@ export function EventWizard({
   }
 
   async function handleSave() {
-    if (!validateWizardStep(1, form)) {
-      setWizardStep(1);
+    if (!validateWizardStep(0, form)) {
+      setWizardStep(0);
       return;
     }
 
@@ -184,7 +164,7 @@ export function EventWizard({
           </ThemedView>
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wizardScroll}>
-            {renderWizardStep(wizardStep, form, setForm, players, handleSelectType, eventTypes)}
+            {renderWizardStep(wizardStep, form, setForm, players)}
           </ScrollView>
 
           <ThemedView style={styles.formActions}>
@@ -202,14 +182,14 @@ export function EventWizard({
             <Pressable
               accessibilityRole="button"
               disabled={isSaving}
-              onPress={wizardStep === 3 ? handleSave : goToNextStep}
+              onPress={wizardStep === 2 ? handleSave : goToNextStep}
               style={({ pressed }) => [
                 styles.primaryButton,
                 pressed && styles.pressed,
                 isSaving && styles.disabledButton,
               ]}>
               <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                {wizardStep === 3 ? (isSaving ? 'Saving...' : saveButtonLabel) : 'Next'}
+                {wizardStep === 2 ? (isSaving ? 'Saving...' : saveButtonLabel) : 'Next'}
               </ThemedText>
             </Pressable>
           </ThemedView>
@@ -223,24 +203,14 @@ function renderWizardStep(
   wizardStep: EventWizardStep,
   form: EventWizardFormState,
   setForm: Dispatch<SetStateAction<EventWizardFormState>>,
-  players: Player[],
-  handleSelectType: (type: EventType) => void,
-  eventTypes?: readonly EventType[]
+  players: Player[]
 ) {
   switch (wizardStep) {
     case 0:
-      return (
-        <EventTypeStep
-          eventTypes={eventTypes}
-          selectedType={form.type}
-          onSelectType={handleSelectType}
-        />
-      );
-    case 1:
       return <EventDetailsStep form={form} onChangeForm={setForm} />;
-    case 2:
+    case 1:
       return <EventPlayersStep players={players} form={form} onChangeForm={setForm} />;
-    case 3:
+    case 2:
       return <EventReviewStep players={players} form={form} />;
   }
 }
@@ -250,19 +220,14 @@ function createPlayerStatusMap(
   currentPlayerStatuses: EventWizardFormState['playerStatuses']
 ) {
   return Object.fromEntries(
-    players.map((player) => [player.id, currentPlayerStatuses[player.id] ?? 'unknown'])
+    players.map((player) => [player.id, currentPlayerStatuses[player.id] ?? 'available'])
   );
 }
 
 function validateWizardStep(wizardStep: EventWizardStep, form: EventWizardFormState) {
-  if (wizardStep === 0 && !form.type) {
-    Alert.alert('Choose an event type', 'Select training, match, or other.');
-    return false;
-  }
-
-  if (wizardStep === 1) {
+  if (wizardStep === 0) {
     if (!form.title.trim()) {
-      Alert.alert('Missing title', 'Add a title for this event.');
+      Alert.alert('Missing title', 'Add a title for this training.');
       return false;
     }
 
@@ -276,30 +241,9 @@ function validateWizardStep(wizardStep: EventWizardStep, form: EventWizardFormSt
       return false;
     }
 
-    if (form.type === 'match' && !isMatchLocation(form.location)) {
-      Alert.alert('Choose match location', 'Select whether the match is home or away.');
-      return false;
-    }
-
-    if (form.type === 'match' && !form.opponent.trim()) {
-      Alert.alert('Missing opponent', 'Add the opponent for this match.');
-      return false;
-    }
   }
 
   return true;
-}
-
-function getLocationForSelectedType(type: EventType, currentLocation: string) {
-  if (type === 'match') {
-    return isMatchLocation(currentLocation) ? currentLocation : '';
-  }
-
-  return isMatchLocation(currentLocation) ? '' : currentLocation;
-}
-
-function isMatchLocation(value: string): value is MatchLocation {
-  return value === 'home' || value === 'away';
 }
 
 function isValidDisplayDate(value: string) {

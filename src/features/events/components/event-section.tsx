@@ -57,7 +57,7 @@ export function EventSection({
         <ThemedView style={styles.sectionTitleGroup}>
           <ThemedText type="smallBold">{title}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {events.length} {events.length === 1 ? 'event' : 'events'}
+            {events.length} {events.length === 1 ? 'training' : 'trainings'}
           </ThemedText>
         </ThemedView>
         <SymbolView
@@ -263,7 +263,7 @@ function EventExpandedActions({
               size={18}
             />
             <ThemedText type="smallBold" style={styles.editEventButtonText}>
-              Edit event
+              Edit training
             </ThemedText>
           </Pressable>
         ) : null}
@@ -285,7 +285,7 @@ function EventExpandedActions({
             size={18}
           />
           <ThemedText type="smallBold" style={styles.expandedActionButtonText}>
-            Cancel event
+            Cancel training
           </ThemedText>
         </Pressable>
       ) : null}
@@ -309,7 +309,7 @@ function EventCardDetails({
           {getSignupSummary(event)}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Attendance has not been marked for this event yet.
+          Attendance has not been marked for this training yet.
         </ThemedText>
       </ThemedView>
     );

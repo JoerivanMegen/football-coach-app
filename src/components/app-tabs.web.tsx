@@ -1,3 +1,5 @@
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
   Tabs,
   TabList,
@@ -19,7 +21,8 @@ type AppTab = {
   name: string;
   href: Href;
   label: string;
-  iconName: SymbolViewProps['name'];
+  iconName?: SymbolViewProps['name'];
+  iconType?: 'training';
 };
 
 const appTabs = [
@@ -38,14 +41,20 @@ const appTabs = [
   {
     name: 'events',
     href: '/events',
-    label: 'Events',
-    iconName: { ios: 'calendar', web: 'calendar_month' },
+    label: 'Training',
+    iconType: 'training',
   },
   {
     name: 'match-day',
     href: '/match-day',
     label: 'Match Day',
     iconName: { ios: 'sportscourt.fill', web: 'sports_soccer' },
+  },
+  {
+    name: 'share-position-playground',
+    href: '/share-position-playground',
+    label: 'Preview',
+    iconName: { ios: 'photo.fill', web: 'image' },
   },
   {
     name: 'settings',
@@ -63,7 +72,9 @@ export default function AppTabs() {
         <CustomTabList>
           {appTabs.map((tab) => (
             <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
-              <TabButton iconName={tab.iconName}>{tab.label}</TabButton>
+              <TabButton iconName={tab.iconName} iconType={tab.iconType}>
+                {tab.label}
+              </TabButton>
             </TabTrigger>
           ))}
         </CustomTabList>
@@ -73,28 +84,53 @@ export default function AppTabs() {
 }
 
 type TabButtonProps = TabTriggerSlotProps & {
-  iconName: SymbolViewProps['name'];
+  iconName?: SymbolViewProps['name'];
+  iconType?: 'training';
 };
 
-export function TabButton({ children, iconName, isFocused, ...props }: TabButtonProps) {
+export function TabButton({ children, iconName, iconType, isFocused, ...props }: TabButtonProps) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const iconColor = isFocused ? colors.text : colors.textSecondary;
 
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
         type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
         style={styles.tabButtonView}>
-        <SymbolView
-          tintColor={isFocused ? colors.text : colors.textSecondary}
-          name={iconName}
-          size={18}
-        />
+        {iconType === 'training' ? (
+          <TrainingTabIcon color={iconColor} />
+        ) : iconName ? (
+          <SymbolView
+            tintColor={iconColor}
+            name={iconName}
+            size={18}
+          />
+        ) : null}
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>
       </ThemedView>
     </Pressable>
+  );
+}
+
+function TrainingTabIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.trainingIcon}>
+      <MaterialCommunityIcons
+        name="traffic-cone"
+        color="#FF7A1A"
+        size={20}
+        style={styles.trainingConeIcon}
+      />
+      <FontAwesome6
+        name="soccer-ball"
+        color={color}
+        size={10}
+        style={styles.trainingBallIcon}
+      />
+    </View>
   );
 }
 
@@ -144,5 +180,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.two,
     borderRadius: Spacing.three,
+  },
+  trainingIcon: {
+    height: 20,
+    position: 'relative',
+    width: 22,
+  },
+  trainingConeIcon: {
+    left: 0,
+    position: 'absolute',
+    top: -1,
+  },
+  trainingBallIcon: {
+    bottom: 1,
+    position: 'absolute',
+    right: 0,
   },
 });

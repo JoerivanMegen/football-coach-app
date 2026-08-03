@@ -916,7 +916,7 @@ function TeamStatsRecentRatings({ ratings }: { ratings: number[] }) {
 }
 
 function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
-  const hasMarkedEvents = stats.totalEvents + stats.teamEvents > 0;
+  const hasMarkedEvents = stats.totalEvents > 0;
 
   if (!hasMarkedEvents) {
     return (
@@ -991,16 +991,6 @@ function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
         />
       </ThemedView>
 
-      <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
-        <ThemedText type="smallBold">Team events</ThemedText>
-        <ThemedView type="backgroundElement" style={styles.statList}>
-          <PlayerStatRow
-            label="Attendance"
-            value={formatPercentage(stats.teamEventAttendancePercentage)}
-            detail={`${stats.teamEventsAttended}/${stats.teamEvents} attended`}
-          />
-        </ThemedView>
-      </ThemedView>
     </ThemedView>
   );
 }

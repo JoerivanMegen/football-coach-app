@@ -16,12 +16,11 @@ import { ThemedView } from "@/components/themed-view";
 import { BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
 import { EventAttendanceModal } from "@/features/events/components/event-attendance-modal";
 import { EventSection } from "@/features/events/components/event-section";
+import { formatDateForDisplay } from "@/features/events/components/event-wizard/event-details-step";
 import { EventWizard } from "@/features/events/components/event-wizard/event-wizard";
 import type {
-  EventType,
   EventWizardFormState,
 } from "@/features/events/components/event-wizard/event-wizard-types";
-import { EventTypes } from "@/features/events/components/event-wizard/event-wizard-types";
 import {
   createEventAsync,
   deleteEventAsync,
@@ -30,19 +29,8 @@ import {
   updateEventAsync,
 } from "@/features/events/event-repository";
 import type { CoachEvent, EventAttendancePlayer } from "@/features/events/event-types";
+import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
 import { useTheme } from "@/hooks/use-theme";
-
-type EventTypeFilter = EventType | "all";
-
-const eventTypeFilters = [
-  { label: "All", value: "all" },
-  { label: "Training", value: "training" },
-  { label: "Match", value: "match" },
-  { label: "Other", value: "other" },
-] satisfies { label: string; value: EventTypeFilter }[];
-const creatableEventTypes = EventTypes.filter(
-  (eventType) => eventType !== "match",
-);
 
 export default function EventsScreen() {
   const router = useRouter();
@@ -57,10 +45,6 @@ export default function EventsScreen() {
     useState<EventWizardFormState | null>(null);
   const [selectedAttendanceEvent, setSelectedAttendanceEvent] =
     useState<CoachEvent | null>(null);
-  const [selectedEventTypeFilter, setSelectedEventTypeFilter] =
-    useState<EventTypeFilter>("all");
-  const [isEventTypeFilterExpanded, setIsEventTypeFilterExpanded] =
-    useState(false);
 
   const insets = useMemo(
     () => ({
@@ -83,9 +67,22 @@ export default function EventsScreen() {
     },
   });
 
-  function openWizard() {
+  async function openWizard() {
     setWizardEditingEvent(null);
-    setWizardInitialForm(null);
+
+    try {
+      const settings = await getTeamSettingsAsync();
+      setWizardInitialForm(
+        createEmptyTrainingWizardFormState({
+          location: settings?.clubLocation ?? "",
+          startTime: settings?.trainingStartTime ?? "",
+        }),
+      );
+    } catch (error) {
+      console.warn("Failed to load training defaults", error);
+      setWizardInitialForm(createEmptyTrainingWizardFormState());
+    }
+
     setIsWizardOpen(true);
   }
 
@@ -103,7 +100,7 @@ export default function EventsScreen() {
       setEvents(await listEventsAsync());
     } catch (error) {
       console.warn("Failed to load events", error);
-      Alert.alert("Could not load events", "Please try again.");
+      Alert.alert("Could not load trainings", "Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -120,7 +117,7 @@ export default function EventsScreen() {
       })
       .catch((error: unknown) => {
         console.warn("Failed to load events", error);
-        Alert.alert("Could not load events", "Please try again.");
+        Alert.alert("Could not load trainings", "Please try again.");
       })
       .finally(() => {
         if (isMounted) {
@@ -136,7 +133,7 @@ export default function EventsScreen() {
   async function handleSaveEvent(form: EventWizardFormState) {
     try {
       const eventInput = {
-        type: form.type ?? "other",
+        type: form.type ?? "training",
         title: form.title,
         eventDate: parseDisplayDateToIsoDate(form.date),
         startTime: form.startTime,
@@ -164,8 +161,8 @@ export default function EventsScreen() {
     } catch (error) {
       console.warn("Failed to save event", error);
       Alert.alert(
-        "Could not save event",
-        "Please check the event details and try again.",
+        "Could not save training",
+        "Please check the training details and try again.",
       );
       throw error;
     }
@@ -185,12 +182,12 @@ export default function EventsScreen() {
       setIsWizardOpen(true);
     } catch (error) {
       console.warn("Failed to load event for editing", error);
-      Alert.alert("Could not edit event", "Please try again.");
+      Alert.alert("Could not edit training", "Please try again.");
     }
   }
 
   function handleCancelEvent(event: CoachEvent) {
-    const message = `Cancel "${event.title}"? This will remove the event and its attendance data.`;
+    const message = `Cancel "${event.title}"? This will remove the training and its attendance data.`;
 
     if (Platform.OS === "web") {
       if (globalThis.confirm(message)) {
@@ -199,13 +196,13 @@ export default function EventsScreen() {
       return;
     }
 
-    Alert.alert("Cancel event", message, [
+    Alert.alert("Cancel training", message, [
       {
-        text: "Keep event",
+        text: "Keep training",
         style: "cancel",
       },
       {
-        text: "Cancel event",
+        text: "Cancel training",
         style: "destructive",
         onPress: () => {
           void cancelEventAsync(event);
@@ -220,7 +217,7 @@ export default function EventsScreen() {
       await loadEvents();
     } catch (error) {
       console.warn("Failed to cancel event", error);
-      Alert.alert("Could not cancel event", "Please try again.");
+      Alert.alert("Could not cancel training", "Please try again.");
     }
   }
 
@@ -229,15 +226,12 @@ export default function EventsScreen() {
   }
 
   const filteredEvents = useMemo(
-    () => filterEventsByType(events, selectedEventTypeFilter),
-    [events, selectedEventTypeFilter],
+    () => events.filter((event) => event.type === "training"),
+    [events],
   );
   const eventSections = useMemo(
     () => splitEventsBySection(filteredEvents),
     [filteredEvents],
-  );
-  const selectedEventTypeFilterLabel = getEventTypeFilterLabel(
-    selectedEventTypeFilter,
   );
 
   return (
@@ -251,18 +245,18 @@ export default function EventsScreen() {
           <ThemedView style={styles.header}>
             <ThemedView style={styles.titleGroup}>
               <ThemedText type="subtitle" style={styles.title}>
-                Events
+                Training
               </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.description}>
-                Plan trainings, matches, and team moments before filling
-                attendance later.
+                Plan training sessions and keep attendance ready for player
+                statistics.
               </ThemedText>
             </ThemedView>
 
             <ThemedView style={styles.headerActions}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Add event"
+                accessibilityLabel="Add training"
                 onPress={openWizard}
                 style={({ pressed }) => [
                   styles.addButton,
@@ -275,7 +269,7 @@ export default function EventsScreen() {
                   size={18}
                 />
                 <ThemedText type="smallBold" style={styles.addButtonText}>
-                  Add event
+                  Add training
                 </ThemedText>
               </Pressable>
 
@@ -300,69 +294,6 @@ export default function EventsScreen() {
             </ThemedView>
           </ThemedView>
 
-          <ThemedView type="backgroundElement" style={styles.filterPanel}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: isEventTypeFilterExpanded }}
-              onPress={() =>
-                setIsEventTypeFilterExpanded((current) => !current)
-              }
-              style={({ pressed }) => [
-                styles.filterToggle,
-                pressed && styles.pressed,
-              ]}
-            >
-              <ThemedText type="smallBold">
-                Event type - {selectedEventTypeFilterLabel}
-              </ThemedText>
-              <SymbolView
-                name={{
-                  ios: isEventTypeFilterExpanded
-                    ? "chevron.up"
-                    : "chevron.down",
-                  android: isEventTypeFilterExpanded
-                    ? "keyboard_arrow_up"
-                    : "keyboard_arrow_down",
-                  web: isEventTypeFilterExpanded
-                    ? "keyboard_arrow_up"
-                    : "keyboard_arrow_down",
-                }}
-                tintColor={theme.text}
-                size={18}
-              />
-            </Pressable>
-
-            {isEventTypeFilterExpanded ? (
-              <ThemedView type="backgroundElement" style={styles.filterOptions}>
-                {eventTypeFilters.map((filter) => {
-                  const isSelected = selectedEventTypeFilter === filter.value;
-
-                  return (
-                    <Pressable
-                      key={filter.value}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: isSelected }}
-                      onPress={() => setSelectedEventTypeFilter(filter.value)}
-                      style={({ pressed }) => [
-                        styles.filterButton,
-                        isSelected && styles.filterButtonSelected,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <ThemedText
-                        type="smallBold"
-                        style={isSelected && styles.filterButtonTextSelected}
-                        themeColor={isSelected ? undefined : "textSecondary"}
-                      >
-                        {filter.label}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
-              </ThemedView>
-            ) : null}
-          </ThemedView>
-
           {isLoading ? (
             <ThemedView type="backgroundElement" style={styles.loadingPanel}>
               <ActivityIndicator color={theme.text} />
@@ -371,14 +302,14 @@ export default function EventsScreen() {
             <ThemedView style={styles.eventSections}>
               <EventSection
                 title="Upcoming"
-                description="Future trainings, matches, and team activities will show here."
+                description="Future trainings will show here."
                 events={eventSections.upcoming}
                 onCancelEvent={handleCancelEvent}
                 onEditEvent={handleEditEvent}
               />
               <EventSection
                 title="Needs attendance"
-                description="Past events waiting for attendance will show here."
+                description="Past trainings waiting for attendance will show here."
                 events={eventSections.needsAttendance}
                 actionLabel="Add attendance"
                 onCancelEvent={handleCancelEvent}
@@ -387,7 +318,7 @@ export default function EventsScreen() {
               />
               <EventSection
                 title="Completed"
-                description="Events with finished attendance will show here."
+                description="Trainings with finished attendance will show here."
                 events={eventSections.completed}
                 onCancelEvent={handleCancelEvent}
                 onEditAttendance={handleStartAttendance}
@@ -400,10 +331,9 @@ export default function EventsScreen() {
 
       {isWizardOpen ? (
         <EventWizard
-          eventTypes={wizardEditingEvent ? undefined : creatableEventTypes}
           initialForm={wizardInitialForm}
-          saveButtonLabel={wizardEditingEvent ? "Save changes" : "Save event"}
-          title={wizardEditingEvent ? "Edit event" : "Add event"}
+          saveButtonLabel={wizardEditingEvent ? "Save changes" : "Save training"}
+          title={wizardEditingEvent ? "Edit training" : "Add training"}
           visible={isWizardOpen}
           onClose={closeWizard}
           onSave={handleSaveEvent}
@@ -416,21 +346,6 @@ export default function EventsScreen() {
         onSaved={loadEvents}
       />
     </>
-  );
-}
-
-function filterEventsByType(events: CoachEvent[], filter: EventTypeFilter) {
-  if (filter === "all") {
-    return events;
-  }
-
-  return events.filter((event) => event.type === filter);
-}
-
-function getEventTypeFilterLabel(filter: EventTypeFilter) {
-  return (
-    eventTypeFilters.find((eventTypeFilter) => eventTypeFilter.value === filter)
-      ?.label ?? "All"
   );
 }
 
@@ -449,6 +364,22 @@ function createEventWizardFormStateFromEvent(
     playerStatuses: Object.fromEntries(
       attendancePlayers.map((player) => [player.playerId, player.signupStatus]),
     ),
+  };
+}
+
+function createEmptyTrainingWizardFormState({
+  location = "",
+  startTime = "",
+} = {}): EventWizardFormState {
+  return {
+    type: "training",
+    title: "Training",
+    date: formatDateForDisplay(new Date()),
+    startTime,
+    location,
+    opponent: "",
+    notes: "",
+    playerStatuses: {},
   };
 }
 
@@ -586,36 +517,6 @@ const styles = StyleSheet.create({
   },
   eventSections: {
     gap: Spacing.four,
-  },
-  filterPanel: {
-    borderRadius: Spacing.three,
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  filterToggle: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    minHeight: 36,
-  },
-  filterOptions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: Spacing.two,
-  },
-  filterButton: {
-    alignItems: "center",
-    borderRadius: Spacing.two,
-    minHeight: 36,
-    justifyContent: "center",
-    paddingHorizontal: Spacing.two,
-  },
-  filterButtonSelected: {
-    backgroundColor: "#1C7C54",
-  },
-  filterButtonTextSelected: {
-    color: "#ffffff",
   },
   loadingPanel: {
     alignItems: "center",
