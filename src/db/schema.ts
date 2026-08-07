@@ -1,6 +1,6 @@
-import type { SQLiteDatabase } from 'expo-sqlite';
+import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 14;
+export const DATABASE_VERSION = 21;
 
 type UserVersionRow = {
   user_version: number;
@@ -11,7 +11,7 @@ type TableInfoRow = {
 };
 
 export async function migrateDatabase(db: SQLiteDatabase) {
-  const result = await db.getFirstAsync<UserVersionRow>('PRAGMA user_version');
+  const result = await db.getFirstAsync<UserVersionRow>("PRAGMA user_version");
   const currentVersion = result?.user_version ?? 0;
 
   if (currentVersion >= DATABASE_VERSION) {
@@ -49,7 +49,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 1');
+      await db.execAsync("PRAGMA user_version = 1");
     });
   }
 
@@ -116,7 +116,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 2');
+      await db.execAsync("PRAGMA user_version = 2");
     });
   }
 
@@ -187,7 +187,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 3');
+      await db.execAsync("PRAGMA user_version = 3");
     });
   }
 
@@ -220,13 +220,25 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         );
       `);
 
-      await ensureEventsColumnAsync(db, 'start_time', 'TEXT');
-      await ensureEventsColumnAsync(db, 'location', 'TEXT');
-      await ensureEventsColumnAsync(db, 'opponent', 'TEXT');
-      await ensureEventsColumnAsync(db, 'notes', "TEXT NOT NULL DEFAULT ''");
-      await ensureEventsColumnAsync(db, 'attendance_status', "TEXT NOT NULL DEFAULT 'not_marked'");
-      await ensureEventsColumnAsync(db, 'created_at', "TEXT NOT NULL DEFAULT ''");
-      await ensureEventsColumnAsync(db, 'updated_at', "TEXT NOT NULL DEFAULT ''");
+      await ensureEventsColumnAsync(db, "start_time", "TEXT");
+      await ensureEventsColumnAsync(db, "location", "TEXT");
+      await ensureEventsColumnAsync(db, "opponent", "TEXT");
+      await ensureEventsColumnAsync(db, "notes", "TEXT NOT NULL DEFAULT ''");
+      await ensureEventsColumnAsync(
+        db,
+        "attendance_status",
+        "TEXT NOT NULL DEFAULT 'not_marked'",
+      );
+      await ensureEventsColumnAsync(
+        db,
+        "created_at",
+        "TEXT NOT NULL DEFAULT ''",
+      );
+      await ensureEventsColumnAsync(
+        db,
+        "updated_at",
+        "TEXT NOT NULL DEFAULT ''",
+      );
 
       await db.execAsync(`
         CREATE INDEX IF NOT EXISTS idx_events_event_date
@@ -258,7 +270,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 4');
+      await db.execAsync("PRAGMA user_version = 4");
     });
   }
 
@@ -291,23 +303,23 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 5');
+      await db.execAsync("PRAGMA user_version = 5");
     });
   }
 
   if (currentVersion < 6) {
     await db.withTransactionAsync(async () => {
-      await ensureEventAttendanceColumnAsync(db, 'minutes_played', 'INTEGER');
+      await ensureEventAttendanceColumnAsync(db, "minutes_played", "INTEGER");
 
-      await db.execAsync('PRAGMA user_version = 6');
+      await db.execAsync("PRAGMA user_version = 6");
     });
   }
 
   if (currentVersion < 7) {
     await db.withTransactionAsync(async () => {
-      await ensureEventAttendanceColumnAsync(db, 'match_rating', 'INTEGER');
+      await ensureEventAttendanceColumnAsync(db, "match_rating", "INTEGER");
 
-      await db.execAsync('PRAGMA user_version = 7');
+      await db.execAsync("PRAGMA user_version = 7");
     });
   }
 
@@ -343,7 +355,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 8');
+      await db.execAsync("PRAGMA user_version = 8");
     });
   }
 
@@ -357,7 +369,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
           kit_design TEXT NOT NULL DEFAULT 'solid',
           outfield_kit_color TEXT NOT NULL,
           secondary_kit_color TEXT NOT NULL DEFAULT '#536DFE',
-          sash_accent_kit_color TEXT NOT NULL DEFAULT '#EF4444',
+          third_kit_color TEXT NOT NULL DEFAULT '#EF4444',
           kit_number_color TEXT NOT NULL,
           goalkeeper_kit_color TEXT NOT NULL,
           match_duration_minutes INTEGER NOT NULL DEFAULT 90,
@@ -379,7 +391,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         END;
       `);
 
-      await db.execAsync('PRAGMA user_version = 9');
+      await db.execAsync("PRAGMA user_version = 9");
     });
   }
 
@@ -387,16 +399,16 @@ export async function migrateDatabase(db: SQLiteDatabase) {
     await db.withTransactionAsync(async () => {
       await ensureTeamSettingsColumnAsync(
         db,
-        'kit_design',
+        "kit_design",
         "TEXT NOT NULL DEFAULT 'solid'",
       );
       await ensureTeamSettingsColumnAsync(
         db,
-        'secondary_kit_color',
+        "secondary_kit_color",
         "TEXT NOT NULL DEFAULT '#536DFE'",
       );
 
-      await db.execAsync('PRAGMA user_version = 10');
+      await db.execAsync("PRAGMA user_version = 10");
     });
   }
 
@@ -404,11 +416,11 @@ export async function migrateDatabase(db: SQLiteDatabase) {
     await db.withTransactionAsync(async () => {
       await ensureTeamSettingsColumnAsync(
         db,
-        'sash_accent_kit_color',
+        "third_kit_color",
         "TEXT NOT NULL DEFAULT '#EF4444'",
       );
 
-      await db.execAsync('PRAGMA user_version = 11');
+      await db.execAsync("PRAGMA user_version = 11");
     });
   }
 
@@ -416,21 +428,21 @@ export async function migrateDatabase(db: SQLiteDatabase) {
     await db.withTransactionAsync(async () => {
       await ensureTeamSettingsColumnAsync(
         db,
-        'match_duration_minutes',
-        'INTEGER NOT NULL DEFAULT 90',
+        "match_duration_minutes",
+        "INTEGER NOT NULL DEFAULT 90",
       );
       await ensureTeamSettingsColumnAsync(
         db,
-        'prefer_nicknames',
-        'INTEGER NOT NULL DEFAULT 1',
+        "prefer_nicknames",
+        "INTEGER NOT NULL DEFAULT 1",
       );
       await ensureTeamSettingsColumnAsync(
         db,
-        'fine_jar_enabled',
-        'INTEGER NOT NULL DEFAULT 0',
+        "fine_jar_enabled",
+        "INTEGER NOT NULL DEFAULT 0",
       );
 
-      await db.execAsync('PRAGMA user_version = 12');
+      await db.execAsync("PRAGMA user_version = 12");
     });
   }
 
@@ -438,16 +450,16 @@ export async function migrateDatabase(db: SQLiteDatabase) {
     await db.withTransactionAsync(async () => {
       await ensureTeamSettingsColumnAsync(
         db,
-        'training_days_json',
+        "training_days_json",
         "TEXT NOT NULL DEFAULT '[]'",
       );
       await ensureTeamSettingsColumnAsync(
         db,
-        'training_start_time',
+        "training_start_time",
         "TEXT NOT NULL DEFAULT ''",
       );
 
-      await db.execAsync('PRAGMA user_version = 13');
+      await db.execAsync("PRAGMA user_version = 13");
     });
   }
 
@@ -455,68 +467,244 @@ export async function migrateDatabase(db: SQLiteDatabase) {
     await db.withTransactionAsync(async () => {
       await ensureTeamSettingsColumnAsync(
         db,
-        'club_location',
+        "club_location",
         "TEXT NOT NULL DEFAULT ''",
       );
       await ensureMatchDayMatchesColumnAsync(
         db,
-        'venue',
+        "venue",
         "TEXT NOT NULL DEFAULT ''",
       );
 
-      await db.execAsync('PRAGMA user_version = 14');
+      await db.execAsync("PRAGMA user_version = 14");
     });
+  }
+
+  if (currentVersion < 15) {
+    await db.withTransactionAsync(async () => {
+      await ensureMatchDayMatchesColumnAsync(
+        db,
+        "fulfilled_match_duty_player_ids_json",
+        "TEXT NOT NULL DEFAULT '[]'",
+      );
+
+      await db.execAsync("PRAGMA user_version = 15");
+    });
+  }
+
+  if (currentVersion < 16) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS guest_players (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+          position TEXT NOT NULL DEFAULT 'midfielder',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+      await ensureMatchDayMatchesColumnAsync(
+        db,
+        "guest_player_ids_json",
+        "TEXT NOT NULL DEFAULT '[]'",
+      );
+      await db.execAsync("PRAGMA user_version = 16");
+    });
+  }
+
+  if (currentVersion < 17) {
+    await db.withTransactionAsync(async () => {
+      await ensureGuestPlayersColumnAsync(
+        db,
+        "position",
+        "TEXT NOT NULL DEFAULT 'midfielder'",
+      );
+      await db.execAsync("PRAGMA user_version = 17");
+    });
+  }
+
+  if (currentVersion < 18) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS app_preferences (
+          key TEXT PRIMARY KEY NOT NULL,
+          value TEXT NOT NULL
+        );
+      `);
+      await db.execAsync("PRAGMA user_version = 18");
+    });
+  }
+
+  if (currentVersion < 19) {
+    await db.withTransactionAsync(async () => {
+      await ensureTeamSettingsColumnAsync(
+        db,
+        "include_friendly_matches_in_stats",
+        "INTEGER NOT NULL DEFAULT 1",
+      );
+      await db.execAsync("PRAGMA user_version = 19");
+    });
+  }
+
+  if (currentVersion < 20) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS seasons (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          start_date TEXT NOT NULL,
+          end_date TEXT,
+          status TEXT NOT NULL DEFAULT 'active',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_seasons_single_active
+          ON seasons (status)
+          WHERE status = 'active';
+
+        CREATE INDEX IF NOT EXISTS idx_seasons_start_date
+          ON seasons (start_date DESC);
+      `);
+
+      const activeSeason = await db.getFirstAsync<{ id: number }>(
+        "SELECT id FROM seasons WHERE status = 'active' LIMIT 1",
+      );
+      let activeSeasonId = activeSeason?.id;
+
+      if (!activeSeasonId) {
+        const now = new Date();
+        const result = await db.runAsync(
+          "INSERT INTO seasons (name, start_date, status) VALUES (?, ?, 'active')",
+          [createSuggestedSeasonName(now), formatIsoDate(now)],
+        );
+        activeSeasonId = result.lastInsertRowId;
+      }
+
+      await ensureEventsColumnAsync(db, "season_id", "INTEGER");
+      await ensureMatchDayMatchesColumnAsync(db, "season_id", "INTEGER");
+      await db.runAsync(
+        "UPDATE events SET season_id = ? WHERE season_id IS NULL",
+        [activeSeasonId],
+      );
+      await db.runAsync(
+        "UPDATE match_day_matches SET season_id = ? WHERE season_id IS NULL",
+        [activeSeasonId],
+      );
+      await db.execAsync(`
+        CREATE INDEX IF NOT EXISTS idx_events_season_id
+          ON events (season_id);
+        CREATE INDEX IF NOT EXISTS idx_match_day_matches_season_id
+          ON match_day_matches (season_id);
+      `);
+      await db.execAsync("PRAGMA user_version = 20");
+    });
+  }
+
+  if (currentVersion < 21) {
+    await db.withTransactionAsync(async () => {
+      await ensureTeamSettingsColumnAsync(
+        db,
+        "match_duty_enabled",
+        "INTEGER NOT NULL DEFAULT 1",
+      );
+      await db.execAsync("PRAGMA user_version = 21");
+    });
+  }
+}
+
+function createSuggestedSeasonName(date: Date) {
+  const startYear = date.getMonth() >= 6 ? date.getFullYear() : date.getFullYear() - 1;
+  return `${startYear}/${String((startYear + 1) % 100).padStart(2, "0")}`;
+}
+
+function formatIsoDate(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+async function ensureGuestPlayersColumnAsync(
+  db: SQLiteDatabase,
+  columnName: string,
+  columnDefinition: string,
+) {
+  const rows = await db.getAllAsync<TableInfoRow>(
+    "PRAGMA table_info(guest_players)",
+  );
+  const hasColumn = rows.some((row) => row.name === columnName);
+
+  if (!hasColumn) {
+    await db.execAsync(
+      `ALTER TABLE guest_players ADD COLUMN ${columnName} ${columnDefinition}`,
+    );
   }
 }
 
 async function ensureEventsColumnAsync(
   db: SQLiteDatabase,
   columnName: string,
-  columnDefinition: string
+  columnDefinition: string,
 ) {
-  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(events)');
+  const rows = await db.getAllAsync<TableInfoRow>("PRAGMA table_info(events)");
   const hasColumn = rows.some((row) => row.name === columnName);
 
   if (!hasColumn) {
-    await db.execAsync(`ALTER TABLE events ADD COLUMN ${columnName} ${columnDefinition}`);
+    await db.execAsync(
+      `ALTER TABLE events ADD COLUMN ${columnName} ${columnDefinition}`,
+    );
   }
 }
 
 async function ensureEventAttendanceColumnAsync(
   db: SQLiteDatabase,
   columnName: string,
-  columnDefinition: string
+  columnDefinition: string,
 ) {
-  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(event_attendance)');
+  const rows = await db.getAllAsync<TableInfoRow>(
+    "PRAGMA table_info(event_attendance)",
+  );
   const hasColumn = rows.some((row) => row.name === columnName);
 
   if (!hasColumn) {
-    await db.execAsync(`ALTER TABLE event_attendance ADD COLUMN ${columnName} ${columnDefinition}`);
+    await db.execAsync(
+      `ALTER TABLE event_attendance ADD COLUMN ${columnName} ${columnDefinition}`,
+    );
   }
 }
 
 async function ensureTeamSettingsColumnAsync(
   db: SQLiteDatabase,
   columnName: string,
-  columnDefinition: string
+  columnDefinition: string,
 ) {
-  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(team_settings)');
+  const rows = await db.getAllAsync<TableInfoRow>(
+    "PRAGMA table_info(team_settings)",
+  );
   const hasColumn = rows.some((row) => row.name === columnName);
 
   if (!hasColumn) {
-    await db.execAsync(`ALTER TABLE team_settings ADD COLUMN ${columnName} ${columnDefinition}`);
+    await db.execAsync(
+      `ALTER TABLE team_settings ADD COLUMN ${columnName} ${columnDefinition}`,
+    );
   }
 }
 
 async function ensureMatchDayMatchesColumnAsync(
   db: SQLiteDatabase,
   columnName: string,
-  columnDefinition: string
+  columnDefinition: string,
 ) {
-  const rows = await db.getAllAsync<TableInfoRow>('PRAGMA table_info(match_day_matches)');
+  const rows = await db.getAllAsync<TableInfoRow>(
+    "PRAGMA table_info(match_day_matches)",
+  );
   const hasColumn = rows.some((row) => row.name === columnName);
 
   if (!hasColumn) {
-    await db.execAsync(`ALTER TABLE match_day_matches ADD COLUMN ${columnName} ${columnDefinition}`);
+    await db.execAsync(
+      `ALTER TABLE match_day_matches ADD COLUMN ${columnName} ${columnDefinition}`,
+    );
   }
 }

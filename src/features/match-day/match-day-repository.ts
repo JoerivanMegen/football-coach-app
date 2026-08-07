@@ -1,4 +1,5 @@
 import { getDatabaseAsync } from '@/db/database';
+import { getActiveSeasonIdAsync } from '@/features/seasons/season-repository';
 import type {
   CreateMatchDayMatchInput,
   MatchDayCategory,
@@ -25,6 +26,8 @@ type MatchDayMatchRow = {
   player_result_stats_json: string | null;
   captain_player_id: number | null;
   match_duty_player_ids_json: string | null;
+  fulfilled_match_duty_player_ids_json: string | null;
+  guest_player_ids_json: string | null;
   player_statuses_json: string;
   lineup_assignments_json: string;
   created_at: string;
@@ -37,11 +40,13 @@ const MatchDayCategories = ['league', 'cup', 'friendly'] as const;
 export async function listMatchDayMatchesAsync() {
   const db = await getDatabaseAsync();
   await ensureMatchDayStorageAsync();
+  const seasonId = await getActiveSeasonIdAsync(db);
   const rows = await db.getAllAsync<MatchDayMatchRow>(`
     SELECT *
     FROM match_day_matches
+    WHERE season_id = ?
     ORDER BY match_date DESC, start_time DESC, created_at DESC
-  `);
+  `, [seasonId]);
 
   return rows.map(mapMatchDayMatchRow);
 }
@@ -49,8 +54,9 @@ export async function listMatchDayMatchesAsync() {
 export async function createMatchDayMatchAsync(input: CreateMatchDayMatchInput) {
   const db = await getDatabaseAsync();
   await ensureMatchDayStorageAsync();
+  const seasonId = await getActiveSeasonIdAsync(db);
 
-  await db.runAsync(
+  const result = await db.runAsync(
     `
       INSERT INTO match_day_matches (
         opponent,
@@ -63,10 +69,12 @@ export async function createMatchDayMatchAsync(input: CreateMatchDayMatchInput) 
         notes,
         captain_player_id,
         match_duty_player_ids_json,
+        guest_player_ids_json,
         player_statuses_json,
-        lineup_assignments_json
+        lineup_assignments_json,
+        season_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       normalizeRequiredText(input.opponent, 'opponent'),
@@ -79,10 +87,14 @@ export async function createMatchDayMatchAsync(input: CreateMatchDayMatchInput) 
       input.notes.trim(),
       input.captainPlayerId,
       JSON.stringify(input.matchDutyPlayerIds),
+      JSON.stringify(normalizePlayerIds(input.guestPlayerIds)),
       JSON.stringify(input.playerStatuses),
       JSON.stringify(input.lineupAssignments),
+      seasonId,
     ],
   );
+
+  return result.lastInsertRowId;
 }
 
 export async function updateMatchDayMatchAsync(input: UpdateMatchDayMatchInput) {
@@ -103,6 +115,7 @@ export async function updateMatchDayMatchAsync(input: UpdateMatchDayMatchInput) 
         notes = ?,
         captain_player_id = ?,
         match_duty_player_ids_json = ?,
+        guest_player_ids_json = ?,
         player_statuses_json = ?,
         lineup_assignments_json = ?
       WHERE id = ?
@@ -118,6 +131,7 @@ export async function updateMatchDayMatchAsync(input: UpdateMatchDayMatchInput) 
       input.notes.trim(),
       input.captainPlayerId,
       JSON.stringify(input.matchDutyPlayerIds),
+      JSON.stringify(normalizePlayerIds(input.guestPlayerIds)),
       JSON.stringify(input.playerStatuses),
       JSON.stringify(input.lineupAssignments),
       input.id,
@@ -150,7 +164,8 @@ export async function updateMatchDayMatchResultAsync(input: UpdateMatchDayMatchR
         own_score = ?,
         opponent_score = ?,
         result_notes = ?,
-        player_result_stats_json = ?
+        player_result_stats_json = ?,
+        fulfilled_match_duty_player_ids_json = ?
       WHERE id = ?
     `,
     [
@@ -158,6 +173,7 @@ export async function updateMatchDayMatchResultAsync(input: UpdateMatchDayMatchR
       normalizeScore(input.opponentScore),
       input.resultNotes.trim(),
       JSON.stringify(normalizePlayerResultStats(input.playerResultStats, matchDurationMinutes)),
+      JSON.stringify(normalizePlayerIds(input.fulfilledMatchDutyPlayerIds)),
       input.id,
     ],
   );
@@ -183,6 +199,8 @@ async function ensureMatchDayStorageAsync() {
       player_result_stats_json TEXT NOT NULL DEFAULT '{}',
       captain_player_id INTEGER,
       match_duty_player_ids_json TEXT NOT NULL DEFAULT '[]',
+      fulfilled_match_duty_player_ids_json TEXT NOT NULL DEFAULT '[]',
+      guest_player_ids_json TEXT NOT NULL DEFAULT '[]',
       player_statuses_json TEXT NOT NULL,
       lineup_assignments_json TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -205,7 +223,17 @@ async function ensureMatchDayStorageAsync() {
   await addColumnIfMissingAsync('match_day_matches', 'captain_player_id', 'INTEGER');
   await addColumnIfMissingAsync(
     'match_day_matches',
+    'guest_player_ids_json',
+    "TEXT NOT NULL DEFAULT '[]'",
+  );
+  await addColumnIfMissingAsync(
+    'match_day_matches',
     'match_duty_player_ids_json',
+    "TEXT NOT NULL DEFAULT '[]'",
+  );
+  await addColumnIfMissingAsync(
+    'match_day_matches',
+    'fulfilled_match_duty_player_ids_json',
     "TEXT NOT NULL DEFAULT '[]'",
   );
   await addColumnIfMissingAsync('match_day_matches', 'own_score', 'INTEGER');
@@ -244,6 +272,10 @@ function mapMatchDayMatchRow(row: MatchDayMatchRow): MatchDayMatch {
     playerResultStats: parsePlayerResultStats(row.player_result_stats_json ?? '{}'),
     captainPlayerId: row.captain_player_id,
     matchDutyPlayerIds: parseJsonNumberArray(row.match_duty_player_ids_json ?? '[]'),
+    fulfilledMatchDutyPlayerIds: parseJsonNumberArray(
+      row.fulfilled_match_duty_player_ids_json ?? '[]',
+    ),
+    guestPlayerIds: parseJsonNumberArray(row.guest_player_ids_json ?? '[]'),
     playerStatuses: parseJsonRecord(row.player_statuses_json),
     lineupAssignments: parseJsonRecord(row.lineup_assignments_json),
     createdAt: row.created_at,
@@ -287,6 +319,10 @@ function parseJsonNumberArray(value: string) {
   }
 
   return [];
+}
+
+function normalizePlayerIds(playerIds: number[]) {
+  return [...new Set(playerIds)].filter((playerId) => Number.isInteger(playerId));
 }
 
 function parsePlayerResultStats(value: string): MatchPlayerResultStats {

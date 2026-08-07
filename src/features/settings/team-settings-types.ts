@@ -1,6 +1,7 @@
 export const KIT_DESIGNS = [
   "solid",
   "stripes",
+  "twoColorStripes",
   "hoops",
   "sash",
   "halves",
@@ -28,7 +29,7 @@ export type TeamSettings = {
   kitDesign: KitDesign;
   outfieldKitColor: string;
   secondaryKitColor: string;
-  sashAccentKitColor: string;
+  thirdKitColor: string;
   kitNumberColor: string;
   goalkeeperKitColor: string;
   matchDurationMinutes: number;
@@ -36,6 +37,8 @@ export type TeamSettings = {
   trainingStartTime: string;
   preferNicknames: boolean;
   fineJarEnabled: boolean;
+  matchDutyEnabled: boolean;
+  includeFriendlyMatchesInStats: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -46,7 +49,7 @@ export type SaveTeamSettingsInput = {
   kitDesign: KitDesign;
   outfieldKitColor: string;
   secondaryKitColor: string;
-  sashAccentKitColor: string;
+  thirdKitColor: string;
   kitNumberColor: string;
   goalkeeperKitColor: string;
   matchDurationMinutes: number;
@@ -54,4 +57,6 @@ export type SaveTeamSettingsInput = {
   trainingStartTime: string;
   preferNicknames: boolean;
   fineJarEnabled: boolean;
+  matchDutyEnabled: boolean;
+  includeFriendlyMatchesInStats: boolean;
 };

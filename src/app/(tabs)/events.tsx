@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import { AppHeaderHeight, BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
 import { EventAttendanceModal } from "@/features/events/components/event-attendance-modal";
 import { EventSection } from "@/features/events/components/event-section";
 import { formatDateForDisplay } from "@/features/events/components/event-wizard/event-details-step";
@@ -30,9 +30,12 @@ import {
 } from "@/features/events/event-repository";
 import type { CoachEvent, EventAttendancePlayer } from "@/features/events/event-types";
 import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
+import type { TrainingDay } from "@/features/settings/team-settings-types";
 import { useTheme } from "@/hooks/use-theme";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 export default function EventsScreen() {
+  const scrollViewRef = useScrollToTopOnFocus();
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
@@ -76,6 +79,7 @@ export default function EventsScreen() {
         createEmptyTrainingWizardFormState({
           location: settings?.clubLocation ?? "",
           startTime: settings?.trainingStartTime ?? "",
+          trainingDays: settings?.trainingDays ?? [],
         }),
       );
     } catch (error) {
@@ -237,6 +241,7 @@ export default function EventsScreen() {
   return (
     <>
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -284,7 +289,7 @@ export default function EventsScreen() {
               >
                 <SymbolView
                   name={{ ios: "plus", android: "add", web: "add" }}
-                  tintColor="#ffffff"
+                  tintColor="#536DFE"
                   size={18}
                 />
                 <ThemedText type="smallBold" style={styles.matchDayButtonText}>
@@ -370,17 +375,75 @@ function createEventWizardFormStateFromEvent(
 function createEmptyTrainingWizardFormState({
   location = "",
   startTime = "",
+  trainingDays = [],
+}: {
+  location?: string;
+  startTime?: string;
+  trainingDays?: TrainingDay[];
 } = {}): EventWizardFormState {
+  const nextTrainingDate = getNextTrainingDate(
+    new Date(),
+    trainingDays,
+    startTime,
+  );
+
   return {
     type: "training",
     title: "Training",
-    date: formatDateForDisplay(new Date()),
+    date: formatDateForDisplay(nextTrainingDate),
     startTime,
     location,
     opponent: "",
     notes: "",
     playerStatuses: {},
   };
+}
+
+const trainingDayNumbers: Record<TrainingDay, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+function getNextTrainingDate(
+  now: Date,
+  trainingDays: TrainingDay[],
+  startTime: string,
+) {
+  if (trainingDays.length === 0) {
+    return now;
+  }
+
+  const selectedDayNumbers = new Set(
+    trainingDays.map((day) => trainingDayNumbers[day]),
+  );
+  const timeMatch = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(startTime.trim());
+
+  for (let daysAhead = 0; daysAhead <= 7; daysAhead += 1) {
+    const candidate = new Date(now);
+    candidate.setHours(12, 0, 0, 0);
+    candidate.setDate(candidate.getDate() + daysAhead);
+
+    if (!selectedDayNumbers.has(candidate.getDay())) {
+      continue;
+    }
+
+    if (timeMatch) {
+      candidate.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0);
+
+      if (candidate.getTime() <= now.getTime()) {
+        continue;
+      }
+    }
+
+    return candidate;
+  }
+
+  return now;
 }
 
 function splitEventsBySection(events: CoachEvent[]) {
@@ -463,7 +526,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: PageTopPadding,
+    paddingTop: AppHeaderHeight + PageTopPadding,
   },
   header: {
     alignItems: "flex-start",
@@ -501,8 +564,10 @@ const styles = StyleSheet.create({
   },
   matchDayButton: {
     alignItems: "center",
-    backgroundColor: "#536DFE",
+    backgroundColor: "transparent",
+    borderColor: "#536DFE",
     borderRadius: Spacing.three,
+    borderWidth: 1.5,
     flexDirection: "row",
     gap: Spacing.one,
     justifyContent: "center",
@@ -510,7 +575,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
   },
   matchDayButtonText: {
-    color: "#ffffff",
+    color: "#536DFE",
   },
   pressed: {
     opacity: 0.7,

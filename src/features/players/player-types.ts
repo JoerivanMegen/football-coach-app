@@ -14,6 +14,7 @@ export type Player = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  isGuest?: boolean;
 };
 
 export type CreatePlayerInput = {

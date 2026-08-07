@@ -132,7 +132,7 @@ export function EventWizard({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}>
         <Pressable style={styles.modalBackdrop} onPress={handleClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">{title}</ThemedText>

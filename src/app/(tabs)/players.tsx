@@ -1,6 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useFocusEffect } from "expo-router";
 import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,9 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
+  AppHeaderHeight,
   BottomTabInset,
   MaxContentWidth,
-  ModalBackgroundColor,
   PageTopPadding,
   Spacing,
 } from "@/constants/theme";
@@ -30,6 +31,7 @@ import {
   archivePlayerAsync,
   createPlayerAsync,
   listPlayersAsync,
+  savePlayerWithKitReassignmentAsync,
   updatePlayerAsync,
 } from "@/features/players/player-repository";
 import {
@@ -39,6 +41,7 @@ import {
   type PlayerPosition,
 } from "@/features/players/player-types";
 import { useTheme } from "@/hooks/use-theme";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
 
 type PlayerFormState = {
@@ -49,6 +52,27 @@ type PlayerFormState = {
   position: PlayerPosition | null;
   kitNumber: string;
 };
+
+type TeamStatsSortKey =
+  | "player"
+  | "trainingAttendancePercentage"
+  | "matchAttendancePercentage"
+  | "latePercentage"
+  | "matchStarts"
+  | "matchStarterPercentage"
+  | "averageMatchMinutes"
+  | "matchGoals"
+  | "matchAssists"
+  | "matchYellowCards"
+  | "matchRedCards"
+  | "matchCleanSheets"
+  | "averageMatchRating"
+  | "matchGoalsPer90"
+  | "matchAssistsPer90"
+  | "matchDutiesAssigned"
+  | "matchDutiesFulfilled"
+  | "matchDutyFulfillmentPercentage"
+  | "recentForm";
 
 const emptyFormState: PlayerFormState = {
   firstName: "",
@@ -63,7 +87,12 @@ const WarningColor = "#F59E0B";
 const WarningTextColor = "#111827";
 const ErrorColor = "#B42318";
 const StatsColor = "#2563EB";
-const ActionTextColor = "#ffffff";
+const playerPositionSections: { position: PlayerPosition; label: string }[] = [
+  { position: "goalkeeper", label: "Goalkeepers" },
+  { position: "defender", label: "Defenders" },
+  { position: "midfielder", label: "Midfielders" },
+  { position: "forward", label: "Attackers" },
+];
 
 export default function PlayersScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -79,7 +108,19 @@ export default function PlayersScreen() {
     number | null
   >(null);
   const [isTeamStatsOpen, setIsTeamStatsOpen] = useState(false);
+  const [expandedPositionSections, setExpandedPositionSections] = useState<
+    Record<PlayerPosition, boolean>
+  >({ goalkeeper: true, defender: true, midfielder: true, forward: true });
   const [form, setForm] = useState<PlayerFormState>(emptyFormState);
+  const expandAllPositionSections = useCallback(() => {
+    setExpandedPositionSections({
+      goalkeeper: true,
+      defender: true,
+      midfielder: true,
+      forward: true,
+    });
+  }, []);
+  const scrollViewRef = useScrollToTopOnFocus(expandAllPositionSections);
 
   const insets = useMemo(
     () => ({
@@ -102,9 +143,6 @@ export default function PlayersScreen() {
   });
 
   const loadPlayers = useCallback(async () => {
-    await Promise.resolve();
-    setIsLoading(true);
-
     try {
       const [nextPlayers, nextPlayerStats] = await Promise.all([
         listPlayersAsync(),
@@ -120,30 +158,11 @@ export default function PlayersScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    Promise.all([listPlayersAsync(), listPlayerAttendanceStatsAsync()])
-      .then(([nextPlayers, nextPlayerStats]) => {
-        if (isMounted) {
-          setPlayers(nextPlayers);
-          setPlayerStats(nextPlayerStats);
-        }
-      })
-      .catch((error: unknown) => {
-        console.warn("Failed to load players", error);
-        Alert.alert("Could not load players", "Please try again.");
-      })
-      .finally(() => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void loadPlayers();
+    }, [loadPlayers]),
+  );
 
   function openAddPlayerForm() {
     setEditingPlayerId(null);
@@ -245,21 +264,77 @@ export default function PlayersScreen() {
       kitNumber,
     };
 
+    const continueWithKitNumberCheck = () => {
+      void checkKitNumberAndSave(playerInput);
+    };
+
     if (findDuplicatePlayer(firstName, lastName, players, editingPlayerId)) {
       confirmDuplicatePlayer(`${firstName} ${lastName}`, () => {
-        void savePlayer(playerInput);
+        continueWithKitNumberCheck();
       });
       return;
     }
 
-    await savePlayer(playerInput);
+    await checkKitNumberAndSave(playerInput);
   }
 
-  async function savePlayer(playerInput: CreatePlayerInput) {
+  async function checkKitNumberAndSave(playerInput: CreatePlayerInput) {
+    if (playerInput.kitNumber === null || playerInput.kitNumber === undefined) {
+      await savePlayer(playerInput);
+      return;
+    }
+
+    const conflictingPlayer = players.find(
+      (player) =>
+        player.id !== editingPlayerId &&
+        player.kitNumber === playerInput.kitNumber,
+    );
+
+    if (!conflictingPlayer) {
+      await savePlayer(playerInput);
+      return;
+    }
+
+    const nextAvailableNumber = findNextAvailableKitNumber(
+      playerInput.kitNumber,
+      players,
+      editingPlayerId,
+    );
+    const conflictingName = conflictingPlayer.firstName;
+    const message = `${conflictingName} already has this kit number. Do you want to change theirs to ${nextAvailableNumber}?`;
+    const confirmReassignment = () => {
+      void savePlayer(playerInput, {
+        playerId: conflictingPlayer.id,
+        kitNumber: nextAvailableNumber,
+      });
+    };
+
+    if (Platform.OS === "web") {
+      if (globalThis.confirm(message)) confirmReassignment();
+      return;
+    }
+
+    Alert.alert("Kit number already taken", message, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Change number", onPress: confirmReassignment },
+    ]);
+  }
+
+  async function savePlayer(
+    playerInput: CreatePlayerInput,
+    kitReassignment?: { playerId: number; kitNumber: number },
+  ) {
     setIsSaving(true);
 
     try {
-      if (editingPlayerId === null) {
+      if (kitReassignment) {
+        await savePlayerWithKitReassignmentAsync(
+          editingPlayerId,
+          playerInput,
+          kitReassignment.playerId,
+          kitReassignment.kitNumber,
+        );
+      } else if (editingPlayerId === null) {
         await createPlayerAsync(playerInput);
       } else {
         await updatePlayerAsync(editingPlayerId, playerInput);
@@ -325,6 +400,7 @@ export default function PlayersScreen() {
   return (
     <>
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -369,10 +445,10 @@ export default function PlayersScreen() {
                     android: "bar_chart",
                     web: "bar_chart",
                   }}
-                  tintColor="#ffffff"
+                  tintColor={StatsColor}
                   size={18}
                 />
-                <ThemedText type="smallBold" style={styles.actionButtonText}>
+                <ThemedText type="smallBold" style={styles.teamStatsButtonText}>
                   Team stats
                 </ThemedText>
               </Pressable>
@@ -392,15 +468,64 @@ export default function PlayersScreen() {
             </ThemedView>
           ) : (
             <ThemedView style={styles.playerList}>
-              {players.map((player) => (
-                <PlayerCard
-                  key={player.id}
-                  player={player}
-                  onArchivePlayer={handleArchivePlayer}
-                  onEditPlayer={openEditPlayerForm}
-                  onOpenStats={() => setSelectedStatsPlayerId(player.id)}
-                />
-              ))}
+              {playerPositionSections.map((section) => {
+                const sectionPlayers = players.filter(
+                  (player) => player.position === section.position,
+                );
+                const isExpanded = expandedPositionSections[section.position];
+
+                return (
+                  <ThemedView key={section.position} style={styles.positionSection}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: isExpanded }}
+                      accessibilityLabel={`${isExpanded ? "Collapse" : "Expand"} ${section.label}`}
+                      onPress={() =>
+                        setExpandedPositionSections((current) => ({
+                          ...current,
+                          [section.position]: !current[section.position],
+                        }))
+                      }
+                      style={({ pressed }) => [pressed && styles.pressed]}
+                    >
+                      <ThemedView style={styles.positionSectionHeader}>
+                        <ThemedView style={styles.positionSectionTitle}>
+                          <ThemedText type="default">{section.label}</ThemedText>
+                        </ThemedView>
+                        <SymbolView
+                          name={
+                            isExpanded
+                              ? { ios: "chevron.up", android: "expand_less", web: "expand_less" }
+                              : { ios: "chevron.down", android: "expand_more", web: "expand_more" }
+                          }
+                          tintColor={theme.text}
+                          size={20}
+                        />
+                      </ThemedView>
+                    </Pressable>
+
+                    {isExpanded ? (
+                      <ThemedView style={styles.positionSectionPlayers}>
+                        {sectionPlayers.length ? (
+                          sectionPlayers.map((player) => (
+                            <PlayerCard
+                              key={player.id}
+                              player={player}
+                              onArchivePlayer={handleArchivePlayer}
+                              onEditPlayer={openEditPlayerForm}
+                              onOpenStats={() => setSelectedStatsPlayerId(player.id)}
+                            />
+                          ))
+                        ) : (
+                          <ThemedText type="small" themeColor="textSecondary" style={styles.noPositionPlayers}>
+                            No {section.label.toLowerCase()} added yet.
+                          </ThemedText>
+                        )}
+                      </ThemedView>
+                    ) : null}
+                  </ThemedView>
+                );
+              })}
             </ThemedView>
           )}
         </ThemedView>
@@ -417,7 +542,7 @@ export default function PlayersScreen() {
           style={styles.modalOverlay}
         >
           <Pressable style={styles.modalBackdrop} onPress={closeForm} />
-          <ThemedView style={styles.modalSheet}>
+          <ThemedView type="modalBackground" style={styles.modalSheet}>
             <ThemedView style={styles.modalHeader}>
               <ThemedText type="default">
                 {editingPlayerId === null ? "Add player" : "Edit player"}
@@ -515,14 +640,18 @@ export default function PlayersScreen() {
                         ]}
                       >
                         <ThemedView
-                          type={
-                            isSelected
-                              ? "backgroundSelected"
-                              : "backgroundElement"
-                          }
-                          style={styles.positionOptionInner}
+                          style={[
+                            styles.positionOptionInner,
+                            isSelected && styles.positionOptionInnerSelected,
+                          ]}
                         >
-                          <ThemedText type="smallBold">
+                          <ThemedText
+                            type="smallBold"
+                            style={[
+                              styles.positionOptionText,
+                              isSelected && styles.positionOptionTextSelected,
+                            ]}
+                          >
                             {getPlayerPositionLabel(position, DEFAULT_LOCALE)}
                           </ThemedText>
                         </ThemedView>
@@ -631,7 +760,7 @@ function PlayerCard({
                 android: "bar_chart",
                 web: "bar_chart",
               }}
-              tintColor={ActionTextColor}
+              tintColor={StatsColor}
               size={16}
             />
           </Pressable>
@@ -647,7 +776,7 @@ function PlayerCard({
           >
             <SymbolView
               name={{ ios: "pencil", android: "edit", web: "edit" }}
-              tintColor={WarningTextColor}
+              tintColor={WarningColor}
               size={16}
             />
           </Pressable>
@@ -663,7 +792,7 @@ function PlayerCard({
           >
             <SymbolView
               name={{ ios: "trash", android: "delete", web: "delete" }}
-              tintColor={ActionTextColor}
+              tintColor={ErrorColor}
               size={16}
             />
           </Pressable>
@@ -698,7 +827,7 @@ function PlayerProfileStatsModal({
         style={styles.modalOverlay}
       >
         <Pressable style={styles.modalBackdrop} onPress={onClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.statsModalTitleGroup}>
               <ThemedText type="subtitle" style={styles.statsModalPlayerName}>
@@ -750,10 +879,26 @@ function TeamStatsModal({
 }) {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
+  const [sortKey, setSortKey] = useState<TeamStatsSortKey>("player");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const sortedStats = useMemo(
+    () => [...stats].sort((left, right) => compareTeamStats(left, right, sortKey, sortDirection)),
+    [sortDirection, sortKey, stats],
+  );
+
+  function changeSort(nextKey: TeamStatsSortKey) {
+    if (nextKey === sortKey) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(nextKey);
+      setSortDirection(nextKey === "player" ? "asc" : "desc");
+    }
+  }
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <ThemedView
+        type="modalBackground"
         style={[
           styles.teamStatsModalScreen,
           {
@@ -801,19 +946,41 @@ function TeamStatsModal({
           >
             <ThemedView type="backgroundElement" style={styles.teamStatsTable}>
               <ThemedView type="backgroundSelected" style={styles.teamStatsTableHeaderRow}>
-                <TeamStatsHeaderCell label="Player" style={styles.teamStatsPlayerCell} />
-                <TeamStatsHeaderCell label="Training %" />
-                <TeamStatsHeaderCell label="Match %" />
-                <TeamStatsHeaderCell label="Late %" />
-                <TeamStatsHeaderCell label="Avg min" />
-                <TeamStatsHeaderCell label="Goals" />
-                <TeamStatsHeaderCell label="Assists" />
-                <TeamStatsHeaderCell label="Avg rating" />
-                <TeamStatsHeaderCell label="Last 5" style={styles.teamStatsRecentCell} />
+                {([
+                  ["Player", "player", styles.teamStatsPlayerCell],
+                  ["Training %", "trainingAttendancePercentage"],
+                  ["Match %", "matchAttendancePercentage"],
+                  ["Late %", "latePercentage"],
+                  ["Starts", "matchStarts"],
+                  ["Starter %", "matchStarterPercentage"],
+                  ["Avg min", "averageMatchMinutes"],
+                  ["Goals", "matchGoals"],
+                  ["Assists", "matchAssists"],
+                  ["YC", "matchYellowCards"],
+                  ["RC", "matchRedCards"],
+                  ["Clean sheets", "matchCleanSheets"],
+                  ["Avg rating", "averageMatchRating"],
+                  ["Goals/90", "matchGoalsPer90"],
+                  ["Assists/90", "matchAssistsPer90"],
+                  ["Duties", "matchDutiesAssigned"],
+                  ["Fulfilled", "matchDutiesFulfilled"],
+                  ["Duty %", "matchDutyFulfillmentPercentage"],
+                  ["Last 5", "recentForm", styles.teamStatsRecentCell],
+                ] as [string, TeamStatsSortKey, object?][]).map(([label, key, style]) => (
+                  <TeamStatsHeaderCell
+                    key={key}
+                    activeSortKey={sortKey}
+                    direction={sortDirection}
+                    label={label}
+                    onSort={changeSort}
+                    sortKey={key}
+                    style={style}
+                  />
+                ))}
               </ThemedView>
 
               <ScrollView showsVerticalScrollIndicator={false}>
-                {stats.map((playerStats) => (
+                {sortedStats.map((playerStats) => (
                   <ThemedView
                     key={playerStats.playerId}
                     type="backgroundElement"
@@ -837,13 +1004,33 @@ function TeamStatsModal({
                       value={formatPercentage(playerStats.matchAttendancePercentage)}
                     />
                     <TeamStatsValueCell value={formatPercentage(playerStats.latePercentage)} />
+                    <TeamStatsValueCell value={String(playerStats.matchStarts)} />
+                    <TeamStatsValueCell
+                      value={formatPercentage(playerStats.matchStarterPercentage)}
+                    />
                     <TeamStatsValueCell
                       value={formatNullableNumber(playerStats.averageMatchMinutes)}
                     />
-                    <TeamStatsValueCell value="-" />
-                    <TeamStatsValueCell value="-" />
+                    <TeamStatsValueCell value={String(playerStats.matchGoals)} />
+                    <TeamStatsValueCell value={String(playerStats.matchAssists)} />
+                    <TeamStatsValueCell value={String(playerStats.matchYellowCards)} />
+                    <TeamStatsValueCell value={String(playerStats.matchRedCards)} />
+                    <TeamStatsValueCell
+                      value={
+                        isCleanSheetPosition(playerStats.position)
+                          ? String(playerStats.matchCleanSheets)
+                          : "-"
+                      }
+                    />
                     <TeamStatsValueCell
                       value={formatNullableNumber(playerStats.averageMatchRating)}
+                    />
+                    <TeamStatsValueCell value={formatNullableNumber(playerStats.matchGoalsPer90)} />
+                    <TeamStatsValueCell value={formatNullableNumber(playerStats.matchAssistsPer90)} />
+                    <TeamStatsValueCell value={String(playerStats.matchDutiesAssigned)} />
+                    <TeamStatsValueCell value={String(playerStats.matchDutiesFulfilled)} />
+                    <TeamStatsValueCell
+                      value={formatPercentage(playerStats.matchDutyFulfillmentPercentage)}
                     />
                     <ThemedView type="backgroundElement" style={styles.teamStatsRecentCell}>
                       <TeamStatsRecentRatings
@@ -862,18 +1049,45 @@ function TeamStatsModal({
 }
 
 function TeamStatsHeaderCell({
+  activeSortKey,
+  direction,
   label,
+  onSort,
+  sortKey,
   style,
 }: {
+  activeSortKey: TeamStatsSortKey;
+  direction: "asc" | "desc";
   label: string;
+  onSort: (key: TeamStatsSortKey) => void;
+  sortKey: TeamStatsSortKey;
   style?: object;
 }) {
+  const isActive = activeSortKey === sortKey;
+
   return (
-    <ThemedView type="backgroundSelected" style={[styles.teamStatsTableCell, style]}>
-      <ThemedText type="code" themeColor="textSecondary" style={styles.teamStatsHeaderText}>
-        {label}
-      </ThemedText>
-    </ThemedView>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Sort by ${label}`}
+      accessibilityState={{ selected: isActive }}
+      onPress={() => onSort(sortKey)}
+      style={({ pressed }) => [
+        styles.teamStatsTableCell,
+        style,
+        pressed && styles.pressed,
+      ]}
+    >
+      <ThemedView type="backgroundSelected" style={styles.teamStatsSortableHeader}>
+        <ThemedText type="code" themeColor="textSecondary" style={styles.teamStatsHeaderText}>
+          {label}
+        </ThemedText>
+        {isActive ? (
+          <ThemedText type="smallBold" style={styles.teamStatsSortIndicator}>
+            {direction === "asc" ? "↑" : "↓"}
+          </ThemedText>
+        ) : null}
+      </ThemedView>
+    </Pressable>
   );
 }
 
@@ -916,7 +1130,7 @@ function TeamStatsRecentRatings({ ratings }: { ratings: number[] }) {
 }
 
 function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
-  const hasMarkedEvents = stats.totalEvents > 0;
+  const hasMarkedEvents = stats.totalEvents > 0 || stats.matchAppearances > 0;
 
   if (!hasMarkedEvents) {
     return (
@@ -966,24 +1180,76 @@ function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
         <ThemedText type="smallBold">Match data</ThemedText>
         <ThemedView type="backgroundElement" style={styles.statList}>
           <PlayerStatRow
-            label="Matches played"
-            value={String(stats.matchAttended)}
-            detail={`${stats.matchEvents} marked matches`}
+            label="Appearances"
+            value={String(stats.matchAppearances)}
+            detail={`${stats.matchEvents} completed matches`}
           />
           <PlayerStatRow
-            label="Total minutes"
-            value={String(stats.totalMatchMinutes)}
-            detail="recorded match minutes"
+            label="Starts"
+            value={String(stats.matchStarts)}
+            detail="named in the starting XI"
           />
           <PlayerStatRow
-            label="Average minutes"
+            label="Starter"
+            value={formatPercentage(stats.matchStarterPercentage)}
+            detail="starts per appearance"
+          />
+          <PlayerStatRow
+            label="Avg mins"
             value={formatNullableNumber(stats.averageMatchMinutes)}
-            detail="per match with minutes"
+            detail={`${stats.totalMatchMinutes} total minutes`}
           />
+          <PlayerStatRow
+            label="Goals"
+            value={String(stats.matchGoals)}
+            detail="season match goals"
+          />
+          <PlayerStatRow
+            label="Assists"
+            value={String(stats.matchAssists)}
+            detail="season match assists"
+          />
+          <PlayerStatRow
+            label="Yellow cards"
+            value={String(stats.matchYellowCards)}
+            detail="season yellow cards"
+          />
+          <PlayerStatRow
+            label="Red cards"
+            value={String(stats.matchRedCards)}
+            detail="season red cards"
+          />
+          {isCleanSheetPosition(stats.position) ? (
+            <PlayerStatRow
+              label="Clean sheets"
+              value={String(stats.matchCleanSheets)}
+              detail="0 conceded and at least 60 minutes played"
+            />
+          ) : null}
           <PlayerStatRow
             label="Average rating"
             value={formatNullableNumber(stats.averageMatchRating)}
             detail="per rated match"
+          />
+          <PlayerStatRow
+            label="Goals/90"
+            value={formatNullableNumber(stats.matchGoalsPer90)}
+            detail="goals per 90 minutes"
+          />
+          <PlayerStatRow
+            label="Assists/90"
+            value={formatNullableNumber(stats.matchAssistsPer90)}
+            detail="assists per 90 minutes"
+          />
+          <PlayerStatRow
+            label="Match duties"
+            value={String(stats.matchDutiesAssigned)}
+            detail={`${stats.matchDutiesFulfilled} fulfilled`}
+          />
+          <PlayerStatRow
+            label="Duty fulfillment"
+            value={formatPercentage(stats.matchDutyFulfillmentPercentage)}
+            detail="fulfilled per assignment"
           />
         </ThemedView>
         <RecentMatchRatings
@@ -1286,6 +1552,22 @@ function normalizePlayerNameForDuplicateCheck(value: string) {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 
+function findNextAvailableKitNumber(
+  requestedNumber: number,
+  players: Player[],
+  ignoredPlayerId: number | null,
+) {
+  const occupiedNumbers = new Set(
+    players
+      .filter((player) => player.id !== ignoredPlayerId)
+      .map((player) => player.kitNumber)
+      .filter((kitNumber): kitNumber is number => kitNumber !== null),
+  );
+  let candidate = requestedNumber + 1;
+  while (occupiedNumbers.has(candidate)) candidate += 1;
+  return candidate;
+}
+
 function confirmDuplicatePlayer(playerName: string, onConfirm: () => void) {
   const message = `"${playerName}" already exists. Are you sure you want to add another one?`;
 
@@ -1309,6 +1591,56 @@ function confirmDuplicatePlayer(playerName: string, onConfirm: () => void) {
   ]);
 }
 
+function compareTeamStats(
+  left: PlayerAttendanceStats,
+  right: PlayerAttendanceStats,
+  key: TeamStatsSortKey,
+  direction: "asc" | "desc",
+) {
+  const leftValue = getTeamStatsSortValue(left, key);
+  const rightValue = getTeamStatsSortValue(right, key);
+
+  if (leftValue === null && rightValue === null) return 0;
+  if (leftValue === null) return 1;
+  if (rightValue === null) return -1;
+
+  const comparison = typeof leftValue === "string"
+    ? leftValue.localeCompare(String(rightValue))
+    : leftValue - Number(rightValue);
+  return direction === "asc" ? comparison : -comparison;
+}
+
+function getTeamStatsSortValue(stats: PlayerAttendanceStats, key: TeamStatsSortKey) {
+  switch (key) {
+    case "player":
+      return `${stats.firstName} ${stats.lastName}`.toLocaleLowerCase();
+    case "trainingAttendancePercentage": return stats.trainingAttendancePercentage;
+    case "matchAttendancePercentage": return stats.matchAttendancePercentage;
+    case "latePercentage": return stats.latePercentage;
+    case "matchStarts": return stats.matchStarts;
+    case "matchStarterPercentage": return stats.matchStarterPercentage;
+    case "averageMatchMinutes": return stats.averageMatchMinutes;
+    case "matchGoals": return stats.matchGoals;
+    case "matchAssists": return stats.matchAssists;
+    case "matchYellowCards": return stats.matchYellowCards;
+    case "matchRedCards": return stats.matchRedCards;
+    case "matchCleanSheets":
+      return isCleanSheetPosition(stats.position) ? stats.matchCleanSheets : null;
+    case "averageMatchRating": return stats.averageMatchRating;
+    case "matchGoalsPer90": return stats.matchGoalsPer90;
+    case "matchAssistsPer90": return stats.matchAssistsPer90;
+    case "matchDutiesAssigned": return stats.matchDutiesAssigned;
+    case "matchDutiesFulfilled": return stats.matchDutiesFulfilled;
+    case "matchDutyFulfillmentPercentage": return stats.matchDutyFulfillmentPercentage;
+    case "recentForm": {
+      const ratings = stats.recentMatchRatings.slice(0, 5);
+      return ratings.length
+        ? ratings.reduce((total, rating) => total + rating.rating, 0) / ratings.length
+        : null;
+    }
+  }
+}
+
 function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
   return {
     playerId: player.id,
@@ -1327,6 +1659,19 @@ function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
     matchEvents: 0,
     matchAttended: 0,
     matchAttendancePercentage: null,
+    matchAppearances: 0,
+    matchStarts: 0,
+    matchStarterPercentage: null,
+    matchGoals: 0,
+    matchAssists: 0,
+    matchYellowCards: 0,
+    matchRedCards: 0,
+    matchCleanSheets: 0,
+    matchGoalsPer90: null,
+    matchAssistsPer90: null,
+    matchDutiesAssigned: 0,
+    matchDutiesFulfilled: 0,
+    matchDutyFulfillmentPercentage: null,
     teamEvents: 0,
     teamEventsAttended: 0,
     teamEventAttendancePercentage: null,
@@ -1339,6 +1684,10 @@ function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
     signedOutButAttendedCount: 0,
     recentMatchRatings: [],
   };
+}
+
+function isCleanSheetPosition(position: Player["position"]) {
+  return position === "goalkeeper" || position === "defender";
 }
 
 function formatPercentage(value: number | null) {
@@ -1380,7 +1729,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: PageTopPadding,
+    paddingTop: AppHeaderHeight + PageTopPadding,
   },
   header: {
     alignItems: "flex-start",
@@ -1413,8 +1762,10 @@ const styles = StyleSheet.create({
   },
   teamStatsButton: {
     alignItems: "center",
-    backgroundColor: StatsColor,
+    backgroundColor: "transparent",
+    borderColor: StatsColor,
     borderRadius: Spacing.three,
+    borderWidth: 1.5,
     flexDirection: "row",
     gap: Spacing.one,
     minHeight: 44,
@@ -1422,6 +1773,9 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: "#ffffff",
+  },
+  teamStatsButtonText: {
+    color: StatsColor,
   },
   pressed: {
     opacity: 0.7,
@@ -1438,7 +1792,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   playerList: {
+    gap: Spacing.three,
+  },
+  positionSection: {
     gap: Spacing.two,
+  },
+  positionSectionHeader: {
+    alignItems: "center",
+    borderRadius: Spacing.three,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 52,
+    paddingHorizontal: Spacing.three,
+  },
+  positionSectionTitle: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.two,
+  },
+  positionSectionPlayers: {
+    gap: Spacing.two,
+  },
+  noPositionPlayers: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   playerCard: {
     borderRadius: Spacing.three,
@@ -1476,13 +1853,19 @@ const styles = StyleSheet.create({
     width: 40,
   },
   editButton: {
-    backgroundColor: WarningColor,
+    backgroundColor: "transparent",
+    borderColor: WarningColor,
+    borderWidth: 1.5,
   },
   statsButton: {
-    backgroundColor: StatsColor,
+    backgroundColor: "transparent",
+    borderColor: StatsColor,
+    borderWidth: 1.5,
   },
   deleteButton: {
-    backgroundColor: ErrorColor,
+    backgroundColor: "transparent",
+    borderColor: ErrorColor,
+    borderWidth: 1.5,
   },
   playerStatsPanel: {
     borderRadius: Spacing.two,
@@ -1555,7 +1938,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.one,
   },
   teamStatsModalScreen: {
-    backgroundColor: ModalBackgroundColor,
     flex: 1,
     gap: Spacing.three,
     paddingHorizontal: Spacing.four,
@@ -1615,6 +1997,16 @@ const styles = StyleSheet.create({
   teamStatsHeaderText: {
     textTransform: "uppercase",
   },
+  teamStatsSortableHeader: {
+    alignItems: "center",
+    flex: 1,
+    flexDirection: "row",
+    gap: Spacing.one,
+    justifyContent: "center",
+  },
+  teamStatsSortIndicator: {
+    color: "#1C7C54",
+  },
   teamStatsValueText: {
     textAlign: "center",
   },
@@ -1648,7 +2040,6 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     alignSelf: "center",
-    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,
@@ -1704,10 +2095,22 @@ const styles = StyleSheet.create({
   },
   positionOptionInner: {
     alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: "#1C7C54",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: Spacing.three,
+  },
+  positionOptionInnerSelected: {
+    backgroundColor: "#1C7C54",
+  },
+  positionOptionText: {
+    color: "#1C7C54",
+  },
+  positionOptionTextSelected: {
+    color: "#ffffff",
   },
   formActions: {
     flexDirection: "row",
@@ -1716,7 +2119,10 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: "#7A7A7A",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     minHeight: 44,
     justifyContent: "center",
     paddingHorizontal: Spacing.three,

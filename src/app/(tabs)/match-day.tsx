@@ -2,6 +2,7 @@ import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
+import * as Sharing from "expo-sharing";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import {
   type Dispatch,
@@ -9,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -24,6 +26,7 @@ import {
   type StyleProp,
   StyleSheet,
   TextInput,
+  View,
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,13 +42,14 @@ import Svg, {
   Image as SvgImage,
   Text as SvgText,
 } from "react-native-svg";
+import { captureRef } from "react-native-view-shot";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
+  AppHeaderHeight,
   BottomTabInset,
   MaxContentWidth,
-  ModalBackgroundColor,
   PageTopPadding,
   Spacing,
 } from "@/constants/theme";
@@ -54,6 +58,10 @@ import {
   formatTimeForDisplay,
 } from "@/features/events/components/event-wizard/event-details-step";
 import type { SignupStatus } from "@/features/events/components/event-wizard/event-wizard-types";
+import {
+  addGuestPlayerAsync,
+  listGuestPlayersAsync,
+} from "@/features/match-day/guest-player-repository";
 import {
   createMatchDayMatchAsync,
   deleteMatchDayMatchAsync,
@@ -75,7 +83,11 @@ import { listPlayerAttendanceStatsAsync } from "@/features/player-stats/player-s
 import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
 import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
 import { listPlayersAsync } from "@/features/players/player-repository";
-import type { Player } from "@/features/players/player-types";
+import {
+  type Player,
+  PLAYER_POSITIONS,
+  type PlayerPosition,
+} from "@/features/players/player-types";
 import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
 import type { TeamSettings } from "@/features/settings/team-settings-types";
 import {
@@ -91,6 +103,11 @@ import {
   sharePosterTextPieces,
 } from "@/features/share/share-poster-overlays";
 import { useTheme } from "@/hooks/use-theme";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import {
+  cancelMatchResultReminderAsync,
+  scheduleMatchResultReminderAsync,
+} from "@/features/notifications/match-result-notifications";
 
 type MatchLocation = MatchDayLocation;
 type MatchCategory = MatchDayCategory;
@@ -152,6 +169,7 @@ type MatchSetupFormState = {
   notes: string;
   captainPlayerId: number | null;
   matchDutyPlayerIds: number[];
+  guestPlayerIds: number[];
   playerStatuses: Record<number, SignupStatus>;
   lineupAssignments: LineupAssignments;
 };
@@ -182,7 +200,7 @@ type LineupKitSettings = Pick<
   | "kitDesign"
   | "outfieldKitColor"
   | "secondaryKitColor"
-  | "sashAccentKitColor"
+  | "thirdKitColor"
   | "kitNumberColor"
   | "goalkeeperKitColor"
 >;
@@ -220,7 +238,7 @@ const defaultLineupKitSettings: LineupKitSettings = {
   kitDesign: "solid",
   outfieldKitColor: "#FFFFFF",
   secondaryKitColor: "#536DFE",
-  sashAccentKitColor: "#EF4444",
+  thirdKitColor: "#EF4444",
   kitNumberColor: "#111827",
   goalkeeperKitColor: "#111827",
 };
@@ -400,6 +418,7 @@ function createEmptyMatchSetupFormState(venue = ""): MatchSetupFormState {
     notes: "",
     captainPlayerId: null,
     matchDutyPlayerIds: [],
+    guestPlayerIds: [],
     playerStatuses: {},
     lineupAssignments: {},
   };
@@ -419,12 +438,14 @@ function createMatchSetupFormStateFromMatch(
     notes: match.notes,
     captainPlayerId: match.captainPlayerId,
     matchDutyPlayerIds: match.matchDutyPlayerIds,
+    guestPlayerIds: match.guestPlayerIds,
     playerStatuses: match.playerStatuses,
     lineupAssignments: match.lineupAssignments,
   };
 }
 
 export default function MatchDayScreen() {
+  const scrollViewRef = useScrollToTopOnFocus();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const [isMatchSetupOpen, setIsMatchSetupOpen] = useState(false);
@@ -436,6 +457,7 @@ export default function MatchDayScreen() {
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [clubLocation, setClubLocation] = useState("");
   const [preferNicknames, setPreferNicknames] = useState(true);
+  const [matchDutyEnabled, setMatchDutyEnabled] = useState(true);
   const [matchDurationMinutes, setMatchDurationMinutes] = useState(
     defaultMatchDurationMinutes,
   );
@@ -453,6 +475,7 @@ export default function MatchDayScreen() {
     opponentScore: 0,
     resultNotes: "",
     playerResultStats: {},
+    fulfilledMatchDutyPlayerIds: [],
   });
   const insets = useMemo(
     () => ({
@@ -477,17 +500,20 @@ export default function MatchDayScreen() {
 
   const loadMatches = useCallback(async () => {
     try {
-      const [nextMatches, nextPlayers, nextSettings] = await Promise.all([
-        listMatchDayMatchesAsync(),
-        listPlayersAsync(),
-        getTeamSettingsAsync(),
-      ]);
+      const [nextMatches, nextPlayers, nextGuests, nextSettings] =
+        await Promise.all([
+          listMatchDayMatchesAsync(),
+          listPlayersAsync(),
+          listGuestPlayersAsync(),
+          getTeamSettingsAsync(),
+        ]);
       setMatches(nextMatches);
-      setOverviewPlayers(nextPlayers);
+      setOverviewPlayers([...nextPlayers, ...nextGuests]);
       setKitSettings(nextSettings ?? defaultLineupKitSettings);
       setTeamName(nextSettings?.teamName.trim() || defaultTeamName);
       setClubLocation(nextSettings?.clubLocation ?? "");
       setPreferNicknames(nextSettings?.preferNicknames ?? true);
+      setMatchDutyEnabled(nextSettings?.matchDutyEnabled ?? true);
       setMatchDurationMinutes(
         nextSettings?.matchDurationMinutes ?? defaultMatchDurationMinutes,
       );
@@ -503,16 +529,18 @@ export default function MatchDayScreen() {
     Promise.all([
       listMatchDayMatchesAsync(),
       listPlayersAsync(),
+      listGuestPlayersAsync(),
       getTeamSettingsAsync(),
     ])
-      .then(([nextMatches, nextPlayers, nextSettings]) => {
+      .then(([nextMatches, nextPlayers, nextGuests, nextSettings]) => {
         if (isMounted) {
           setMatches(nextMatches);
-          setOverviewPlayers(nextPlayers);
+          setOverviewPlayers([...nextPlayers, ...nextGuests]);
           setKitSettings(nextSettings ?? defaultLineupKitSettings);
           setTeamName(nextSettings?.teamName.trim() || defaultTeamName);
           setClubLocation(nextSettings?.clubLocation ?? "");
           setPreferNicknames(nextSettings?.preferNicknames ?? true);
+          setMatchDutyEnabled(nextSettings?.matchDutyEnabled ?? true);
           setMatchDurationMinutes(
             nextSettings?.matchDurationMinutes ?? defaultMatchDurationMinutes,
           );
@@ -539,6 +567,7 @@ export default function MatchDayScreen() {
             setTeamName(nextSettings?.teamName.trim() || defaultTeamName);
             setClubLocation(nextSettings?.clubLocation ?? "");
             setPreferNicknames(nextSettings?.preferNicknames ?? true);
+            setMatchDutyEnabled(nextSettings?.matchDutyEnabled ?? true);
             setMatchDurationMinutes(
               nextSettings?.matchDurationMinutes ?? defaultMatchDurationMinutes,
             );
@@ -572,13 +601,19 @@ export default function MatchDayScreen() {
   }
 
   function openResultWizard(match: MatchDayMatch) {
-    const squadEntries = getMatchResultSquadEntries(match, overviewPlayers);
+    const squadEntries = getMatchResultSquadEntries(
+      match,
+      applyGuestKitNumbers(overviewPlayers, match.guestPlayerIds),
+    );
 
     setResultMatchId(match.id);
     setMatchResultForm({
       ownScore: match.ownScore ?? 0,
       opponentScore: match.opponentScore ?? 0,
       resultNotes: match.resultNotes,
+      fulfilledMatchDutyPlayerIds: match.fulfilledMatchDutyPlayerIds.filter(
+        (playerId) => match.matchDutyPlayerIds.includes(playerId),
+      ),
       playerResultStats: initializeMatchResultPlayerStats(
         match.playerResultStats,
         squadEntries,
@@ -619,7 +654,11 @@ export default function MatchDayScreen() {
   }
 
   function openSavedMatchSharePreview(match: MatchDayMatch) {
-    const squadEntries = getMatchResultSquadEntries(match, overviewPlayers);
+    const matchPlayers = applyGuestKitNumbers(
+      overviewPlayers,
+      match.guestPlayerIds,
+    );
+    const squadEntries = getMatchResultSquadEntries(match, matchPlayers);
     const playerRoleById = new Map(
       squadEntries.map((entry) => [entry.player.id, entry.role]),
     );
@@ -632,7 +671,7 @@ export default function MatchDayScreen() {
         ? match.playerResultStats
         : undefined,
       playerRoleById,
-      players: overviewPlayers,
+      players: matchPlayers,
     });
   }
 
@@ -645,7 +684,7 @@ export default function MatchDayScreen() {
       matches.find((match) => match.id === resultMatchId) ?? null;
     const squadEntries = getMatchResultSquadEntries(
       resultMatch,
-      overviewPlayers,
+      applyGuestKitNumbers(overviewPlayers, resultMatch?.guestPlayerIds ?? []),
     );
 
     try {
@@ -660,6 +699,7 @@ export default function MatchDayScreen() {
           matchDurationMinutes,
         ),
       });
+      await cancelMatchResultReminderAsync(resultMatchId);
       setExpandedMatchId(resultMatchId);
       setResultMatchId(null);
       await loadMatches();
@@ -670,7 +710,7 @@ export default function MatchDayScreen() {
   }
 
   async function handleSaveMatch() {
-    if (!validateMatchSetupForm(matchSetupForm)) {
+    if (!validateMatchSetupForm(matchSetupForm) || !validateMatchCaptain(matchSetupForm)) {
       return;
     }
 
@@ -688,19 +728,38 @@ export default function MatchDayScreen() {
         formation: matchSetupForm.formation,
         notes: matchSetupForm.notes,
         captainPlayerId: matchSetupForm.captainPlayerId,
-        matchDutyPlayerIds: matchSetupForm.matchDutyPlayerIds,
+        matchDutyPlayerIds: matchDutyEnabled ? matchSetupForm.matchDutyPlayerIds : [],
+        guestPlayerIds: matchSetupForm.guestPlayerIds,
         playerStatuses: matchSetupForm.playerStatuses,
         lineupAssignments: matchSetupForm.lineupAssignments,
       };
 
+      let savedMatchId: number;
       if (editingMatchId) {
         await updateMatchDayMatchAsync({
           ...matchInput,
           id: editingMatchId,
         });
+        savedMatchId = editingMatchId;
         setExpandedMatchId(editingMatchId);
       } else {
-        await createMatchDayMatchAsync(matchInput);
+        savedMatchId = await createMatchDayMatchAsync(matchInput);
+      }
+
+      const existingSavedMatch = editingMatchId
+        ? matches.find((match) => match.id === editingMatchId)
+        : undefined;
+      const savedMatchAlreadyHasResult = existingSavedMatch
+        ? hasMatchResult(existingSavedMatch)
+        : false;
+      if (savedMatchAlreadyHasResult) {
+        await cancelMatchResultReminderAsync(savedMatchId);
+      } else {
+        await scheduleMatchResultReminderAsync(
+          savedMatchId,
+          matchInput.matchDate,
+          matchInput.startTime,
+        );
       }
 
       await loadMatches();
@@ -736,6 +795,7 @@ export default function MatchDayScreen() {
   async function handleDeleteMatch(match: MatchDayMatch) {
     try {
       await deleteMatchDayMatchAsync(match.id);
+      await cancelMatchResultReminderAsync(match.id);
       setExpandedMatchId((currentMatchId) =>
         currentMatchId === match.id ? null : currentMatchId,
       );
@@ -749,6 +809,7 @@ export default function MatchDayScreen() {
   return (
     <>
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -810,9 +871,10 @@ export default function MatchDayScreen() {
         clubLocation={clubLocation}
         form={matchSetupForm}
         kitSettings={kitSettings}
+        matchDutyEnabled={matchDutyEnabled}
         mode={editingMatchId ? "edit" : "create"}
         preferNicknames={preferNicknames}
-        visible={isMatchSetupOpen}
+        visible={isMatchSetupOpen && sharePreview === null}
         onChangeForm={setMatchSetupForm}
         onClose={closeMatchSetupWizard}
         onContinue={handleSaveMatch}
@@ -828,11 +890,15 @@ export default function MatchDayScreen() {
           resultMatchId
             ? getMatchResultSquadEntries(
                 matches.find((match) => match.id === resultMatchId) ?? null,
-                overviewPlayers,
+                applyGuestKitNumbers(
+                  overviewPlayers,
+                  matches.find((match) => match.id === resultMatchId)
+                    ?.guestPlayerIds ?? [],
+                ),
               )
             : []
         }
-        visible={resultMatchId !== null}
+        visible={resultMatchId !== null && sharePreview === null}
         teamName={teamName}
         onChangeForm={setMatchResultForm}
         onClose={closeResultWizard}
@@ -892,6 +958,36 @@ function MatchResultModal({
     onClose();
   }
 
+  function handleContinue() {
+    if (wizardStep !== 1) {
+      setWizardStep((currentStep) => currentStep + 1);
+      return;
+    }
+
+    const assignedPlayerGoals = squadEntries.reduce(
+      (totalGoals, { player }) =>
+        totalGoals + (form.playerResultStats[player.id]?.goals ?? 0),
+      0,
+    );
+
+    if (assignedPlayerGoals < form.ownScore) {
+      Alert.alert(
+        "Goals don't match",
+        "The number of goals doesn't match with the result! Were the remaining ones own goals?",
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Yes",
+            onPress: () => setWizardStep(2),
+          },
+        ],
+      );
+      return;
+    }
+
+    setWizardStep(2);
+  }
+
   async function handleSave() {
     setWizardStep(0);
     await onSave();
@@ -909,7 +1005,7 @@ function MatchResultModal({
         style={styles.modalOverlay}
       >
         <Pressable style={styles.modalBackdrop} onPress={handleClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">Match result</ThemedText>
@@ -952,6 +1048,7 @@ function MatchResultModal({
               <MatchResultPlayerStep
                 form={form}
                 matchDurationMinutes={matchDurationMinutes}
+                matchDutyPlayerIds={match?.matchDutyPlayerIds ?? []}
                 preferNicknames={preferNicknames}
                 squadEntries={squadEntries}
                 teamName={teamName}
@@ -981,7 +1078,10 @@ function MatchResultModal({
                   pressed && styles.pressed,
                 ]}
               >
-                <ThemedText type="smallBold" style={styles.reviewActionText}>
+                <ThemedText
+                  type="smallBold"
+                  style={styles.reviewBackButtonText}
+                >
                   Back
                 </ThemedText>
               </Pressable>
@@ -1011,7 +1111,10 @@ function MatchResultModal({
                   pressed && styles.pressed,
                 ]}
               >
-                <ThemedText type="smallBold" style={styles.reviewActionText}>
+                <ThemedText
+                  type="smallBold"
+                  style={[styles.reviewActionText, styles.reviewSaveButtonText]}
+                >
                   Save
                 </ThemedText>
               </Pressable>
@@ -1036,7 +1139,7 @@ function MatchResultModal({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setWizardStep((currentStep) => currentStep + 1)}
+                onPress={handleContinue}
                 style={({ pressed }) => [
                   styles.primaryButton,
                   pressed && styles.pressed,
@@ -1132,6 +1235,7 @@ function MatchResultScoreStep({
 function MatchResultPlayerStep({
   form,
   matchDurationMinutes,
+  matchDutyPlayerIds,
   onChangeForm,
   preferNicknames,
   squadEntries,
@@ -1139,6 +1243,7 @@ function MatchResultPlayerStep({
 }: {
   form: MatchResultFormState;
   matchDurationMinutes: number;
+  matchDutyPlayerIds: number[];
   onChangeForm: Dispatch<SetStateAction<MatchResultFormState>>;
   preferNicknames: boolean;
   squadEntries: MatchResultSquadEntry[];
@@ -1180,6 +1285,17 @@ function MatchResultPlayerStep({
     });
   }
 
+  function updateMatchDutyFulfilled(playerId: number, isFulfilled: boolean) {
+    onChangeForm((currentForm) => ({
+      ...currentForm,
+      fulfilledMatchDutyPlayerIds: isFulfilled
+        ? [...new Set([...currentForm.fulfilledMatchDutyPlayerIds, playerId])]
+        : currentForm.fulfilledMatchDutyPlayerIds.filter(
+            (currentPlayerId) => currentPlayerId !== playerId,
+          ),
+    }));
+  }
+
   return (
     <ThemedView style={styles.playerPerformanceStep}>
       <ThemedView style={styles.fieldGroup}>
@@ -1219,6 +1335,10 @@ function MatchResultPlayerStep({
               <PlayerPerformanceCard
                 key={entry.player.id}
                 isExpanded={isExpanded}
+                isMatchDuty={matchDutyPlayerIds.includes(entry.player.id)}
+                isMatchDutyFulfilled={form.fulfilledMatchDutyPlayerIds.includes(
+                  entry.player.id,
+                )}
                 maxAssists={maxAssistsForPlayer}
                 maxGoals={maxGoalsForPlayer}
                 player={entry.player}
@@ -1229,6 +1349,9 @@ function MatchResultPlayerStep({
                 matchDurationMinutes={matchDurationMinutes}
                 onChange={(update) =>
                   updatePlayerStat(entry.player.id, entry.role, update)
+                }
+                onMatchDutyFulfilledChange={(isFulfilled) =>
+                  updateMatchDutyFulfilled(entry.player.id, isFulfilled)
                 }
                 onToggle={() =>
                   setExpandedPlayerId((currentPlayerId) =>
@@ -1280,12 +1403,11 @@ function MatchResultReviewStep({
   }
 
   const matchForm = createMatchSetupFormStateFromMatch(match);
-  const players = squadEntries.map((entry) => entry.player);
-  const substitutes = getAssignedSubstitutes(matchForm, players);
+  const squadPlayers = squadEntries.map((entry) => entry.player);
+  const substitutes = getAssignedSubstitutes(matchForm, squadPlayers);
   const playerRoleById = new Map(
     squadEntries.map((entry) => [entry.player.id, entry.role]),
   );
-
   return (
     <ThemedView style={styles.resultReviewStep}>
       <ThemedView style={styles.reviewHeader}>
@@ -1309,7 +1431,7 @@ function MatchResultReviewStep({
         matchDurationMinutes={matchDurationMinutes}
         playerResultStats={form.playerResultStats}
         playerRoleById={playerRoleById}
-        players={players}
+        players={squadPlayers}
         preferNicknames={preferNicknames}
       />
 
@@ -1357,10 +1479,13 @@ function MatchResultReviewStep({
 
 function PlayerPerformanceCard({
   isExpanded,
+  isMatchDuty,
+  isMatchDutyFulfilled,
   matchDurationMinutes,
   maxAssists,
   maxGoals,
   onChange,
+  onMatchDutyFulfilledChange,
   onToggle,
   player,
   preferNicknames,
@@ -1369,12 +1494,15 @@ function PlayerPerformanceCard({
   teamScore,
 }: {
   isExpanded: boolean;
+  isMatchDuty: boolean;
+  isMatchDutyFulfilled: boolean;
   matchDurationMinutes: number;
   maxAssists: number;
   maxGoals: number;
   onChange: (
     update: (currentStat: MatchPlayerResultStat) => MatchPlayerResultStat,
   ) => void;
+  onMatchDutyFulfilledChange: (isFulfilled: boolean) => void;
   onToggle: () => void;
   player: Player;
   preferNicknames: boolean;
@@ -1383,6 +1511,7 @@ function PlayerPerformanceCard({
   teamScore: number;
 }) {
   const isStarter = role === "starter";
+  const theme = useTheme();
 
   return (
     <ThemedView type="backgroundElement" style={styles.playerPerformanceCard}>
@@ -1488,6 +1617,40 @@ function PlayerPerformanceCard({
               onChange((currentStat) => ({ ...currentStat, card }))
             }
           />
+
+          {isMatchDuty ? (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isMatchDutyFulfilled }}
+              onPress={() => onMatchDutyFulfilledChange(!isMatchDutyFulfilled)}
+              style={({ pressed }) => [
+                styles.matchDutyResultRow,
+                pressed && styles.pressed,
+              ]}
+            >
+              <SymbolView
+                name={{
+                  ios: isMatchDutyFulfilled
+                    ? "checkmark.square.fill"
+                    : "square",
+                  android: isMatchDutyFulfilled
+                    ? "check_box"
+                    : "check_box_outline_blank",
+                  web: isMatchDutyFulfilled
+                    ? "check_box"
+                    : "check_box_outline_blank",
+                }}
+                tintColor={theme.text}
+                size={22}
+              />
+              <ThemedView style={styles.playerPerformanceTitleGroup}>
+                <ThemedText type="smallBold">Match duty fulfilled</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  This player was assigned match duty.
+                </ThemedText>
+              </ThemedView>
+            </Pressable>
+          ) : null}
         </ThemedView>
       ) : null}
     </ThemedView>
@@ -1526,7 +1689,7 @@ function NumericStepperInput({
         >
           <SymbolView
             name={{ ios: "minus", android: "remove", web: "remove" }}
-            tintColor="#ffffff"
+            tintColor="#1C7C54"
             size={14}
           />
         </Pressable>
@@ -1542,6 +1705,8 @@ function NumericStepperInput({
           style={[
             styles.numericStepperInput,
             {
+              backgroundColor: theme.backgroundElement,
+              borderColor: theme.backgroundSelected,
               color: theme.text,
             },
           ]}
@@ -1559,7 +1724,7 @@ function NumericStepperInput({
         >
           <SymbolView
             name={{ ios: "plus", android: "add", web: "add" }}
-            tintColor="#ffffff"
+            tintColor="#1C7C54"
             size={14}
           />
         </Pressable>
@@ -1611,7 +1776,7 @@ function StatStepper({
         >
           <SymbolView
             name={{ ios: "minus", android: "remove", web: "remove" }}
-            tintColor="#ffffff"
+            tintColor="#1C7C54"
             size={14}
           />
         </Pressable>
@@ -1629,7 +1794,7 @@ function StatStepper({
         >
           <SymbolView
             name={{ ios: "plus", android: "add", web: "add" }}
-            tintColor="#ffffff"
+            tintColor="#1C7C54"
             size={14}
           />
         </Pressable>
@@ -1672,7 +1837,10 @@ function ResultSegmentedField<TValue extends string>({
             >
               <ThemedText
                 type="smallBold"
-                style={isSelected && styles.resultSegmentedOptionTextSelected}
+                style={[
+                  styles.resultSegmentedOptionText,
+                  isSelected && styles.resultSegmentedOptionTextSelected,
+                ]}
               >
                 {option.label}
               </ThemedText>
@@ -1706,7 +1874,7 @@ function ScoreStepper({
       >
         <SymbolView
           name={{ ios: "minus", android: "remove", web: "remove" }}
-          tintColor="#ffffff"
+          tintColor="#1C7C54"
           size={18}
         />
       </Pressable>
@@ -1726,7 +1894,7 @@ function ScoreStepper({
       >
         <SymbolView
           name={{ ios: "plus", android: "add", web: "add" }}
-          tintColor="#ffffff"
+          tintColor="#1C7C54"
           size={18}
         />
       </Pressable>
@@ -1738,6 +1906,7 @@ function MatchSetupModal({
   clubLocation,
   form,
   kitSettings,
+  matchDutyEnabled,
   mode,
   onChangeForm,
   onClose,
@@ -1749,6 +1918,7 @@ function MatchSetupModal({
   clubLocation: string;
   form: MatchSetupFormState;
   kitSettings: LineupKitSettings;
+  matchDutyEnabled: boolean;
   mode: "create" | "edit";
   onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>;
   onClose: () => void;
@@ -1759,10 +1929,21 @@ function MatchSetupModal({
 }) {
   const theme = useTheme();
   const [players, setPlayers] = useState<Player[]>([]);
+  const [guestPlayers, setGuestPlayers] = useState<Player[]>([]);
+  const [isGuestPlayerModalOpen, setIsGuestPlayerModalOpen] = useState(false);
   const [playerStats, setPlayerStats] = useState<PlayerAttendanceStats[]>([]);
   const [wizardStep, setWizardStep] = useState(0);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState(false);
-  const availablePlayers = players.filter(
+  const matchGuestPlayers = form.guestPlayerIds.flatMap(
+    (guestPlayerId, index) => {
+      const player = guestPlayers.find(
+        (guestPlayer) => guestPlayer.id === guestPlayerId,
+      );
+      return player ? [{ ...player, kitNumber: 70 + index }] : [];
+    },
+  );
+  const matchPlayers = [...players, ...matchGuestPlayers];
+  const availablePlayers = matchPlayers.filter(
     (player) => form.playerStatuses[player.id] === "available",
   );
 
@@ -1775,19 +1956,27 @@ function MatchSetupModal({
 
     async function loadMatchData() {
       try {
-        const [loadedPlayers, loadedPlayerStats] = await Promise.all([
-          listPlayersAsync(),
-          listPlayerAttendanceStatsAsync(),
-        ]);
+        const [loadedPlayers, loadedGuests, loadedPlayerStats] =
+          await Promise.all([
+            listPlayersAsync(),
+            listGuestPlayersAsync(),
+            listPlayerAttendanceStatsAsync(),
+          ]);
 
         if (isMounted) {
           setPlayers(loadedPlayers);
+          setGuestPlayers(loadedGuests);
           setPlayerStats(loadedPlayerStats);
           onChangeForm((currentForm) => ({
             ...currentForm,
             playerStatuses: initializeMatchPlayerStatuses(
               currentForm.playerStatuses,
-              loadedPlayers,
+              [
+                ...loadedPlayers,
+                ...loadedGuests.filter((player) =>
+                  currentForm.guestPlayerIds.includes(player.id),
+                ),
+              ],
             ),
           }));
         }
@@ -1806,7 +1995,37 @@ function MatchSetupModal({
   function handleClose() {
     setWizardStep(0);
     setIsDraggingPlayer(false);
+    setIsGuestPlayerModalOpen(false);
     onClose();
+  }
+
+  function addGuestToMatch(player: Player) {
+    if (
+      !form.guestPlayerIds.includes(player.id) &&
+      form.guestPlayerIds.length >= 10
+    ) {
+      Alert.alert(
+        "Guest player limit reached",
+        "You can add up to 10 guest players, using kit numbers 70 to 79.",
+      );
+      return;
+    }
+    setGuestPlayers((currentPlayers) => [
+      player,
+      ...currentPlayers.filter(
+        (currentPlayer) => currentPlayer.id !== player.id,
+      ),
+    ]);
+    onChangeForm((currentForm) => ({
+      ...currentForm,
+      guestPlayerIds: currentForm.guestPlayerIds.includes(player.id)
+        ? currentForm.guestPlayerIds
+        : [...currentForm.guestPlayerIds, player.id],
+      playerStatuses: {
+        ...currentForm.playerStatuses,
+        [player.id]: "available",
+      },
+    }));
   }
 
   async function handleNext() {
@@ -1820,6 +2039,10 @@ function MatchSetupModal({
     }
 
     if (wizardStep === 1) {
+      if (!validateMatchCaptain(form)) {
+        return;
+      }
+
       if (availablePlayers.length === 0) {
         Alert.alert(
           "Choose available players",
@@ -1873,7 +2096,7 @@ function MatchSetupModal({
         style={styles.modalOverlay}
       >
         <Pressable style={styles.modalBackdrop} onPress={handleClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">
@@ -1915,8 +2138,10 @@ function MatchSetupModal({
             ) : wizardStep === 1 ? (
               <MatchAvailabilityStep
                 form={form}
-                players={players}
+                matchDutyEnabled={matchDutyEnabled}
+                players={matchPlayers}
                 onChangeForm={onChangeForm}
+                onOpenGuestPlayerModal={() => setIsGuestPlayerModalOpen(true)}
               />
             ) : wizardStep === 2 ? (
               <MatchFormationStep
@@ -1932,6 +2157,7 @@ function MatchSetupModal({
               <MatchReviewStep
                 form={form}
                 kitSettings={kitSettings}
+                matchDutyEnabled={matchDutyEnabled}
                 preferNicknames={preferNicknames}
                 players={availablePlayers}
               />
@@ -1949,7 +2175,10 @@ function MatchSetupModal({
                   pressed && styles.pressed,
                 ]}
               >
-                <ThemedText type="smallBold" style={styles.reviewActionText}>
+                <ThemedText
+                  type="smallBold"
+                  style={styles.reviewBackButtonText}
+                >
                   Back
                 </ThemedText>
               </Pressable>
@@ -1975,7 +2204,10 @@ function MatchSetupModal({
                   pressed && styles.pressed,
                 ]}
               >
-                <ThemedText type="smallBold" style={styles.reviewActionText}>
+                <ThemedText
+                  type="smallBold"
+                  style={[styles.reviewActionText, styles.reviewSaveButtonText]}
+                >
                   {mode === "edit" ? "Update" : "Save"}
                 </ThemedText>
               </Pressable>
@@ -2013,6 +2245,13 @@ function MatchSetupModal({
             </ThemedView>
           )}
         </ThemedView>
+        <GuestPlayerModal
+          guestPlayers={guestPlayers}
+          matchGuestPlayerIds={form.guestPlayerIds}
+          visible={isGuestPlayerModalOpen}
+          onAddGuest={addGuestToMatch}
+          onClose={() => setIsGuestPlayerModalOpen(false)}
+        />
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -2065,7 +2304,8 @@ function MatchDayMatchList({
     const isExpanded = expandedMatchId === match.id;
     const isResultActionDue = isMatchResultActionDue(match);
     const matchForm = createMatchSetupFormStateFromMatch(match);
-    const resultSquadEntries = getMatchResultSquadEntries(match, players);
+    const matchPlayers = applyGuestKitNumbers(players, match.guestPlayerIds);
+    const resultSquadEntries = getMatchResultSquadEntries(match, matchPlayers);
     const playerRoleById = new Map(
       resultSquadEntries.map((entry) => [entry.player.id, entry.role]),
     );
@@ -2142,7 +2382,7 @@ function MatchDayMatchList({
                 hasMatchResult(match) ? match.playerResultStats : undefined
               }
               playerRoleById={playerRoleById}
-              players={players}
+              players={matchPlayers}
               preferNicknames={preferNicknames}
             />
             {hasMatchResult(match) ? (
@@ -2231,7 +2471,7 @@ function MatchDayMatchList({
               >
                 <SymbolView
                   name={{ ios: "pencil", android: "edit", web: "edit" }}
-                  tintColor="#ffffff"
+                  tintColor="#F59E0B"
                   size={16}
                 />
                 <ThemedText type="smallBold" style={styles.editMatchButtonText}>
@@ -2249,7 +2489,7 @@ function MatchDayMatchList({
               >
                 <SymbolView
                   name={{ ios: "trash", android: "delete", web: "delete" }}
-                  tintColor="#ffffff"
+                  tintColor="#DC2626"
                   size={16}
                 />
                 <ThemedText
@@ -2398,15 +2638,22 @@ function MatchDetailsStep({
 
 function MatchAvailabilityStep({
   form,
+  matchDutyEnabled,
   onChangeForm,
+  onOpenGuestPlayerModal,
   players,
 }: {
   form: MatchSetupFormState;
+  matchDutyEnabled: boolean;
   onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>;
+  onOpenGuestPlayerModal: () => void;
   players: Player[];
 }) {
   const availablePlayers = players.filter(
     (player) => form.playerStatuses[player.id] === "available",
+  );
+  const availableSquadPlayers = availablePlayers.filter(
+    (player) => !player.isGuest,
   );
 
   return (
@@ -2434,7 +2681,9 @@ function MatchAvailabilityStep({
                     {formatPlayerDisplayName(player)}
                   </ThemedText>
                   <ThemedText type="code" themeColor="textSecondary">
-                    {formatPlayerMeta(player)}
+                    {player.isGuest
+                      ? `Guest · ${getPlayerPositionLabel(player.position, "en")} · #${player.kitNumber}`
+                      : formatPlayerMeta(player)}
                   </ThemedText>
                 </ThemedView>
 
@@ -2472,21 +2721,45 @@ function MatchAvailabilityStep({
             </ThemedText>
           </ThemedView>
         )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add guest player"
+          onPress={onOpenGuestPlayerModal}
+          style={({ pressed }) => [
+            styles.addGuestPlayerButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <SymbolView
+            name={{
+              ios: "person.badge.plus",
+              android: "person_add",
+              web: "person_add",
+            }}
+            tintColor="#ffffff"
+            size={18}
+          />
+          <ThemedText type="smallBold" style={styles.addGuestPlayerButtonText}>
+            Add guest player
+          </ThemedText>
+        </Pressable>
       </ThemedView>
 
       <ThemedView type="backgroundElement" style={styles.responsibilityPanel}>
         <ThemedView style={styles.fieldGroup}>
           <ThemedText type="smallBold">Match roles</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Choose one captain and up to two players for match duty.
+            {matchDutyEnabled
+              ? "Choose one captain and up to two players for match duty."
+              : "Choose one captain for this match."}
           </ThemedText>
         </ThemedView>
 
         <ThemedView style={styles.responsibilityGroup}>
-          <ThemedText type="smallBold">Captain</ThemedText>
+          <ThemedText type="smallBold">Captain *</ThemedText>
           <ThemedView style={styles.responsibilityOptions}>
-            {availablePlayers.length > 0 ? (
-              availablePlayers.map((player) => (
+            {availableSquadPlayers.length > 0 ? (
+              availableSquadPlayers.map((player) => (
                 <PlayerRoleOption
                   key={player.id}
                   isSelected={form.captainPlayerId === player.id}
@@ -2507,37 +2780,224 @@ function MatchAvailabilityStep({
           </ThemedView>
         </ThemedView>
 
-        <ThemedView style={styles.responsibilityGroup}>
-          <ThemedText type="smallBold">Match duty</ThemedText>
-          <ThemedView style={styles.responsibilityOptions}>
-            {availablePlayers.length > 0 ? (
-              availablePlayers.map((player) => {
-                const isSelected = form.matchDutyPlayerIds.includes(player.id);
+        {matchDutyEnabled ? (
+          <ThemedView style={styles.responsibilityGroup}>
+            <ThemedText type="smallBold">Match duty</ThemedText>
+            <ThemedView style={styles.responsibilityOptions}>
+              {availableSquadPlayers.length > 0 ? (
+                availableSquadPlayers.map((player) => {
+                  const isSelected = form.matchDutyPlayerIds.includes(player.id);
 
-                return (
-                  <PlayerRoleOption
-                    key={player.id}
-                    isSelected={isSelected}
-                    label={formatPlayerDisplayName(player)}
-                    onPress={() =>
-                      toggleMatchDutyPlayer(
-                        onChangeForm,
-                        form.matchDutyPlayerIds,
-                        player.id,
-                      )
-                    }
-                  />
-                );
-              })
-            ) : (
-              <ThemedText type="small" themeColor="textSecondary">
-                Mark players available first.
-              </ThemedText>
-            )}
+                  return (
+                    <PlayerRoleOption
+                      key={player.id}
+                      isSelected={isSelected}
+                      label={formatPlayerDisplayName(player)}
+                      onPress={() =>
+                        toggleMatchDutyPlayer(
+                          onChangeForm,
+                          form.matchDutyPlayerIds,
+                          player.id,
+                        )
+                      }
+                    />
+                  );
+                })
+              ) : (
+                <ThemedText type="small" themeColor="textSecondary">
+                  Mark players available first.
+                </ThemedText>
+              )}
+            </ThemedView>
           </ThemedView>
-        </ThemedView>
+        ) : null}
       </ThemedView>
     </ThemedView>
+  );
+}
+
+function GuestPlayerModal({
+  guestPlayers,
+  matchGuestPlayerIds,
+  onAddGuest,
+  onClose,
+  visible,
+}: {
+  guestPlayers: Player[];
+  matchGuestPlayerIds: number[];
+  onAddGuest: (player: Player) => void;
+  onClose: () => void;
+  visible: boolean;
+}) {
+  const theme = useTheme();
+  const [name, setName] = useState("");
+  const [position, setPosition] = useState<PlayerPosition>("midfielder");
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleAddName() {
+    if (!name.trim() || isSaving) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const player = await addGuestPlayerAsync(name, position);
+      onAddGuest(player);
+      setName("");
+      setPosition("midfielder");
+    } catch (error) {
+      console.warn("Failed to add guest player", error);
+      Alert.alert("Could not add guest player", "Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleClose() {
+    setName("");
+    setPosition("midfielder");
+    onClose();
+  }
+
+  return (
+    <Modal
+      animationType="fade"
+      transparent
+      visible={visible}
+      onRequestClose={handleClose}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.guestModalOverlay}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={handleClose} />
+        <ThemedView type="modalBackground" style={styles.guestModalCard}>
+          <ThemedView style={styles.modalHeader}>
+            <ThemedView style={styles.modalTitleGroup}>
+              <ThemedText type="default">Add guest player</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Add a new name or reuse a previous guest.
+              </ThemedText>
+            </ThemedView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Close guest player modal"
+              onPress={handleClose}
+              style={({ pressed }) => [
+                styles.iconButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <SymbolView
+                name={{ ios: "xmark", android: "close", web: "close" }}
+                tintColor={theme.text}
+                size={18}
+              />
+            </Pressable>
+          </ThemedView>
+
+          <ThemedView style={styles.guestNameRow}>
+            <TextInput
+              accessibilityLabel="Guest player name"
+              autoCapitalize="words"
+              autoFocus
+              onChangeText={setName}
+              onSubmitEditing={() => void handleAddName()}
+              placeholder="Player name"
+              placeholderTextColor={theme.textSecondary}
+              returnKeyType="done"
+              style={[
+                styles.textInput,
+                styles.guestNameInput,
+                { backgroundColor: theme.backgroundElement, color: theme.text },
+              ]}
+              value={name}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add guest player name"
+              disabled={!name.trim() || isSaving}
+              onPress={() => void handleAddName()}
+              style={({ pressed }) => [
+                styles.guestAddButton,
+                (!name.trim() || isSaving) && styles.buttonDisabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <ThemedText type="smallBold" style={styles.primaryButtonText}>
+                Add
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+
+          <ThemedView style={styles.fieldGroup}>
+            <ThemedText type="smallBold">Position</ThemedText>
+            <ThemedView style={styles.guestPositionOptions}>
+              {PLAYER_POSITIONS.map((playerPosition) => (
+                <PlayerRoleOption
+                  isSelected={position === playerPosition}
+                  key={playerPosition}
+                  label={getPlayerPositionLabel(playerPosition, "en")}
+                  onPress={() => setPosition(playerPosition)}
+                />
+              ))}
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.guestHistorySection}>
+            <ThemedText type="smallBold">Previous guest players</ThemedText>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              style={styles.guestHistoryList}
+            >
+              {guestPlayers.length > 0 ? (
+                guestPlayers.map((player) => {
+                  const isAdded = matchGuestPlayerIds.includes(player.id);
+                  return (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: isAdded }}
+                      disabled={isAdded}
+                      key={player.id}
+                      onPress={() => onAddGuest(player)}
+                      style={({ pressed }) => [
+                        styles.guestHistoryRow,
+                        { backgroundColor: theme.backgroundElement },
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <ThemedText
+                        type="smallBold"
+                        numberOfLines={1}
+                        style={styles.guestHistoryName}
+                      >
+                        {formatPlayerDisplayName(player)}
+                      </ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {getPlayerPositionLabel(player.position, "en")}
+                      </ThemedText>
+                      <ThemedText
+                        type="small"
+                        themeColor={isAdded ? "textSecondary" : undefined}
+                        style={
+                          !isAdded ? styles.guestHistoryAddText : undefined
+                        }
+                      >
+                        {isAdded ? "Added" : "Add"}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })
+              ) : (
+                <ThemedText type="small" themeColor="textSecondary">
+                  No previous guest players yet.
+                </ThemedText>
+              )}
+            </ScrollView>
+          </ThemedView>
+        </ThemedView>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -2880,6 +3340,7 @@ function MatchFormationStep({
 function MatchReviewStep({
   form,
   kitSettings,
+  matchDutyEnabled = true,
   matchDurationMinutes = defaultMatchDurationMinutes,
   playerResultStats,
   playerRoleById,
@@ -2888,6 +3349,7 @@ function MatchReviewStep({
 }: {
   form: MatchSetupFormState;
   kitSettings: LineupKitSettings;
+  matchDutyEnabled?: boolean;
   matchDurationMinutes?: number;
   playerResultStats?: MatchPlayerResultStats;
   playerRoleById?: Map<number, MatchResultSquadEntry["role"]>;
@@ -2940,20 +3402,22 @@ function MatchReviewStep({
                 {captain ? formatPlayerName(captain, preferNicknames) : "-"}
               </ThemedText>
             </ThemedView>
-            <ThemedView type="backgroundElement" style={styles.reviewRoleCard}>
-              <ThemedText type="code" themeColor="textSecondary">
-                Match duty
-              </ThemedText>
-              <ThemedText type="smallBold" numberOfLines={2}>
-                {matchDutyPlayers.length > 0
-                  ? matchDutyPlayers
-                      .map((player) =>
-                        formatPlayerName(player, preferNicknames),
-                      )
-                      .join(", ")
-                  : "-"}
-              </ThemedText>
-            </ThemedView>
+            {matchDutyEnabled ? (
+              <ThemedView type="backgroundElement" style={styles.reviewRoleCard}>
+                <ThemedText type="code" themeColor="textSecondary">
+                  Match duty
+                </ThemedText>
+                <ThemedText type="smallBold" numberOfLines={2}>
+                  {matchDutyPlayers.length > 0
+                    ? matchDutyPlayers
+                        .map((player) =>
+                          formatPlayerName(player, preferNicknames),
+                        )
+                        .join(", ")
+                    : "-"}
+                </ThemedText>
+              </ThemedView>
+            ) : null}
           </ThemedView>
         </ThemedView>
 
@@ -3036,6 +3500,7 @@ function ShareMatchPreviewModal({
   visible: boolean;
 }) {
   const theme = useTheme();
+  const posterRef = useRef<View>(null);
   const [background, setBackground] =
     useState<ShareBackgroundTemplateId>("stadium-day");
   const [overlayStyle, setOverlayStyle] =
@@ -3048,6 +3513,7 @@ function ShareMatchPreviewModal({
     Partial<PosterColorSettings>
   >({});
   const [areColorControlsOpen, setAreColorControlsOpen] = useState(false);
+  const [isExportingPoster, setIsExportingPoster] = useState(false);
   const posterColors = {
     ...basePosterColors,
     ...posterColorOverrides,
@@ -3063,6 +3529,42 @@ function ShareMatchPreviewModal({
     }));
   }
 
+  async function handleExportPoster() {
+    if (!preview || !posterRef.current) {
+      Alert.alert("No image ready", "Open a match preview before exporting.");
+      return;
+    }
+
+    try {
+      setIsExportingPoster(true);
+
+      const uri = await captureRef(posterRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+
+      if (!isSharingAvailable) {
+        Alert.alert("Image created", `The image was created here:\n${uri}`);
+        return;
+      }
+
+      await Sharing.shareAsync(uri, {
+        dialogTitle: "Share match image",
+        mimeType: "image/png",
+      });
+    } catch (error) {
+      console.warn("Failed to export share image", error);
+      Alert.alert(
+        "Export failed",
+        "Something went wrong while creating the match image.",
+      );
+    } finally {
+      setIsExportingPoster(false);
+    }
+  }
+
   return (
     <Modal
       visible={visible}
@@ -3072,7 +3574,7 @@ function ShareMatchPreviewModal({
     >
       <ThemedView style={styles.modalOverlay}>
         <Pressable style={styles.modalBackdrop} onPress={onClose} />
-        <ThemedView style={styles.shareModalSheet}>
+        <ThemedView type="modalBackground" style={styles.shareModalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">Share match image</ThemedText>
@@ -3246,16 +3748,18 @@ function ShareMatchPreviewModal({
             </ThemedView>
 
             {preview ? (
-              <ShareMatchPosterPreview
-                background={selectedBackground}
-                kitSettings={kitSettings}
-                matchDurationMinutes={matchDurationMinutes}
-                overlayStyle={overlayStyle}
-                posterColors={posterColors}
-                preferNicknames={preferNicknames}
-                preview={preview}
-                teamName={teamName}
-              />
+              <View ref={posterRef} collapsable={false}>
+                <ShareMatchPosterPreview
+                  background={selectedBackground}
+                  kitSettings={kitSettings}
+                  matchDurationMinutes={matchDurationMinutes}
+                  overlayStyle={overlayStyle}
+                  posterColors={posterColors}
+                  preferNicknames={preferNicknames}
+                  preview={preview}
+                  teamName={teamName}
+                />
+              </View>
             ) : null}
           </ScrollView>
 
@@ -3272,19 +3776,16 @@ function ShareMatchPreviewModal({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              onPress={() =>
-                Alert.alert(
-                  "Export coming next",
-                  "The share preview is ready. Next we can add image export and the native share sheet.",
-                )
-              }
+              disabled={!preview || isExportingPoster}
+              onPress={handleExportPoster}
               style={({ pressed }) => [
                 styles.primaryButton,
+                (!preview || isExportingPoster) && styles.disabledButton,
                 pressed && styles.pressed,
               ]}
             >
               <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                Export soon
+                {isExportingPoster ? "Exporting..." : "Export"}
               </ThemedText>
             </Pressable>
           </ThemedView>
@@ -3715,13 +4216,13 @@ function SharePosterOverlay({
       />
       <Line x1="424" y1="244" x2="424" y2="284" stroke="#D1D5DB" />
       <Path
-        d="M0 1138 H354 Q364 1138 359 1152 L334 1218 H0 Z"
+        d="M0 1153 H354 Q364 1153 359 1167 L334 1233 H0 Z"
         fill="url(#primaryPanel)"
         stroke="#FFFFFF"
         strokeWidth="3"
       />
       <Path
-        d="M364 1138 H1038 Q1062 1138 1052 1162 L1018 1296 H0 V1218 H334 Z"
+        d="M364 1153 H1038 Q1062 1153 1052 1177 L1018 1311 H0 V1233 H334 Z"
         fill="url(#secondaryPanel)"
         stroke="#FFFFFF"
         strokeWidth="3"
@@ -4496,7 +4997,7 @@ function MatchdayPlayerStatsModal({
     >
       <ThemedView style={styles.statsPopupOverlay}>
         <Pressable style={styles.modalBackdrop} onPress={onClose} />
-        <ThemedView type="background" style={styles.statsPopupCard}>
+        <ThemedView type="modalBackground" style={styles.statsPopupCard}>
           <ThemedView style={styles.statsPopupHeader}>
             <ThemedView style={styles.statsPopupTitleGroup}>
               <ThemedText style={styles.statsPopupName} numberOfLines={1}>
@@ -4646,7 +5147,7 @@ function PlayerPickerSheet({
     >
       <ThemedView style={styles.playerPickerOverlay}>
         <Pressable style={styles.modalBackdrop} onPress={onClose} />
-        <ThemedView type="background" style={styles.playerPickerSheet}>
+        <ThemedView type="modalBackground" style={styles.playerPickerSheet}>
           <ThemedView style={styles.playerPickerHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">
@@ -4761,7 +5262,10 @@ function LineupJersey({
   resultBadges?: JerseyResultBadges | null;
   showName?: boolean;
 }) {
-  const kitNumberColor = isGoalkeeper ? "#ffffff" : kitSettings.kitNumberColor;
+  const usesGoalkeeperKit = isGoalkeeper || player.position === "goalkeeper";
+  const kitNumberColor = usesGoalkeeperKit
+    ? "#ffffff"
+    : kitSettings.kitNumberColor;
 
   return (
     <ThemedView
@@ -4774,14 +5278,14 @@ function LineupJersey({
       <ThemedView
         style={[
           styles.jerseyShape,
-          isGoalkeeper && styles.goalkeeperJerseyShape,
+          usesGoalkeeperKit && styles.goalkeeperJerseyShape,
           compact && styles.jerseyShapeCompact,
           dense && styles.jerseyShapeDense,
         ]}
       >
         <LineupJerseyShape
           compact={compact}
-          isGoalkeeper={isGoalkeeper}
+          isGoalkeeper={usesGoalkeeperKit}
           kitSettings={kitSettings}
         />
         {isCaptain ? (
@@ -4859,7 +5363,7 @@ function LineupJerseyShape({
   const fillColor = isGoalkeeper
     ? kitSettings.goalkeeperKitColor
     : kitSettings.outfieldKitColor;
-  const strokeColor = isGoalkeeper ? "#ffffff" : "#111827";
+  const strokeColor = getKitOutlineColor(fillColor);
 
   return (
     <Svg
@@ -4894,6 +5398,45 @@ function LineupJerseyShape({
                 x="72"
                 y="0"
                 width="11"
+                height="90"
+                fill={kitSettings.secondaryKitColor}
+              />
+            </>
+          ) : null}
+          {kitSettings.kitDesign === "twoColorStripes" ? (
+            <>
+              <Rect
+                x="0"
+                y="0"
+                width="10"
+                height="90"
+                fill={kitSettings.secondaryKitColor}
+              />
+              <Rect
+                x="22.5"
+                y="0"
+                width="10"
+                height="90"
+                fill={kitSettings.thirdKitColor}
+              />
+              <Rect
+                x="45"
+                y="0"
+                width="10"
+                height="90"
+                fill={kitSettings.secondaryKitColor}
+              />
+              <Rect
+                x="67.5"
+                y="0"
+                width="10"
+                height="90"
+                fill={kitSettings.thirdKitColor}
+              />
+              <Rect
+                x="90"
+                y="0"
+                width="10"
                 height="90"
                 fill={kitSettings.secondaryKitColor}
               />
@@ -4953,7 +5496,7 @@ function LineupJerseyShape({
               />
               <Path
                 d="M14 90 L96 -16 L106 -16 L24 90 Z"
-                fill={kitSettings.sashAccentKitColor}
+                fill={kitSettings.thirdKitColor}
               />
             </>
           ) : null}
@@ -5319,12 +5862,14 @@ function createSharePosterColorsFromKitSettings(
   kitSettings: LineupKitSettings,
 ): PosterColorSettings {
   const titlePanelColor =
-    kitSettings.kitDesign === "sash"
-      ? kitSettings.sashAccentKitColor
+    kitSettings.kitDesign === "sash" ||
+    kitSettings.kitDesign === "twoColorStripes"
+      ? kitSettings.thirdKitColor
       : kitSettings.outfieldKitColor;
   const valuePanelColor = kitSettings.secondaryKitColor;
   const infoPanelColor =
-    kitSettings.kitDesign === "sash"
+    kitSettings.kitDesign === "sash" ||
+    kitSettings.kitDesign === "twoColorStripes"
       ? kitSettings.outfieldKitColor
       : kitSettings.secondaryKitColor;
 
@@ -5366,8 +5911,20 @@ function getSharePosterTextConfig(
       );
     case "homeScore":
       return createSharePosterTextConfig(
-        typeof resultScore?.ownScore === "number"
-          ? String(resultScore.ownScore)
+        typeof getSharePosterScore(
+          "home",
+          form.location,
+          overlayStyle,
+          resultScore,
+        ) === "number"
+          ? String(
+              getSharePosterScore(
+                "home",
+                form.location,
+                overlayStyle,
+                resultScore,
+              ),
+            )
           : "-",
         78,
         "900",
@@ -5375,8 +5932,20 @@ function getSharePosterTextConfig(
       );
     case "awayScore":
       return createSharePosterTextConfig(
-        typeof resultScore?.opponentScore === "number"
-          ? String(resultScore.opponentScore)
+        typeof getSharePosterScore(
+          "away",
+          form.location,
+          overlayStyle,
+          resultScore,
+        ) === "number"
+          ? String(
+              getSharePosterScore(
+                "away",
+                form.location,
+                overlayStyle,
+                resultScore,
+              ),
+            )
           : "-",
         78,
         "900",
@@ -5419,6 +5988,20 @@ function getSharePosterTextConfig(
         "normal",
       );
   }
+}
+
+function getSharePosterScore(
+  side: "home" | "away",
+  location: MatchLocation,
+  overlayStyle: SharePosterOverlayStyle,
+  resultScore: { opponentScore?: number; ownScore?: number } | null,
+) {
+  if (overlayStyle !== "broadcast") {
+    return side === "home" ? resultScore?.ownScore : resultScore?.opponentScore;
+  }
+
+  const isOwnTeamSide = side === location;
+  return isOwnTeamSide ? resultScore?.ownScore : resultScore?.opponentScore;
 }
 
 function createSharePosterTextConfig(
@@ -5548,6 +6131,13 @@ function darkenHexColor(hexColor: string, amount: number) {
 }
 
 function getKitNumberOutlineColor(color: string) {
+  const normalizedColor = color.trim().toUpperCase();
+  return normalizedColor === "#000000" || normalizedColor === "#111827"
+    ? "#FFFFFF"
+    : "#111827";
+}
+
+function getKitOutlineColor(color: string) {
   const normalizedColor = color.trim().toUpperCase();
   return normalizedColor === "#000000" || normalizedColor === "#111827"
     ? "#FFFFFF"
@@ -5993,6 +6583,19 @@ function getAssignedStarters(form: MatchSetupFormState, players: Player[]) {
   });
 }
 
+function applyGuestKitNumbers(players: Player[], guestPlayerIds: number[]) {
+  const kitNumberByGuestId = new Map(
+    guestPlayerIds.map((playerId, index) => [playerId, 70 + index]),
+  );
+
+  return players.map((player) => {
+    const guestKitNumber = kitNumberByGuestId.get(player.id);
+    return guestKitNumber === undefined
+      ? player
+      : { ...player, kitNumber: guestKitNumber };
+  });
+}
+
 function getAssignedSubstitutes(form: MatchSetupFormState, players: Player[]) {
   return substituteSlots.flatMap((slot) => {
     const player = getAssignedPlayer(form.lineupAssignments[slot.id], players);
@@ -6290,6 +6893,18 @@ function validateMatchSetupForm(form: MatchSetupFormState) {
   return true;
 }
 
+function validateMatchCaptain(form: MatchSetupFormState) {
+  if (form.captainPlayerId === null) {
+    Alert.alert(
+      "Captain required",
+      "Choose a captain before continuing with the match setup.",
+    );
+    return false;
+  }
+
+  return true;
+}
+
 function parseDisplayDateToIsoDate(value: string) {
   const date = parseDisplayDateToDate(value);
 
@@ -6466,7 +7081,7 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: PageTopPadding,
+    paddingTop: AppHeaderHeight + PageTopPadding,
   },
   header: {
     alignItems: "flex-start",
@@ -6621,8 +7236,10 @@ const styles = StyleSheet.create({
   },
   editMatchButton: {
     alignItems: "center",
-    backgroundColor: "#536DFE",
+    backgroundColor: "transparent",
+    borderColor: "#F59E0B",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     flexDirection: "row",
     gap: Spacing.one,
     justifyContent: "center",
@@ -6632,12 +7249,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   editMatchButtonText: {
-    color: "#ffffff",
+    color: "#F59E0B",
   },
   deleteMatchButton: {
     alignItems: "center",
-    backgroundColor: "#DC2626",
+    backgroundColor: "transparent",
+    borderColor: "#DC2626",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     flexDirection: "row",
     gap: Spacing.one,
     justifyContent: "center",
@@ -6647,7 +7266,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   deleteMatchButtonText: {
-    color: "#ffffff",
+    color: "#DC2626",
   },
   modalOverlay: {
     flex: 1,
@@ -6663,7 +7282,6 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     alignSelf: "center",
-    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,
@@ -6672,9 +7290,69 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     width: "100%",
   },
+  guestModalOverlay: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    padding: Spacing.three,
+  },
+  guestModalCard: {
+    borderRadius: Spacing.three,
+    gap: Spacing.three,
+    maxHeight: "75%",
+    maxWidth: 520,
+    padding: Spacing.three,
+    width: "100%",
+  },
+  guestNameRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: Spacing.two,
+  },
+  guestNameInput: {
+    flex: 1,
+  },
+  guestPositionOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.two,
+  },
+  guestAddButton: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    backgroundColor: "#1C7C54",
+    borderRadius: Spacing.two,
+    justifyContent: "center",
+    minWidth: 72,
+    paddingHorizontal: Spacing.three,
+  },
+  buttonDisabled: {
+    opacity: 0.45,
+  },
+  guestHistorySection: {
+    gap: Spacing.two,
+  },
+  guestHistoryList: {
+    maxHeight: 280,
+  },
+  guestHistoryRow: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    flexDirection: "row",
+    gap: Spacing.two,
+    justifyContent: "space-between",
+    marginBottom: Spacing.one,
+    minHeight: 48,
+    paddingHorizontal: Spacing.two,
+  },
+  guestHistoryName: {
+    flex: 1,
+  },
+  guestHistoryAddText: {
+    color: "#536DFE",
+  },
   shareModalSheet: {
     alignSelf: "center",
-    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,
@@ -6703,7 +7381,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   shareOptionButtonSelected: {
-    backgroundColor: "#111827",
+    backgroundColor: "#1C7C54",
+    borderColor: "#1C7C54",
   },
   shareOptionButtonTextSelected: {
     color: "#FFFFFF",
@@ -6755,8 +7434,6 @@ const styles = StyleSheet.create({
   sharePosterFrame: {
     aspectRatio: 1080 / 1350,
     backgroundColor: "#111827",
-    borderRadius: Spacing.three,
-    overflow: "hidden",
     position: "relative",
     width: "100%",
   },
@@ -6834,8 +7511,10 @@ const styles = StyleSheet.create({
   },
   scoreStepperButton: {
     alignItems: "center",
-    backgroundColor: "#536DFE",
+    backgroundColor: "transparent",
+    borderColor: "#1C7C54",
     borderRadius: 999,
+    borderWidth: 1.5,
     height: 36,
     justifyContent: "center",
     width: 36,
@@ -6864,6 +7543,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     minWidth: 78,
     padding: Spacing.one,
+  },
+  matchDutyResultRow: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    flexDirection: "row",
+    gap: Spacing.two,
+    minHeight: 44,
+    paddingHorizontal: Spacing.two,
   },
   playerPerformanceStep: {
     gap: Spacing.three,
@@ -6906,8 +7593,10 @@ const styles = StyleSheet.create({
   },
   statStepperButton: {
     alignItems: "center",
-    backgroundColor: "#536DFE",
+    backgroundColor: "transparent",
+    borderColor: "#1C7C54",
     borderRadius: 999,
+    borderWidth: 1.5,
     height: 30,
     justifyContent: "center",
     width: 30,
@@ -6944,14 +7633,20 @@ const styles = StyleSheet.create({
   },
   resultSegmentedOption: {
     alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: "#1C7C54",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     justifyContent: "center",
     minHeight: 36,
     minWidth: 92,
     paddingHorizontal: Spacing.two,
   },
   resultSegmentedOptionSelected: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
+  },
+  resultSegmentedOptionText: {
+    color: "#1C7C54",
   },
   resultSegmentedOptionTextSelected: {
     color: "#ffffff",
@@ -6973,6 +7668,20 @@ const styles = StyleSheet.create({
   },
   availabilityList: {
     gap: Spacing.two,
+  },
+  addGuestPlayerButton: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    backgroundColor: "#536DFE",
+    borderRadius: Spacing.two,
+    flexDirection: "row",
+    gap: Spacing.one,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
+  addGuestPlayerButtonText: {
+    color: "#ffffff",
   },
   availabilityRow: {
     alignItems: "center",
@@ -7290,7 +7999,6 @@ const styles = StyleSheet.create({
   },
   playerPickerSheet: {
     alignSelf: "center",
-    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,
@@ -7336,7 +8044,6 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   statsPopupCard: {
-    backgroundColor: ModalBackgroundColor,
     borderRadius: Spacing.three,
     gap: Spacing.three,
     maxWidth: 580,
@@ -7737,14 +8444,16 @@ const styles = StyleSheet.create({
   removePlayerButton: {
     alignItems: "center",
     alignSelf: "stretch",
-    backgroundColor: "#DC2626",
+    backgroundColor: "transparent",
+    borderColor: "#DC2626",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     justifyContent: "center",
     minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
   removePlayerButtonText: {
-    color: "#ffffff",
+    color: "#DC2626",
   },
   formActions: {
     flexDirection: "row",
@@ -7764,20 +8473,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   reviewBackButton: {
-    backgroundColor: "#7A7A7A",
+    backgroundColor: "transparent",
+    borderColor: "#7A7A7A",
+    borderWidth: 1.5,
   },
   reviewShareButton: {
     backgroundColor: "#FF7A1A",
   },
   reviewSaveButton: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "transparent",
+    borderColor: "#1C7C54",
+    borderWidth: 1.5,
+  },
+  reviewSaveButtonText: {
+    color: "#1C7C54",
   },
   reviewActionText: {
     color: "#ffffff",
   },
+  reviewBackButtonText: {
+    color: "#7A7A7A",
+  },
   secondaryButton: {
     alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: "#7A7A7A",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     justifyContent: "center",
     minHeight: 44,
     paddingHorizontal: Spacing.three,
@@ -7789,6 +8511,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 44,
     paddingHorizontal: Spacing.three,
+  },
+  disabledButton: {
+    opacity: 0.55,
   },
   primaryButtonText: {
     color: "#ffffff",

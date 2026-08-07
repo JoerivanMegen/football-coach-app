@@ -14,7 +14,7 @@ import {
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { ModalBackgroundColor, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import { getSignupStatusLabel } from "@/features/events/components/event-wizard/event-players-step";
 import type { SignupStatus } from "@/features/events/components/event-wizard/event-wizard-types";
 import {
@@ -158,7 +158,7 @@ export function EventAttendanceModal({
         style={styles.modalOverlay}
       >
         <Pressable style={styles.modalBackdrop} onPress={handleClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">Add attendance</ThemedText>
@@ -223,7 +223,10 @@ export function EventAttendanceModal({
                             type="backgroundElement"
                             style={styles.playerNameGroup}
                           >
-                            <ThemedText type="default" style={styles.playerName}>
+                            <ThemedText
+                              type="default"
+                              style={styles.playerName}
+                            >
                               {player.firstName} {player.lastName}
                             </ThemedText>
                           </ThemedView>
@@ -557,7 +560,6 @@ const styles = StyleSheet.create({
   },
   modalSheet: {
     alignSelf: "center",
-    backgroundColor: ModalBackgroundColor,
     borderTopLeftRadius: Spacing.three,
     borderTopRightRadius: Spacing.three,
     gap: Spacing.three,

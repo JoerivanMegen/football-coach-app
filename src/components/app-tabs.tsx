@@ -41,15 +41,6 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf="sportscourt.fill" md="sports_soccer" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="share-position-playground">
-        <NativeTabs.Trigger.Label>Preview</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="photo.fill" md="image" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="settings">
-        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="gearshape.fill" md="settings" />
-      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

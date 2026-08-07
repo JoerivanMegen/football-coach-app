@@ -238,10 +238,10 @@ function EventExpandedActions({
             ]}>
             <SymbolView
               name={{ ios: 'checkmark.circle', android: 'fact_check', web: 'fact_check' }}
-              tintColor="#ffffff"
+              tintColor="#1C7C54"
               size={18}
             />
-            <ThemedText type="smallBold" style={styles.expandedActionButtonText}>
+            <ThemedText type="smallBold" style={styles.editAttendanceButtonText}>
               Edit attendance
             </ThemedText>
           </Pressable>
@@ -259,7 +259,7 @@ function EventExpandedActions({
             ]}>
             <SymbolView
               name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-              tintColor="#111827"
+              tintColor="#F59E0B"
               size={18}
             />
             <ThemedText type="smallBold" style={styles.editEventButtonText}>
@@ -281,10 +281,10 @@ function EventExpandedActions({
           ]}>
           <SymbolView
             name={{ ios: 'xmark.circle', android: 'cancel', web: 'cancel' }}
-            tintColor="#ffffff"
+            tintColor="#B42318"
             size={18}
           />
-          <ThemedText type="smallBold" style={styles.expandedActionButtonText}>
+          <ThemedText type="smallBold" style={styles.cancelEventButtonText}>
             Cancel training
           </ThemedText>
         </Pressable>
@@ -513,13 +513,15 @@ const styles = StyleSheet.create({
   },
   cardActionButton: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     backgroundColor: '#1C7C54',
     borderRadius: Spacing.two,
     flexDirection: 'row',
     gap: Spacing.one,
+    justifyContent: 'center',
     minHeight: 40,
     paddingHorizontal: Spacing.three,
+    width: '100%',
   },
   cardActionButtonText: {
     color: '#ffffff',
@@ -542,19 +544,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   editAttendanceButton: {
-    backgroundColor: '#1C7C54',
+    backgroundColor: 'transparent',
+    borderColor: '#1C7C54',
+    borderWidth: 1.5,
   },
   editEventButton: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: 'transparent',
+    borderColor: '#F59E0B',
+    borderWidth: 1.5,
   },
   cancelEventButton: {
-    backgroundColor: '#B42318',
+    backgroundColor: 'transparent',
+    borderColor: '#B42318',
+    borderWidth: 1.5,
   },
-  expandedActionButtonText: {
-    color: '#ffffff',
+  editAttendanceButtonText: {
+    color: '#1C7C54',
   },
   editEventButtonText: {
-    color: '#111827',
+    color: '#F59E0B',
+  },
+  cancelEventButtonText: {
+    color: '#B42318',
   },
   pressed: {
     opacity: 0.7,

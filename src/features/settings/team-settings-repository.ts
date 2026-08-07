@@ -5,7 +5,10 @@ import type {
   TeamSettings,
   TrainingDay,
 } from "@/features/settings/team-settings-types";
-import { KIT_DESIGNS, TRAINING_DAYS } from "@/features/settings/team-settings-types";
+import {
+  KIT_DESIGNS,
+  TRAINING_DAYS,
+} from "@/features/settings/team-settings-types";
 
 type TeamSettingsRow = {
   id: 1;
@@ -14,7 +17,7 @@ type TeamSettingsRow = {
   kit_design: string;
   outfield_kit_color: string;
   secondary_kit_color: string;
-  sash_accent_kit_color: string;
+  third_kit_color: string;
   kit_number_color: string;
   goalkeeper_kit_color: string;
   match_duration_minutes: number;
@@ -22,6 +25,8 @@ type TeamSettingsRow = {
   training_start_time: string;
   prefer_nicknames: number;
   fine_jar_enabled: number;
+  match_duty_enabled: number;
+  include_friendly_matches_in_stats: number;
   created_at: string;
   updated_at: string;
 };
@@ -50,30 +55,34 @@ export async function saveTeamSettingsAsync(input: SaveTeamSettingsInput) {
         kit_design,
         outfield_kit_color,
         secondary_kit_color,
-        sash_accent_kit_color,
+        third_kit_color,
         kit_number_color,
         goalkeeper_kit_color,
         match_duration_minutes,
         training_days_json,
         training_start_time,
         prefer_nicknames,
-        fine_jar_enabled
+        fine_jar_enabled,
+        match_duty_enabled,
+        include_friendly_matches_in_stats
       )
-      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         team_name = excluded.team_name,
         club_location = excluded.club_location,
         kit_design = excluded.kit_design,
         outfield_kit_color = excluded.outfield_kit_color,
         secondary_kit_color = excluded.secondary_kit_color,
-        sash_accent_kit_color = excluded.sash_accent_kit_color,
+        third_kit_color = excluded.third_kit_color,
         kit_number_color = excluded.kit_number_color,
         goalkeeper_kit_color = excluded.goalkeeper_kit_color,
         match_duration_minutes = excluded.match_duration_minutes,
         training_days_json = excluded.training_days_json,
         training_start_time = excluded.training_start_time,
         prefer_nicknames = excluded.prefer_nicknames,
-        fine_jar_enabled = excluded.fine_jar_enabled
+        fine_jar_enabled = excluded.fine_jar_enabled,
+        match_duty_enabled = excluded.match_duty_enabled,
+        include_friendly_matches_in_stats = excluded.include_friendly_matches_in_stats
     `,
     [
       normalizedInput.teamName,
@@ -81,7 +90,7 @@ export async function saveTeamSettingsAsync(input: SaveTeamSettingsInput) {
       normalizedInput.kitDesign,
       normalizedInput.outfieldKitColor,
       normalizedInput.secondaryKitColor,
-      normalizedInput.sashAccentKitColor,
+      normalizedInput.thirdKitColor,
       normalizedInput.kitNumberColor,
       normalizedInput.goalkeeperKitColor,
       normalizedInput.matchDurationMinutes,
@@ -89,6 +98,8 @@ export async function saveTeamSettingsAsync(input: SaveTeamSettingsInput) {
       normalizedInput.trainingStartTime,
       normalizedInput.preferNicknames ? 1 : 0,
       normalizedInput.fineJarEnabled ? 1 : 0,
+      normalizedInput.matchDutyEnabled ? 1 : 0,
+      normalizedInput.includeFriendlyMatchesInStats ? 1 : 0,
     ],
   );
 
@@ -102,12 +113,15 @@ function normalizeTeamSettingsInput(
     teamName: normalizeRequiredText(input.teamName, "teamName"),
     clubLocation: input.clubLocation.trim(),
     kitDesign: normalizeKitDesign(input.kitDesign),
-    outfieldKitColor: normalizeHexColor(input.outfieldKitColor, "outfieldKitColor"),
-    secondaryKitColor: normalizeHexColor(input.secondaryKitColor, "secondaryKitColor"),
-    sashAccentKitColor: normalizeHexColor(
-      input.sashAccentKitColor,
-      "sashAccentKitColor",
+    outfieldKitColor: normalizeHexColor(
+      input.outfieldKitColor,
+      "outfieldKitColor",
     ),
+    secondaryKitColor: normalizeHexColor(
+      input.secondaryKitColor,
+      "secondaryKitColor",
+    ),
+    thirdKitColor: normalizeHexColor(input.thirdKitColor, "thirdKitColor"),
     kitNumberColor: normalizeHexColor(input.kitNumberColor, "kitNumberColor"),
     goalkeeperKitColor: normalizeHexColor(
       input.goalkeeperKitColor,
@@ -120,6 +134,10 @@ function normalizeTeamSettingsInput(
     trainingStartTime: normalizeTrainingStartTime(input.trainingStartTime),
     preferNicknames: Boolean(input.preferNicknames),
     fineJarEnabled: Boolean(input.fineJarEnabled),
+    matchDutyEnabled: Boolean(input.matchDutyEnabled),
+    includeFriendlyMatchesInStats: Boolean(
+      input.includeFriendlyMatchesInStats,
+    ),
   };
 }
 
@@ -209,16 +227,21 @@ function mapTeamSettingsRow(row: TeamSettingsRow): TeamSettings {
     kitDesign: normalizeKitDesign(row.kit_design),
     outfieldKitColor: row.outfield_kit_color,
     secondaryKitColor: row.secondary_kit_color,
-    sashAccentKitColor: row.sash_accent_kit_color,
+    thirdKitColor: row.third_kit_color,
     kitNumberColor: row.kit_number_color,
     goalkeeperKitColor: row.goalkeeper_kit_color,
     matchDurationMinutes: normalizeMatchDurationMinutes(
       row.match_duration_minutes,
     ),
     trainingDays: parseTrainingDays(row.training_days_json),
-    trainingStartTime: normalizeTrainingStartTime(row.training_start_time ?? ""),
+    trainingStartTime: normalizeTrainingStartTime(
+      row.training_start_time ?? "",
+    ),
     preferNicknames: row.prefer_nicknames === 1,
     fineJarEnabled: row.fine_jar_enabled === 1,
+    matchDutyEnabled: row.match_duty_enabled === 1,
+    includeFriendlyMatchesInStats:
+      row.include_friendly_matches_in_stats === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

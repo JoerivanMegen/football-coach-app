@@ -1,6 +1,10 @@
+import { reloadAppAsync } from "expo";
+import * as DocumentPicker from "expo-document-picker";
+import { useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Platform,
   Pressable,
   ScrollView,
@@ -12,12 +16,21 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import {
+  AppHeaderHeight,
   BottomTabInset,
   MaxContentWidth,
   PageTopPadding,
   Spacing,
 } from "@/constants/theme";
+import {
+  exportDatabaseBackupAsync,
+  InvalidBackupError,
+  restoreDatabaseBackupAsync,
+} from "@/features/backup/backup-service";
+import { clearAllUserDataAsync } from "@/features/backup/data-reset-service";
+import { setOnboardingCompletedAsync } from "@/features/settings/app-preferences-repository";
 import {
   getTeamSettingsAsync,
   saveTeamSettingsAsync,
@@ -28,7 +41,21 @@ import type {
   TrainingDay,
 } from "@/features/settings/team-settings-types";
 import { TRAINING_DAYS } from "@/features/settings/team-settings-types";
+import {
+  endActiveSeasonAsync,
+  getActiveSeasonAsync,
+  getSeasonCompletionStatusAsync,
+  listEndedSeasonsAsync,
+  updateSeasonNameAsync,
+} from "@/features/seasons/season-repository";
+import type { Season } from "@/features/seasons/season-types";
 import { useTheme } from "@/hooks/use-theme";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import {
+  cancelAllAssistantCoachNotificationsAsync,
+  scheduleMatchResultReminderAsync,
+} from "@/features/notifications/match-result-notifications";
+import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-repository";
 
 const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   teamName: "",
@@ -36,7 +63,7 @@ const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   kitDesign: "solid",
   outfieldKitColor: "#FFFFFF",
   secondaryKitColor: "#536DFE",
-  sashAccentKitColor: "#EF4444",
+  thirdKitColor: "#EF4444",
   kitNumberColor: "#111827",
   goalkeeperKitColor: "#111827",
   matchDurationMinutes: 90,
@@ -44,6 +71,8 @@ const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   trainingStartTime: "",
   preferNicknames: true,
   fineJarEnabled: false,
+  matchDutyEnabled: true,
+  includeFriendlyMatchesInStats: true,
 };
 
 const kitShirtPath =
@@ -52,6 +81,7 @@ const kitShirtPath =
 const kitDesignOptions = [
   { value: "solid", label: "Regular" },
   { value: "stripes", label: "Stripes" },
+  { value: "twoColorStripes", label: "Three colour stripes" },
   { value: "hoops", label: "Hoops" },
   { value: "sash", label: "Two colour sash" },
   { value: "halves", label: "Halves" },
@@ -64,8 +94,10 @@ const colorOptions = [
   "#1C7C54",
   "#536DFE",
   "#9333EA",
+  "#38BDF8",
   "#FF7A1A",
   "#EF4444",
+  "#7F1D1D",
   "#FACC15",
 ] as const;
 
@@ -80,14 +112,24 @@ const trainingDayLabels = {
 } satisfies Record<TrainingDay, string>;
 
 export default function SettingsScreen() {
+  const scrollViewRef = useScrollToTopOnFocus();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
+  const router = useRouter();
   const [form, setForm] = useState<SaveTeamSettingsInput>(
     defaultTeamSettingsForm,
   );
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingBackup, setIsExportingBackup] = useState(false);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
+  const [isDeletingData, setIsDeletingData] = useState(false);
+  const [isOpeningTutorial, setIsOpeningTutorial] = useState(false);
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
+  const [endedSeasons, setEndedSeasons] = useState<Season[]>([]);
+  const [isEndingSeason, setIsEndingSeason] = useState(false);
+  const [seasonName, setSeasonName] = useState("");
 
   const insets = {
     ...safeAreaInsets,
@@ -99,7 +141,17 @@ export default function SettingsScreen() {
 
     async function loadSettings() {
       try {
-        const settings = await getTeamSettingsAsync();
+        const [settings, loadedActiveSeason, loadedEndedSeasons] = await Promise.all([
+          getTeamSettingsAsync(),
+          getActiveSeasonAsync(),
+          listEndedSeasonsAsync(),
+        ]);
+
+        if (isMounted) {
+          setActiveSeason(loadedActiveSeason);
+          setSeasonName(loadedActiveSeason?.name ?? "");
+          setEndedSeasons(loadedEndedSeasons);
+        }
 
         if (!isMounted || !settings) {
           return;
@@ -111,7 +163,7 @@ export default function SettingsScreen() {
           kitDesign: settings.kitDesign,
           outfieldKitColor: settings.outfieldKitColor,
           secondaryKitColor: settings.secondaryKitColor,
-          sashAccentKitColor: settings.sashAccentKitColor,
+          thirdKitColor: settings.thirdKitColor,
           kitNumberColor: settings.kitNumberColor,
           goalkeeperKitColor: settings.goalkeeperKitColor,
           matchDurationMinutes: settings.matchDurationMinutes,
@@ -119,6 +171,9 @@ export default function SettingsScreen() {
           trainingStartTime: settings.trainingStartTime,
           preferNicknames: settings.preferNicknames,
           fineJarEnabled: settings.fineJarEnabled,
+          matchDutyEnabled: settings.matchDutyEnabled,
+          includeFriendlyMatchesInStats:
+            settings.includeFriendlyMatchesInStats,
         });
       } catch (loadError) {
         console.warn("Failed to load team settings", loadError);
@@ -150,6 +205,11 @@ export default function SettingsScreen() {
       return;
     }
 
+    if (activeSeason && !seasonName.trim()) {
+      setError("Season name is required.");
+      return;
+    }
+
     if (
       !Number.isFinite(form.matchDurationMinutes) ||
       form.matchDurationMinutes < 1 ||
@@ -168,6 +228,10 @@ export default function SettingsScreen() {
 
     try {
       const savedSettings = await saveTeamSettingsAsync(form);
+      if (activeSeason) {
+        await updateSeasonNameAsync(activeSeason.id, seasonName);
+        setActiveSeason({ ...activeSeason, name: seasonName.trim() });
+      }
 
       if (savedSettings) {
         setForm({
@@ -176,7 +240,7 @@ export default function SettingsScreen() {
           kitDesign: savedSettings.kitDesign,
           outfieldKitColor: savedSettings.outfieldKitColor,
           secondaryKitColor: savedSettings.secondaryKitColor,
-          sashAccentKitColor: savedSettings.sashAccentKitColor,
+          thirdKitColor: savedSettings.thirdKitColor,
           kitNumberColor: savedSettings.kitNumberColor,
           goalkeeperKitColor: savedSettings.goalkeeperKitColor,
           matchDurationMinutes: savedSettings.matchDurationMinutes,
@@ -184,6 +248,9 @@ export default function SettingsScreen() {
           trainingStartTime: savedSettings.trainingStartTime,
           preferNicknames: savedSettings.preferNicknames,
           fineJarEnabled: savedSettings.fineJarEnabled,
+          matchDutyEnabled: savedSettings.matchDutyEnabled,
+          includeFriendlyMatchesInStats:
+            savedSettings.includeFriendlyMatchesInStats,
         });
       }
 
@@ -193,6 +260,200 @@ export default function SettingsScreen() {
       setError("Please check your team name and color values.");
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleExportBackup() {
+    setIsExportingBackup(true);
+
+    try {
+      await exportDatabaseBackupAsync();
+    } catch (exportError) {
+      console.warn("Failed to export data backup", exportError);
+      Alert.alert(
+        "Backup failed",
+        "The backup file could not be created. Please try again.",
+      );
+    } finally {
+      setIsExportingBackup(false);
+    }
+  }
+
+  async function handleChooseBackup() {
+    if (isRestoringBackup) {
+      return;
+    }
+
+    setIsRestoringBackup(true);
+
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+        type: "*/*",
+      });
+
+      if (result.canceled) {
+        setIsRestoringBackup(false);
+        return;
+      }
+
+      const backup = result.assets[0];
+
+      Alert.alert(
+        "Restore this backup?",
+        `Restoring “${backup.name}” will replace all players, trainings, matches, statistics, guest players, and settings currently in the app. This cannot be undone.`,
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+            onPress: () => setIsRestoringBackup(false),
+          },
+          {
+            text: "Restore backup",
+            style: "destructive",
+            onPress: () => void handleRestoreBackup(backup.uri),
+          },
+        ],
+        { cancelable: false },
+      );
+    } catch (pickerError) {
+      console.warn("Failed to choose data backup", pickerError);
+      setIsRestoringBackup(false);
+      Alert.alert(
+        "Could not open files",
+        "The file picker could not be opened. Please try again.",
+      );
+    }
+  }
+
+  async function handleRestoreBackup(fileUri: string) {
+    try {
+      await restoreDatabaseBackupAsync(fileUri);
+      await cancelAllAssistantCoachNotificationsAsync();
+      const restoredMatches = await listMatchDayMatchesAsync();
+      await Promise.all(
+        restoredMatches
+          .filter((match) => match.ownScore === null || match.opponentScore === null)
+          .map((match) =>
+            scheduleMatchResultReminderAsync(match.id, match.matchDate, match.startTime),
+          ),
+      );
+      setIsRestoringBackup(false);
+      Alert.alert(
+        "Backup restored",
+        "Your Assistant Coach data has been restored successfully. The app will now reload.",
+        [
+          {
+            text: "Continue",
+            onPress: () => void reloadAppAsync(),
+          },
+        ],
+        { cancelable: false },
+      );
+    } catch (restoreError) {
+      console.warn("Failed to restore data backup", restoreError);
+      setIsRestoringBackup(false);
+      Alert.alert(
+        "Backup could not be restored",
+        restoreError instanceof InvalidBackupError
+          ? restoreError.message
+          : "Your existing data has not been changed. Please try again with a valid Assistant Coach backup.",
+      );
+    }
+  }
+
+  function confirmDeleteAllData() {
+    Alert.alert(
+      "Delete all app data?",
+      "This permanently deletes your players, trainings, matches, statistics, guest players, and team settings. Export a backup first if you may need this data again.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete everything",
+          style: "destructive",
+          onPress: () => {
+            void handleDeleteAllData();
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteAllData() {
+    setIsDeletingData(true);
+
+    try {
+      await clearAllUserDataAsync();
+      await cancelAllAssistantCoachNotificationsAsync();
+      router.replace("/");
+    } catch (deleteError) {
+      console.warn("Failed to delete app data", deleteError);
+      Alert.alert(
+        "Delete failed",
+        "Your data could not be deleted. Please try again.",
+      );
+    } finally {
+      setIsDeletingData(false);
+    }
+  }
+
+  async function handleOpenTutorial() {
+    setIsOpeningTutorial(true);
+    try {
+      await setOnboardingCompletedAsync(false);
+      router.replace("/");
+    } catch (tutorialError) {
+      console.warn("Failed to reopen tutorial", tutorialError);
+      Alert.alert("Could not open tutorial", "Please try again.");
+    } finally {
+      setIsOpeningTutorial(false);
+    }
+  }
+
+  async function confirmEndSeason() {
+    if (!activeSeason || isEndingSeason) return;
+
+    try {
+      const status = await getSeasonCompletionStatusAsync(activeSeason.id);
+      const unfinished: string[] = [];
+      if (status.matchesWithoutResults) unfinished.push(`${status.matchesWithoutResults} match result${status.matchesWithoutResults === 1 ? "" : "s"}`);
+      if (status.trainingsWithoutAttendance) unfinished.push(`${status.trainingsWithoutAttendance} training attendance record${status.trainingsWithoutAttendance === 1 ? "" : "s"}`);
+      const warning = unfinished.length
+        ? `There are still ${unfinished.join(" and ")} unfinished. They will be archived as they are.\n\n`
+        : "";
+
+      Alert.alert(
+        `End season ${activeSeason.name}?`,
+        `${warning}This creates a permanent season summary and starts a new season. Your players and settings will carry over.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "End season", style: "destructive", onPress: () => void handleEndSeason() },
+        ],
+      );
+    } catch (seasonError) {
+      console.warn("Failed to check season", seasonError);
+      Alert.alert("Could not check season", "Please try again.");
+    }
+  }
+
+  async function handleEndSeason() {
+    setIsEndingSeason(true);
+    try {
+      const endedSeason = await endActiveSeasonAsync();
+      const [nextSeason, history] = await Promise.all([
+        getActiveSeasonAsync(),
+        listEndedSeasonsAsync(),
+      ]);
+      setActiveSeason(nextSeason);
+      setSeasonName(nextSeason?.name ?? "");
+      setEndedSeasons(history);
+      router.push({ pathname: "/season-summary", params: { seasonId: String(endedSeason.id) } });
+    } catch (seasonError) {
+      console.warn("Failed to end season", seasonError);
+      Alert.alert("Season not ended", "Your data has not been changed. Please try again.");
+    } finally {
+      setIsEndingSeason(false);
     }
   }
 
@@ -211,6 +472,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       style={[styles.scrollView, { backgroundColor: theme.background }]}
       contentInset={insets}
       contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -228,7 +490,45 @@ export default function SettingsScreen() {
         <ThemedView type="backgroundElement" style={styles.panel}>
           <ThemedView style={styles.sectionHeader}>
             <SymbolView
-              name={{ ios: "tshirt.fill", android: "checkroom", web: "checkroom" }}
+              name={{
+                ios: "questionmark.circle",
+                android: "help_outline",
+                web: "help_outline",
+              }}
+              size={22}
+              tintColor={theme.text}
+            />
+            <ThemedText type="default">Introduction</ThemedText>
+          </ThemedView>
+          <ThemedText type="small" themeColor="textSecondary">
+            Revisit the short guide to players, training, Match Day, sharing and
+            settings.
+          </ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View introduction again"
+            disabled={isOpeningTutorial}
+            onPress={() => void handleOpenTutorial()}
+            style={({ pressed }) => [
+              styles.tutorialButton,
+              pressed && styles.pressed,
+              isOpeningTutorial && styles.disabledButton,
+            ]}
+          >
+            <ThemedText type="smallBold" style={styles.tutorialButtonText}>
+              View introduction again
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.panel}>
+          <ThemedView style={styles.sectionHeader}>
+            <SymbolView
+              name={{
+                ios: "tshirt.fill",
+                android: "checkroom",
+                web: "checkroom",
+              }}
               size={22}
               tintColor={theme.text}
             />
@@ -247,6 +547,7 @@ export default function SettingsScreen() {
               style={[
                 styles.textInput,
                 {
+                  backgroundColor: theme.backgroundElement,
                   borderColor: theme.backgroundSelected,
                   color: theme.text,
                 },
@@ -269,6 +570,7 @@ export default function SettingsScreen() {
               style={[
                 styles.textInput,
                 {
+                  backgroundColor: theme.backgroundElement,
                   borderColor: theme.backgroundSelected,
                   color: theme.text,
                 },
@@ -291,13 +593,11 @@ export default function SettingsScreen() {
             value={form.secondaryKitColor}
             onChange={(value) => updateFormValue("secondaryKitColor", value)}
           />
-          {form.kitDesign === "sash" ? (
+          {form.kitDesign === "sash" || form.kitDesign === "twoColorStripes" ? (
             <SettingsColorField
               label="Third colour"
-              value={form.sashAccentKitColor}
-              onChange={(value) =>
-                updateFormValue("sashAccentKitColor", value)
-              }
+              value={form.thirdKitColor}
+              onChange={(value) => updateFormValue("thirdKitColor", value)}
             />
           ) : null}
           <SettingsColorField
@@ -315,7 +615,11 @@ export default function SettingsScreen() {
         <ThemedView type="backgroundElement" style={styles.panel}>
           <ThemedView style={styles.sectionHeader}>
             <SymbolView
-              name={{ ios: "slider.horizontal.3", android: "tune", web: "tune" }}
+              name={{
+                ios: "slider.horizontal.3",
+                android: "tune",
+                web: "tune",
+              }}
               size={22}
               tintColor={theme.text}
             />
@@ -328,7 +632,39 @@ export default function SettingsScreen() {
         <ThemedView type="backgroundElement" style={styles.panel}>
           <ThemedView style={styles.sectionHeader}>
             <SymbolView
-              name={{ ios: "figure.soccer", android: "sports_soccer", web: "sports_soccer" }}
+              name={{
+                ios: "chart.bar.fill",
+                android: "bar_chart",
+                web: "bar_chart",
+              }}
+              size={22}
+              tintColor={theme.text}
+            />
+            <ThemedText type="default">Player and team statistics</ThemedText>
+          </ThemedView>
+
+          <SettingsSegmentedField
+            label="Friendly matches"
+            helperText="Excluded friendlies remain saved and visible, but will not count toward player or team statistics."
+            options={[
+              { label: "Include", value: true },
+              { label: "Exclude", value: false },
+            ]}
+            value={form.includeFriendlyMatchesInStats}
+            onChange={(value) =>
+              updateFormValue("includeFriendlyMatchesInStats", value)
+            }
+          />
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.panel}>
+          <ThemedView style={styles.sectionHeader}>
+            <SymbolView
+              name={{
+                ios: "figure.soccer",
+                android: "sports_soccer",
+                web: "sports_soccer",
+              }}
               size={22}
               tintColor={theme.text}
             />
@@ -336,6 +672,171 @@ export default function SettingsScreen() {
           </ThemedView>
 
           <SettingsTrainingFields form={form} onChange={updateFormValue} />
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.panel}>
+          <ThemedView style={styles.sectionHeader}>
+            <SymbolView
+              name={{ ios: "calendar.badge.checkmark", android: "event_available", web: "event_available" }}
+              size={22}
+              tintColor={theme.text}
+            />
+            <ThemedText type="default">Season</ThemedText>
+          </ThemedView>
+          <ThemedText type="small" themeColor="textSecondary">
+            Current season: {activeSeason?.name ?? "Loading..."}
+          </ThemedText>
+          {activeSeason ? (
+            <ThemedView style={styles.fieldGroup}>
+              <ThemedText type="smallBold">Season name</ThemedText>
+              <TextInput
+                value={seasonName}
+                onChangeText={(value) => { setSeasonName(value); setSaveMessage(null); }}
+                placeholder="2026/27"
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.textInput, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected, color: theme.text }]}
+              />
+              <ThemedText type="small" themeColor="textSecondary">Saved with the main Save settings button.</ThemedText>
+            </ThemedView>
+          ) : null}
+          {endedSeasons.length ? (
+            <ThemedView style={styles.seasonHistory}>
+              <ThemedText type="smallBold">Season history</ThemedText>
+              {endedSeasons.map((season) => (
+                <Pressable
+                  key={season.id}
+                  onPress={() => router.push({ pathname: "/season-summary", params: { seasonId: String(season.id) } })}
+                  style={({ pressed }) => [styles.seasonHistoryButton, { borderColor: theme.backgroundSelected }, pressed && styles.pressed]}
+                >
+                  <ThemedText type="smallBold">{season.name}</ThemedText>
+                  <ThemedText type="small" style={styles.greenText}>View summary ›</ThemedText>
+                </Pressable>
+              ))}
+            </ThemedView>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="End current season"
+            disabled={!activeSeason || isEndingSeason}
+            onPress={() => void confirmEndSeason()}
+            style={({ pressed }) => [styles.endSeasonButton, pressed && styles.pressed, isEndingSeason && styles.disabledButton]}
+          >
+            <ThemedText type="smallBold" style={styles.dangerText}>
+              {isEndingSeason ? "Ending season..." : "End season"}
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.panel}>
+          <ThemedView style={styles.sectionHeader}>
+            <SymbolView
+              name={{
+                ios: "externaldrive.fill",
+                android: "cloud_upload",
+                web: "cloud_upload",
+              }}
+              size={22}
+              tintColor={theme.text}
+            />
+            <ThemedText type="default">Data backup</ThemedText>
+          </ThemedView>
+
+          <ThemedText type="small" themeColor="textSecondary">
+            Export all players, trainings, matches, statistics, and settings.
+            Choose Files, iCloud Drive, Google Drive, or another available
+            location when the share sheet opens. You can restore that file on
+            this or a new phone later.
+          </ThemedText>
+
+          <ThemedView style={styles.backupActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Export data backup"
+              disabled={isExportingBackup || isRestoringBackup}
+              onPress={handleExportBackup}
+              style={({ pressed }) => [
+                styles.backupButton,
+                pressed && styles.pressed,
+                (isExportingBackup || isRestoringBackup) &&
+                  styles.disabledButton,
+              ]}
+            >
+              <SymbolView
+                name={{
+                  ios: "square.and.arrow.up",
+                  android: "upload_file",
+                  web: "upload_file",
+                }}
+                size={20}
+                tintColor="#ffffff"
+              />
+              <ThemedText type="smallBold" style={styles.saveButtonText}>
+                {isExportingBackup ? "Preparing backup..." : "Export backup"}
+              </ThemedText>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Restore data backup"
+              disabled={isExportingBackup || isRestoringBackup}
+              onPress={() => void handleChooseBackup()}
+              style={({ pressed }) => [
+                styles.restoreButton,
+                pressed && styles.pressed,
+                (isExportingBackup || isRestoringBackup) &&
+                  styles.disabledButton,
+              ]}
+            >
+              <SymbolView
+                name={{
+                  ios: "square.and.arrow.down",
+                  android: "download_for_offline",
+                  web: "download_for_offline",
+                }}
+                size={20}
+                tintColor="#2563EB"
+              />
+              <ThemedText type="smallBold" style={styles.restoreButtonText}>
+                {isRestoringBackup ? "Restoring..." : "Restore backup"}
+              </ThemedText>
+            </Pressable>
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.panel}>
+          <ThemedView style={styles.sectionHeader}>
+            <SymbolView
+              name={{
+                ios: "trash",
+                android: "delete_forever",
+                web: "delete_forever",
+              }}
+              size={22}
+              tintColor="#DC2626"
+            />
+            <ThemedText type="default" style={styles.dangerText}>
+              Delete app data
+            </ThemedText>
+          </ThemedView>
+          <ThemedText type="small" themeColor="textSecondary">
+            Return the app to a completely empty state. This cannot be undone
+            without a backup.
+          </ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Delete all app data"
+            disabled={isDeletingData}
+            onPress={confirmDeleteAllData}
+            style={({ pressed }) => [
+              styles.deleteDataButton,
+              pressed && styles.pressed,
+              isDeletingData && styles.disabledButton,
+            ]}
+          >
+            <ThemedText type="smallBold" style={styles.dangerText}>
+              {isDeletingData ? "Deleting..." : "Delete all app data"}
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {error ? (
@@ -397,7 +898,7 @@ function SettingsKitDesignField({
                   styles.kitDesignOption,
                   {
                     borderColor: isSelected
-                      ? "#536DFE"
+                      ? "#1C7C54"
                       : theme.backgroundSelected,
                   },
                   isSelected && styles.kitDesignOptionSelected,
@@ -452,18 +953,11 @@ function SettingsPreferencesFields({
           Use this for youth teams or competitions with shorter matches.
         </ThemedText>
         <ThemedView style={styles.numberRow}>
-          <Pressable
-            accessibilityRole="button"
+          <StepperArrowButton
             accessibilityLabel="Decrease match minutes"
+            direction="left"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes - 5)}
-            style={({ pressed }) => [
-              styles.stepperButton,
-              { borderColor: theme.backgroundSelected },
-              pressed && styles.pressed,
-            ]}
-          >
-            <ThemedText type="smallBold">-</ThemedText>
-          </Pressable>
+          />
           <TextInput
             keyboardType="number-pad"
             maxLength={3}
@@ -476,23 +970,17 @@ function SettingsPreferencesFields({
             style={[
               styles.numberInput,
               {
+                backgroundColor: theme.backgroundElement,
                 borderColor: theme.backgroundSelected,
                 color: theme.text,
               },
             ]}
           />
-          <Pressable
-            accessibilityRole="button"
+          <StepperArrowButton
             accessibilityLabel="Increase match minutes"
+            direction="right"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes + 5)}
-            style={({ pressed }) => [
-              styles.stepperButton,
-              { borderColor: theme.backgroundSelected },
-              pressed && styles.pressed,
-            ]}
-          >
-            <ThemedText type="smallBold">+</ThemedText>
-          </Pressable>
+          />
         </ThemedView>
       </ThemedView>
 
@@ -515,6 +1003,17 @@ function SettingsPreferencesFields({
         ]}
         value={form.fineJarEnabled}
         onChange={(value) => onChange("fineJarEnabled", value)}
+      />
+
+      <SettingsSegmentedField
+        label="Does your team have match duties?"
+        helperText="Do your players take care of bringing the jerseys, warm-up equipment, or other match-day materials?"
+        options={[
+          { label: "Use match duties", value: true },
+          { label: "No match duties", value: false },
+        ]}
+        value={form.matchDutyEnabled}
+        onChange={(value) => onChange("matchDutyEnabled", value)}
       />
     </>
   );
@@ -558,7 +1057,7 @@ function SettingsSegmentedField({
                 styles.segmentedOption,
                 {
                   borderColor: isSelected
-                    ? "#536DFE"
+                    ? "#1C7C54"
                     : theme.backgroundSelected,
                 },
                 isSelected && styles.segmentedOptionSelected,
@@ -604,7 +1103,8 @@ function SettingsTrainingFields({
       <ThemedView style={styles.fieldGroup}>
         <ThemedText type="smallBold">Training days</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Useful for reminders later. Leave empty if training changes every week.
+          Useful for reminders later. Leave empty if training changes every
+          week.
         </ThemedText>
         <ThemedView style={styles.trainingDayGrid}>
           {TRAINING_DAYS.map((day) => {
@@ -619,18 +1119,17 @@ function SettingsTrainingFields({
                 onPress={() => toggleTrainingDay(day)}
                 style={({ pressed }) => [
                   styles.trainingDayOption,
-                  {
-                    borderColor: isSelected
-                      ? "#536DFE"
-                      : theme.backgroundSelected,
-                  },
+                  { borderColor: "#1C7C54" },
                   isSelected && styles.trainingDayOptionSelected,
                   pressed && styles.pressed,
                 ]}
               >
                 <ThemedText
                   type="smallBold"
-                  style={isSelected && styles.trainingDayOptionTextSelected}
+                  style={[
+                    styles.trainingDayOptionText,
+                    isSelected && styles.trainingDayOptionTextSelected,
+                  ]}
                 >
                   {trainingDayLabels[day]}
                 </ThemedText>
@@ -657,6 +1156,7 @@ function SettingsTrainingFields({
           style={[
             styles.textInput,
             {
+              backgroundColor: theme.backgroundElement,
               borderColor: theme.backgroundSelected,
               color: theme.text,
             },
@@ -668,6 +1168,8 @@ function SettingsTrainingFields({
 }
 
 function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
+  const kitOutlineColor = getKitOutlineColor(form.outfieldKitColor);
+
   return (
     <ThemedView style={styles.kitPreviewFrame}>
       <ThemedView style={styles.kitPreviewShirt}>
@@ -699,6 +1201,45 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
                   x="72"
                   y="0"
                   width="11"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+              </>
+            ) : null}
+            {form.kitDesign === "twoColorStripes" ? (
+              <>
+                <Rect
+                  x="0"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="22.5"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.thirdKitColor}
+                />
+                <Rect
+                  x="45"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="67.5"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.thirdKitColor}
+                />
+                <Rect
+                  x="90"
+                  y="0"
+                  width="10"
                   height="90"
                   fill={form.secondaryKitColor}
                 />
@@ -758,7 +1299,7 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
                 />
                 <Path
                   d="M14 90 L96 -16 L106 -16 L24 90 Z"
-                  fill={form.sashAccentKitColor}
+                  fill={form.thirdKitColor}
                 />
               </>
             ) : null}
@@ -766,7 +1307,7 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
           <Path
             d={kitShirtPath}
             fill="none"
-            stroke="#111827"
+            stroke={kitOutlineColor}
             strokeLinejoin="round"
             strokeLinecap="round"
             strokeWidth={5}
@@ -774,7 +1315,7 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
           <Path
             d="M37 7 Q50 15 63 7"
             fill="none"
-            stroke="#111827"
+            stroke={kitOutlineColor}
             strokeLinecap="round"
             strokeWidth={5}
           />
@@ -805,43 +1346,24 @@ function SettingsColorField({
   onChange: (value: string) => void;
   value: string;
 }) {
-  const theme = useTheme();
-
   return (
     <ThemedView style={styles.fieldGroup}>
       <ThemedText type="smallBold">{label}</ThemedText>
-      <ThemedView style={styles.colorRow}>
-        <ThemedView
-          style={[styles.colorPreview, { backgroundColor: value || "transparent" }]}
-        />
-        <TextInput
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={7}
-          placeholder="#FFFFFF"
-          placeholderTextColor={theme.textSecondary}
-          value={value}
-          onChangeText={onChange}
-          style={[
-            styles.colorInput,
-            {
-              borderColor: theme.backgroundSelected,
-              color: theme.text,
-            },
-          ]}
-        />
-      </ThemedView>
       <ThemedView style={styles.swatchRow}>
         {colorOptions.map((color) => (
           <Pressable
             key={`${label}-${color}`}
             accessibilityRole="button"
             accessibilityLabel={`${label} ${color}`}
+            accessibilityState={{
+              selected: value.toUpperCase() === color,
+            }}
             onPress={() => onChange(color)}
-            style={[
+            style={({ pressed }) => [
               styles.swatch,
               { backgroundColor: color },
               value.toUpperCase() === color && styles.swatchSelected,
+              pressed && styles.pressed,
             ]}
           />
         ))}
@@ -851,6 +1373,13 @@ function SettingsColorField({
 }
 
 function getKitNumberOutlineColor(color: string) {
+  const normalizedColor = color.trim().toUpperCase();
+  return normalizedColor === "#000000" || normalizedColor === "#111827"
+    ? "#FFFFFF"
+    : "#111827";
+}
+
+function getKitOutlineColor(color: string) {
   const normalizedColor = color.trim().toUpperCase();
   return normalizedColor === "#000000" || normalizedColor === "#111827"
     ? "#FFFFFF"
@@ -891,7 +1420,11 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: PageTopPadding,
+    paddingTop:
+      Platform.select({
+        web: AppHeaderHeight + PageTopPadding,
+        default: AppHeaderHeight + Spacing.two,
+      }) ?? AppHeaderHeight + Spacing.two,
   },
   header: {
     gap: Spacing.two,
@@ -944,7 +1477,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   kitDesignOptionSelected: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
   },
   kitDesignOptionTextSelected: {
     color: "#ffffff",
@@ -977,59 +1510,29 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     marginTop: 10,
     textShadowOffset: { height: 0, width: 0 },
-    textShadowRadius: 2,
+    textShadowRadius: 4,
     zIndex: 2,
-  },
-  colorRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: Spacing.two,
-  },
-  colorPreview: {
-    borderColor: "#D1D5DB",
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    height: 44,
-    width: 44,
-  },
-  colorInput: {
-    backgroundColor: "#ffffff",
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    flex: 1,
-    fontSize: 16,
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
   },
   swatchRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.two,
+    gap: Spacing.one,
   },
   swatch: {
     borderColor: "#D1D5DB",
-    borderRadius: 999,
+    borderRadius: Spacing.one,
     borderWidth: 1,
     height: 28,
     width: 28,
   },
   swatchSelected: {
-    borderColor: "#536DFE",
+    borderColor: "#111827",
     borderWidth: 3,
   },
   numberRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: Spacing.two,
-  },
-  stepperButton: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
   },
   numberInput: {
     backgroundColor: "#ffffff",
@@ -1055,7 +1558,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   segmentedOptionSelected: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
   },
   segmentedOptionTextSelected: {
     color: "#ffffff",
@@ -1067,7 +1570,7 @@ const styles = StyleSheet.create({
   },
   trainingDayOption: {
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "transparent",
     borderRadius: Spacing.two,
     borderWidth: 1,
     justifyContent: "center",
@@ -1076,7 +1579,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   trainingDayOptionSelected: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
+  },
+  trainingDayOptionText: {
+    color: "#1C7C54",
   },
   trainingDayOptionTextSelected: {
     color: "#ffffff",
@@ -1084,15 +1590,98 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#EF4444",
   },
+  dangerText: {
+    color: "#DC2626",
+  },
   successText: {
     color: "#1C7C54",
   },
+  greenText: {
+    color: "#1C7C54",
+  },
+  seasonHistory: {
+    gap: Spacing.two,
+  },
+  seasonHistoryButton: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
+  endSeasonButton: {
+    alignItems: "center",
+    borderColor: "#DC2626",
+    borderRadius: Spacing.two,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 48,
+    width: "100%",
+  },
   saveButton: {
     alignItems: "center",
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
     borderRadius: Spacing.two,
     justifyContent: "center",
     minHeight: 48,
+  },
+  backupButton: {
+    alignItems: "center",
+    backgroundColor: "#2563EB",
+    borderRadius: Spacing.two,
+    flexDirection: "row",
+    gap: Spacing.two,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: Spacing.three,
+    width: "100%",
+  },
+  backupActions: {
+    gap: Spacing.two,
+    width: "100%",
+  },
+  restoreButton: {
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: "#2563EB",
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    flexDirection: "row",
+    gap: Spacing.two,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: Spacing.three,
+    width: "100%",
+  },
+  restoreButtonText: {
+    color: "#2563EB",
+  },
+  tutorialButton: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "transparent",
+    borderColor: "#1C7C54",
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: Spacing.three,
+  },
+  tutorialButtonText: {
+    color: "#1C7C54",
+  },
+  deleteDataButton: {
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: "#DC2626",
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    minHeight: 46,
+    paddingHorizontal: Spacing.three,
+    width: "100%",
   },
   saveButtonText: {
     color: "#ffffff",

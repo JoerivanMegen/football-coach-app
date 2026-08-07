@@ -1,9 +1,14 @@
-import { getDatabaseAsync } from '@/db/database';
-import { PLAYER_POSITIONS, type PlayerPosition } from '@/features/players/player-types';
+import { getDatabaseAsync } from "@/db/database";
 import type {
   PlayerAttendanceStats,
   RecentMatchRating,
-} from '@/features/player-stats/player-stats-types';
+} from "@/features/player-stats/player-stats-types";
+import {
+  PLAYER_POSITIONS,
+  type PlayerPosition,
+} from "@/features/players/player-types";
+import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
+import { getActiveSeasonIdAsync } from "@/features/seasons/season-repository";
 
 type PlayerAttendanceStatsRow = {
   player_id: number;
@@ -37,9 +42,52 @@ type RecentMatchRatingRow = {
   match_rating: number;
 };
 
-export async function listPlayerAttendanceStatsAsync() {
+type MatchDayStatsRow = {
+  id: number;
+  opponent: string;
+  match_date: string;
+  start_time: string;
+  opponent_score: number;
+  lineup_assignments_json: string;
+  player_result_stats_json: string | null;
+  match_duty_player_ids_json: string | null;
+  fulfilled_match_duty_player_ids_json: string | null;
+};
+
+type MatchDayPlayerStat = {
+  goals: number;
+  assists: number;
+  attendance: string;
+  card: string;
+  rating: number;
+  minutesPlayed: number;
+};
+
+type MatchDayPlayerAggregate = {
+  squadMatches: number;
+  appearances: number;
+  starts: number;
+  lateCount: number;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  cleanSheets: number;
+  totalMinutes: number;
+  ratingTotal: number;
+  ratedMatches: number;
+  recentRatings: RecentMatchRating[];
+  dutiesAssigned: number;
+  dutiesFulfilled: number;
+};
+
+export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
   const db = await getDatabaseAsync();
-  const [rows, recentRatingRows] = await Promise.all([
+  const resolvedSeasonId = seasonId ?? (await getActiveSeasonIdAsync(db));
+  const settings = await getTeamSettingsAsync();
+  const includeFriendlyMatches =
+    settings?.includeFriendlyMatchesInStats ?? true;
+  const [rows, recentRatingRows, matchDayRows] = await Promise.all([
     db.getAllAsync<PlayerAttendanceStatsRow>(`
     SELECT
       players.id AS player_id,
@@ -165,13 +213,30 @@ export async function listPlayerAttendanceStatsAsync() {
     LEFT JOIN events
       ON events.id = event_attendance.event_id
      AND events.attendance_status = 'marked'
+     AND events.season_id = ?
     LEFT JOIN event_player_signups
       ON event_player_signups.event_id = events.id
      AND event_player_signups.player_id = players.id
     WHERE players.is_active = 1
+       OR EXISTS (
+         SELECT 1
+         FROM event_attendance season_attendance
+         INNER JOIN events season_event ON season_event.id = season_attendance.event_id
+         WHERE season_attendance.player_id = players.id
+           AND season_event.season_id = ?
+       )
+       OR EXISTS (
+         SELECT 1
+         FROM match_day_matches season_match
+         WHERE season_match.season_id = ?
+           AND json_extract(
+             COALESCE(season_match.player_result_stats_json, '{}'),
+             '$."' || players.id || '"'
+           ) IS NOT NULL
+       )
     GROUP BY players.id
     ORDER BY players.last_name COLLATE NOCASE, players.first_name COLLATE NOCASE
-  `),
+  `, [resolvedSeasonId, resolvedSeasonId, resolvedSeasonId]),
     db.getAllAsync<RecentMatchRatingRow>(`
       SELECT
         event_attendance.player_id,
@@ -184,6 +249,7 @@ export async function listPlayerAttendanceStatsAsync() {
         ON events.id = event_attendance.event_id
        AND events.type = 'match'
        AND events.attendance_status = 'marked'
+       AND events.season_id = ?
       WHERE event_attendance.is_present = 1
         AND event_attendance.match_rating IS NOT NULL
       ORDER BY
@@ -191,18 +257,49 @@ export async function listPlayerAttendanceStatsAsync() {
         events.event_date DESC,
         events.start_time DESC,
         events.created_at DESC
-    `),
+    `, [resolvedSeasonId]),
+    db.getAllAsync<MatchDayStatsRow>(
+      `
+      SELECT
+        id,
+        opponent,
+        match_date,
+        start_time,
+        opponent_score,
+        lineup_assignments_json,
+        player_result_stats_json,
+        match_duty_player_ids_json,
+        fulfilled_match_duty_player_ids_json
+      FROM match_day_matches
+      WHERE own_score IS NOT NULL
+        AND opponent_score IS NOT NULL
+        AND season_id = ?
+        AND (? = 1 OR category <> 'friendly')
+      ORDER BY match_date DESC, start_time DESC, created_at DESC
+    `,
+      [resolvedSeasonId, includeFriendlyMatches ? 1 : 0],
+    ),
   ]);
-  const recentRatingsByPlayerId = groupRecentMatchRatingsByPlayerId(recentRatingRows);
+  const matchDayStatsByPlayerId =
+    aggregateMatchDayStatsByPlayerId(matchDayRows);
+  const recentRatingsByPlayerId = mergeRecentMatchRatingsByPlayerId(
+    recentRatingRows,
+    matchDayStatsByPlayerId,
+  );
 
   return rows.map((row) =>
-    mapPlayerAttendanceStatsRow(row, recentRatingsByPlayerId.get(row.player_id) ?? [])
+    mapPlayerAttendanceStatsRow(
+      row,
+      recentRatingsByPlayerId.get(row.player_id) ?? [],
+      matchDayStatsByPlayerId.get(row.player_id),
+    ),
   );
 }
 
 function mapPlayerAttendanceStatsRow(
   row: PlayerAttendanceStatsRow,
-  recentMatchRatings: RecentMatchRating[]
+  recentMatchRatings: RecentMatchRating[],
+  matchDayStats: MatchDayPlayerAggregate | undefined,
 ): PlayerAttendanceStats {
   const totalEvents = Number(row.total_events);
   const attendedEvents = Number(row.attended_events);
@@ -210,12 +307,34 @@ function mapPlayerAttendanceStatsRow(
   const trainingAttended = Number(row.training_attended);
   const recentTrainingEvents = Number(row.recent_training_events);
   const recentTrainingAttended = Number(row.recent_training_attended);
-  const matchEvents = Number(row.match_events);
+  const matchEvents = matchDayStats?.squadMatches ?? Number(row.match_events);
   const matchAttended = Number(row.match_attended);
+  const matchAppearances = matchDayStats?.appearances ?? matchAttended;
+  const matchStarts = matchDayStats?.starts ?? 0;
   const teamEvents = Number(row.team_events);
   const teamEventsAttended = Number(row.team_events_attended);
-  const totalMatchMinutes = Number(row.total_match_minutes ?? 0);
-  const lateCount = Number(row.late_count);
+  const totalMatchMinutes =
+    matchDayStats?.totalMinutes ?? Number(row.total_match_minutes ?? 0);
+  const lateCount = Number(row.late_count) + (matchDayStats?.lateCount ?? 0);
+  const resolvedTotalEvents = matchDayStats
+    ? trainingEvents + matchEvents
+    : totalEvents;
+  const resolvedAttendedEvents = matchDayStats
+    ? trainingAttended + matchAppearances
+    : attendedEvents;
+  const averageMatchMinutes =
+    matchDayStats && matchDayStats.appearances > 0
+      ? roundNullableNumber(
+          matchDayStats.totalMinutes / matchDayStats.appearances,
+        )
+      : roundNullableNumber(row.average_match_minutes);
+  const averageMatchRating =
+    matchDayStats && matchDayStats.ratedMatches > 0
+      ? roundNullableNumber(
+          matchDayStats.ratingTotal / matchDayStats.ratedMatches,
+          1,
+        )
+      : roundNullableNumber(row.average_match_rating, 1);
 
   return {
     playerId: row.player_id,
@@ -223,32 +342,276 @@ function mapPlayerAttendanceStatsRow(
     lastName: row.last_name,
     nickName: row.nick_name,
     position: normalizePlayerPosition(row.position),
-    totalEvents,
-    attendedEvents,
+    totalEvents: resolvedTotalEvents,
+    attendedEvents: resolvedAttendedEvents,
     trainingEvents,
     trainingAttended,
-    trainingAttendancePercentage: calculatePercentage(trainingAttended, trainingEvents),
+    trainingAttendancePercentage: calculatePercentage(
+      trainingAttended,
+      trainingEvents,
+    ),
     recentTrainingEvents,
     recentTrainingAttended,
     recentTrainingAttendancePercentage: calculatePercentage(
       recentTrainingAttended,
-      recentTrainingEvents
+      recentTrainingEvents,
     ),
     matchEvents,
-    matchAttended,
-    matchAttendancePercentage: calculatePercentage(matchAttended, matchEvents),
+    matchAttended: matchAppearances,
+    matchAttendancePercentage: calculatePercentage(
+      matchAppearances,
+      matchEvents,
+    ),
+    matchAppearances,
+    matchStarts,
+    matchStarterPercentage: calculatePercentage(matchStarts, matchAppearances),
+    matchGoals: matchDayStats?.goals ?? 0,
+    matchAssists: matchDayStats?.assists ?? 0,
+    matchYellowCards: matchDayStats?.yellowCards ?? 0,
+    matchRedCards: matchDayStats?.redCards ?? 0,
+    matchCleanSheets:
+      row.position === "goalkeeper" || row.position === "defender"
+        ? (matchDayStats?.cleanSheets ?? 0)
+        : 0,
+    matchGoalsPer90: calculatePer90(
+      matchDayStats?.goals ?? 0,
+      totalMatchMinutes,
+    ),
+    matchAssistsPer90: calculatePer90(
+      matchDayStats?.assists ?? 0,
+      totalMatchMinutes,
+    ),
+    matchDutiesAssigned: matchDayStats?.dutiesAssigned ?? 0,
+    matchDutiesFulfilled: matchDayStats?.dutiesFulfilled ?? 0,
+    matchDutyFulfillmentPercentage: calculatePercentage(
+      matchDayStats?.dutiesFulfilled ?? 0,
+      matchDayStats?.dutiesAssigned ?? 0,
+    ),
     teamEvents,
     teamEventsAttended,
-    teamEventAttendancePercentage: calculatePercentage(teamEventsAttended, teamEvents),
+    teamEventAttendancePercentage: calculatePercentage(
+      teamEventsAttended,
+      teamEvents,
+    ),
     totalMatchMinutes,
-    averageMatchMinutes: roundNullableNumber(row.average_match_minutes),
-    averageMatchRating: roundNullableNumber(row.average_match_rating, 1),
+    averageMatchMinutes,
+    averageMatchRating,
     lateCount,
-    latePercentage: calculatePercentage(lateCount, attendedEvents),
+    latePercentage: calculatePercentage(lateCount, resolvedAttendedEvents),
     availableButAbsentCount: Number(row.available_but_absent_count),
     signedOutButAttendedCount: Number(row.signed_out_but_attended_count),
     recentMatchRatings,
   };
+}
+
+function aggregateMatchDayStatsByPlayerId(rows: MatchDayStatsRow[]) {
+  const statsByPlayerId = new Map<number, MatchDayPlayerAggregate>();
+
+  for (const row of rows) {
+    const starterPlayerIds = new Set(
+      Object.values(parseJsonNumberRecord(row.lineup_assignments_json)),
+    );
+    const playerStats = parseMatchDayPlayerStats(
+      row.player_result_stats_json ?? "{}",
+    );
+    const matchDutyPlayerIds = parseJsonNumberArray(
+      row.match_duty_player_ids_json ?? "[]",
+    );
+    const fulfilledMatchDutyPlayerIds = new Set(
+      parseJsonNumberArray(row.fulfilled_match_duty_player_ids_json ?? "[]"),
+    );
+
+    for (const playerId of matchDutyPlayerIds) {
+      const currentStats = getOrCreateMatchDayPlayerAggregate(
+        statsByPlayerId,
+        playerId,
+      );
+      currentStats.dutiesAssigned += 1;
+      currentStats.dutiesFulfilled += fulfilledMatchDutyPlayerIds.has(playerId)
+        ? 1
+        : 0;
+    }
+
+    for (const [playerId, stat] of Object.entries(playerStats)) {
+      const numericPlayerId = Number(playerId);
+
+      if (!Number.isInteger(numericPlayerId)) {
+        continue;
+      }
+
+      const currentStats = getOrCreateMatchDayPlayerAggregate(
+        statsByPlayerId,
+        numericPlayerId,
+      );
+      currentStats.squadMatches += 1;
+
+      if (stat.minutesPlayed <= 0) {
+        continue;
+      }
+
+      const isStarter = starterPlayerIds.has(numericPlayerId);
+
+      currentStats.appearances += 1;
+      currentStats.starts += isStarter ? 1 : 0;
+      currentStats.lateCount += stat.attendance === "late" ? 1 : 0;
+      currentStats.goals += stat.goals;
+      currentStats.assists += stat.assists;
+      currentStats.yellowCards += stat.card === "yellow" ? 1 : 0;
+      currentStats.redCards += stat.card === "red" ? 1 : 0;
+      currentStats.cleanSheets +=
+        row.opponent_score === 0 && stat.minutesPlayed >= 60
+          ? 1
+          : 0;
+      currentStats.totalMinutes += stat.minutesPlayed;
+      currentStats.ratingTotal += stat.rating;
+      currentStats.ratedMatches += 1;
+
+      if (currentStats.recentRatings.length < 5) {
+        currentStats.recentRatings.push({
+          eventId: row.id,
+          eventDate: row.match_date,
+          opponent: row.opponent,
+          rating: stat.rating,
+        });
+      }
+    }
+  }
+
+  return statsByPlayerId;
+}
+
+function getOrCreateMatchDayPlayerAggregate(
+  statsByPlayerId: Map<number, MatchDayPlayerAggregate>,
+  playerId: number,
+) {
+  const currentStats = statsByPlayerId.get(playerId);
+
+  if (currentStats) {
+    return currentStats;
+  }
+
+  const nextStats: MatchDayPlayerAggregate = {
+    squadMatches: 0,
+    appearances: 0,
+    starts: 0,
+    lateCount: 0,
+    goals: 0,
+    assists: 0,
+    yellowCards: 0,
+    redCards: 0,
+    cleanSheets: 0,
+    totalMinutes: 0,
+    ratingTotal: 0,
+    ratedMatches: 0,
+    recentRatings: [],
+    dutiesAssigned: 0,
+    dutiesFulfilled: 0,
+  };
+
+  statsByPlayerId.set(playerId, nextStats);
+
+  return nextStats;
+}
+
+function mergeRecentMatchRatingsByPlayerId(
+  rows: RecentMatchRatingRow[],
+  matchDayStatsByPlayerId: Map<number, MatchDayPlayerAggregate>,
+) {
+  const ratingsByPlayerId = groupRecentMatchRatingsByPlayerId(rows);
+
+  for (const [playerId, matchDayStats] of matchDayStatsByPlayerId) {
+    ratingsByPlayerId.set(playerId, matchDayStats.recentRatings);
+  }
+
+  return ratingsByPlayerId;
+}
+
+function parseJsonNumberRecord(value: string) {
+  try {
+    const parsedValue = JSON.parse(value) as unknown;
+
+    if (
+      !parsedValue ||
+      typeof parsedValue !== "object" ||
+      Array.isArray(parsedValue)
+    ) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsedValue).flatMap(([key, item]) => {
+        if (typeof item !== "number") {
+          return [];
+        }
+
+        return [[key, item]];
+      }),
+    ) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function parseJsonNumberArray(value: string) {
+  try {
+    const parsedValue = JSON.parse(value) as unknown;
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.filter(
+      (item): item is number =>
+        typeof item === "number" && Number.isInteger(item),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function parseMatchDayPlayerStats(value: string) {
+  try {
+    const parsedValue = JSON.parse(value) as unknown;
+
+    if (
+      !parsedValue ||
+      typeof parsedValue !== "object" ||
+      Array.isArray(parsedValue)
+    ) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsedValue).flatMap(([playerId, stat]) => {
+        if (!stat || typeof stat !== "object") {
+          return [];
+        }
+
+        const rawStat = stat as Partial<
+          Record<keyof MatchDayPlayerStat, unknown>
+        >;
+
+        return [
+          [
+            playerId,
+            {
+              goals: normalizeStatCount(rawStat.goals),
+              assists: normalizeStatCount(rawStat.assists),
+              attendance:
+                typeof rawStat.attendance === "string"
+                  ? rawStat.attendance
+                  : "present",
+              card: typeof rawStat.card === "string" ? rawStat.card : "none",
+              rating: normalizeRating(rawStat.rating),
+              minutesPlayed: normalizeStatCount(rawStat.minutesPlayed),
+            },
+          ] satisfies [string, MatchDayPlayerStat],
+        ];
+      }),
+    ) as Record<string, MatchDayPlayerStat>;
+  } catch {
+    return {};
+  }
 }
 
 function groupRecentMatchRatingsByPlayerId(rows: RecentMatchRatingRow[]) {
@@ -282,6 +645,14 @@ function calculatePercentage(value: number, total: number) {
   return Math.round((value / total) * 100);
 }
 
+function calculatePer90(value: number, totalMinutes: number) {
+  if (totalMinutes === 0) {
+    return null;
+  }
+
+  return roundNullableNumber((value / totalMinutes) * 90, 2);
+}
+
 function roundNullableNumber(value: number | null, fractionDigits = 0) {
   if (value === null) {
     return null;
@@ -291,10 +662,26 @@ function roundNullableNumber(value: number | null, fractionDigits = 0) {
   return Math.round(value * multiplier) / multiplier;
 }
 
+function normalizeStatCount(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.trunc(value));
+}
+
+function normalizeRating(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 6;
+  }
+
+  return Math.min(10, Math.max(1, Math.trunc(value)));
+}
+
 function normalizePlayerPosition(value: string): PlayerPosition {
   if (PLAYER_POSITIONS.includes(value as PlayerPosition)) {
     return value as PlayerPosition;
   }
 
-  return 'midfielder';
+  return "midfielder";
 }

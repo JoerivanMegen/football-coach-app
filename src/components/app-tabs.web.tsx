@@ -50,18 +50,6 @@ const appTabs = [
     label: 'Match Day',
     iconName: { ios: 'sportscourt.fill', web: 'sports_soccer' },
   },
-  {
-    name: 'share-position-playground',
-    href: '/share-position-playground',
-    label: 'Preview',
-    iconName: { ios: 'photo.fill', web: 'image' },
-  },
-  {
-    name: 'settings',
-    href: '/settings',
-    label: 'Settings',
-    iconName: { ios: 'gearshape.fill', web: 'settings' },
-  },
 ] satisfies AppTab[];
 
 export default function AppTabs() {
@@ -138,10 +126,6 @@ export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Football Coach
-        </ThemedText>
-
         {props.children}
       </ThemedView>
     </View>
@@ -150,6 +134,7 @@ export function CustomTabList(props: TabListProps) {
 
 const styles = StyleSheet.create({
   tabListContainer: {
+    bottom: 0,
     position: 'absolute',
     width: '100%',
     padding: Spacing.three,
@@ -166,9 +151,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
-  },
-  brandText: {
-    marginRight: 'auto',
   },
   pressed: {
     opacity: 0.7,

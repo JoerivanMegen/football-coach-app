@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { getDatabaseAsync } from '@/db/database';
+import { getActiveSeasonIdAsync } from '@/features/seasons/season-repository';
 import { EventTypes, SignupStatuses } from '@/features/events/components/event-wizard/event-wizard-types';
 import {
   EventAttendanceStatuses,
@@ -48,6 +49,7 @@ type EventAttendancePlayerRow = {
 export async function listEventsAsync() {
   const db = await getDatabaseAsync();
   await ensureEventStorageAsync(db);
+  const seasonId = await getActiveSeasonIdAsync(db);
   const rows = await db.getAllAsync<EventRow>(`
     SELECT
       events.*,
@@ -60,9 +62,10 @@ export async function listEventsAsync() {
     FROM events
     LEFT JOIN event_player_signups
       ON event_player_signups.event_id = events.id
+    WHERE events.season_id = ?
     GROUP BY events.id
     ORDER BY events.event_date ASC, events.start_time ASC, events.created_at ASC
-  `);
+  `, [seasonId]);
 
   return rows.map(mapEventRow);
 }
@@ -70,6 +73,7 @@ export async function listEventsAsync() {
 export async function createEventAsync(input: CreateEventInput) {
   const db = await getDatabaseAsync();
   await ensureEventStorageAsync(db);
+  const seasonId = await getActiveSeasonIdAsync(db);
 
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
@@ -81,9 +85,10 @@ export async function createEventAsync(input: CreateEventInput) {
           start_time,
           location,
           opponent,
-          notes
+          notes,
+          season_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         normalizeEventType(input.type),
@@ -93,6 +98,7 @@ export async function createEventAsync(input: CreateEventInput) {
         normalizeOptionalText(input.location),
         normalizeOptionalText(input.opponent),
         input.notes?.trim() ?? '',
+        seasonId,
       ]
     );
 
@@ -349,7 +355,6 @@ async function ensureEventStorageAsync(db: SQLiteDatabase) {
         AND player_id = OLD.player_id;
     END;
 
-    PRAGMA user_version = 7;
   `);
 }
 

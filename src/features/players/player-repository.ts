@@ -112,6 +112,28 @@ export async function updatePlayerAsync(id: number, input: UpdatePlayerInput) {
   return getPlayerByIdAsync(id);
 }
 
+export async function savePlayerWithKitReassignmentAsync(
+  playerId: number | null,
+  input: CreatePlayerInput,
+  reassignedPlayerId: number,
+  reassignedKitNumber: number,
+) {
+  const db = await getDatabaseAsync();
+
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      'UPDATE players SET kit_number = ? WHERE id = ? AND is_active = 1',
+      [reassignedKitNumber, reassignedPlayerId],
+    );
+
+    if (playerId === null) {
+      await createPlayerAsync(input);
+    } else {
+      await updatePlayerAsync(playerId, input);
+    }
+  });
+}
+
 export async function archivePlayerAsync(id: number) {
   const db = await getDatabaseAsync();
   await db.runAsync('UPDATE players SET is_active = 0 WHERE id = ?', [id]);

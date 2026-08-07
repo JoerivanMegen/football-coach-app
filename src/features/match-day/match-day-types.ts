@@ -37,6 +37,8 @@ export type MatchDayMatch = {
   playerResultStats: MatchPlayerResultStats;
   captainPlayerId: number | null;
   matchDutyPlayerIds: number[];
+  fulfilledMatchDutyPlayerIds: number[];
+  guestPlayerIds: number[];
   playerStatuses: Record<number, SignupStatus>;
   lineupAssignments: Record<string, number>;
   createdAt: string;
@@ -52,6 +54,7 @@ export type CreateMatchDayMatchInput = Omit<
   | 'opponentScore'
   | 'resultNotes'
   | 'playerResultStats'
+  | 'fulfilledMatchDutyPlayerIds'
 >;
 
 export type UpdateMatchDayMatchInput = CreateMatchDayMatchInput & {
@@ -65,4 +68,5 @@ export type UpdateMatchDayMatchResultInput = {
   opponentScore: number;
   resultNotes: string;
   playerResultStats: MatchPlayerResultStats;
+  fulfilledMatchDutyPlayerIds: number[];
 };

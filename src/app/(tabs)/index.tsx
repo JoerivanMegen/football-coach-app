@@ -1,6 +1,6 @@
-import { useRouter, type Href } from "expo-router";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -15,10 +15,12 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { OnboardingTutorial } from "@/components/onboarding-tutorial";
+import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import {
+  AppHeaderHeight,
   BottomTabInset,
   MaxContentWidth,
-  ModalBackgroundColor,
   PageTopPadding,
   Spacing,
 } from "@/constants/theme";
@@ -26,57 +28,27 @@ import {
   getTeamSettingsAsync,
   saveTeamSettingsAsync,
 } from "@/features/settings/team-settings-repository";
+import { listPlayersAsync } from "@/features/players/player-repository";
+import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-repository";
+import type { MatchDayMatch } from "@/features/match-day/match-day-types";
+import {
+  hasCompletedOnboardingAsync,
+  setOnboardingCompletedAsync,
+} from "@/features/settings/app-preferences-repository";
 import type {
   KitDesign,
   SaveTeamSettingsInput,
 } from "@/features/settings/team-settings-types";
 import { useTheme } from "@/hooks/use-theme";
+import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 
 type HomeAction = {
   title: string;
   description: string;
   iconName: SymbolViewProps["name"];
   href: Href;
+  showNotification?: boolean;
 };
-
-const homeActions = [
-  {
-    title: "Players",
-    description: "Manage your squad, positions, and player details.",
-    iconName: { ios: "person.3.fill", android: "groups", web: "groups" },
-    href: "/players",
-  },
-  {
-    title: "Player Stats",
-    description: "Review goals, assists, attendance, and progress.",
-    iconName: {
-      ios: "chart.bar.xaxis",
-      android: "bar_chart",
-      web: "bar_chart",
-    },
-    href: "/players",
-  },
-  {
-    title: "Training",
-    description: "Plan training sessions and track attendance.",
-    iconName: {
-      ios: "calendar",
-      android: "calendar_month",
-      web: "calendar_month",
-    },
-    href: "/events",
-  },
-  {
-    title: "Match Day",
-    description: "Prepare lineups, record match events, and capture notes.",
-    iconName: {
-      ios: "sportscourt.fill",
-      android: "sports_soccer",
-      web: "sports_soccer",
-    },
-    href: "/match-day",
-  },
-] satisfies HomeAction[];
 
 const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   teamName: "",
@@ -84,7 +56,7 @@ const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   kitDesign: "solid",
   outfieldKitColor: "#FFFFFF",
   secondaryKitColor: "#536DFE",
-  sashAccentKitColor: "#EF4444",
+  thirdKitColor: "#EF4444",
   kitNumberColor: "#111827",
   goalkeeperKitColor: "#111827",
   matchDurationMinutes: 90,
@@ -92,6 +64,8 @@ const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   trainingStartTime: "",
   preferNicknames: true,
   fineJarEnabled: false,
+  matchDutyEnabled: true,
+  includeFriendlyMatchesInStats: true,
 };
 
 const kitShirtPath =
@@ -100,6 +74,7 @@ const kitShirtPath =
 const kitDesignOptions = [
   { value: "solid", label: "Regular" },
   { value: "stripes", label: "Stripes" },
+  { value: "twoColorStripes", label: "Three colour stripes" },
   { value: "hoops", label: "Hoops" },
   { value: "sash", label: "Two colour sash" },
   { value: "halves", label: "Halves" },
@@ -112,12 +87,15 @@ const colorOptions = [
   "#1C7C54",
   "#536DFE",
   "#9333EA",
+  "#38BDF8",
   "#FF7A1A",
   "#EF4444",
+  "#7F1D1D",
   "#FACC15",
 ] as const;
 
 export default function HomeScreen() {
+  const scrollViewRef = useScrollToTopOnFocus();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
@@ -128,54 +106,78 @@ export default function HomeScreen() {
   const [settingsStep, setSettingsStep] = useState<0 | 1>(0);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [playerCount, setPlayerCount] = useState<number | null>(null);
+  const [hasTeamSettings, setHasTeamSettings] = useState(false);
+  const [isTutorialVisible, setIsTutorialVisible] = useState(false);
+  const [overdueMatchResultCount, setOverdueMatchResultCount] = useState(0);
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
   };
 
-  useEffect(() => {
-    let isMounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let isFocused = true;
 
-    async function loadTeamSettings() {
-      try {
-        const settings = await getTeamSettingsAsync();
+      async function loadHomeData() {
+        try {
+          const [settings, players, hasCompletedOnboarding, matches] = await Promise.all([
+            getTeamSettingsAsync(),
+            listPlayersAsync(),
+            hasCompletedOnboardingAsync(),
+            listMatchDayMatchesAsync(),
+          ]);
 
-        if (!isMounted) {
-          return;
+          if (!isFocused) {
+            return;
+          }
+
+          setPlayerCount(players.length);
+          setHasTeamSettings(Boolean(settings));
+          setIsTutorialVisible(!hasCompletedOnboarding);
+          setOverdueMatchResultCount(
+            matches.filter((match) => isMatchResultOverdue(match, new Date())).length,
+          );
+
+          if (!settings) {
+            setSettingsForm(defaultTeamSettingsForm);
+            setSettingsStep(0);
+            setIsSettingsModalVisible(hasCompletedOnboarding);
+            return;
+          }
+
+          setIsSettingsModalVisible(false);
+
+          setSettingsForm({
+            teamName: settings.teamName,
+            clubLocation: settings.clubLocation,
+            kitDesign: settings.kitDesign,
+            outfieldKitColor: settings.outfieldKitColor,
+            secondaryKitColor: settings.secondaryKitColor,
+            thirdKitColor: settings.thirdKitColor,
+            kitNumberColor: settings.kitNumberColor,
+            goalkeeperKitColor: settings.goalkeeperKitColor,
+            matchDurationMinutes: settings.matchDurationMinutes,
+            trainingDays: settings.trainingDays,
+            trainingStartTime: settings.trainingStartTime,
+            preferNicknames: settings.preferNicknames,
+            fineJarEnabled: settings.fineJarEnabled,
+            matchDutyEnabled: settings.matchDutyEnabled,
+            includeFriendlyMatchesInStats:
+              settings.includeFriendlyMatchesInStats,
+          });
+        } catch (error) {
+          console.warn("Failed to load home data", error);
         }
-
-        if (!settings) {
-          setSettingsStep(0);
-          setIsSettingsModalVisible(true);
-          return;
-        }
-
-        setSettingsForm({
-          teamName: settings.teamName,
-          clubLocation: settings.clubLocation,
-          kitDesign: settings.kitDesign,
-          outfieldKitColor: settings.outfieldKitColor,
-          secondaryKitColor: settings.secondaryKitColor,
-          sashAccentKitColor: settings.sashAccentKitColor,
-          kitNumberColor: settings.kitNumberColor,
-          goalkeeperKitColor: settings.goalkeeperKitColor,
-          matchDurationMinutes: settings.matchDurationMinutes,
-          trainingDays: settings.trainingDays,
-          trainingStartTime: settings.trainingStartTime,
-          preferNicknames: settings.preferNicknames,
-          fineJarEnabled: settings.fineJarEnabled,
-        });
-      } catch (error) {
-        console.warn("Failed to load team settings", error);
       }
-    }
 
-    void loadTeamSettings();
+      void loadHomeData();
 
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+      return () => {
+        isFocused = false;
+      };
+    }, []),
+  );
 
   async function handleSaveSettings() {
     setSettingsError(null);
@@ -220,6 +222,19 @@ export default function HomeScreen() {
     setSettingsStep(1);
   }
 
+  async function handleFinishTutorial() {
+    try {
+      await setOnboardingCompletedAsync(true);
+      setIsTutorialVisible(false);
+      if (!hasTeamSettings) {
+        setSettingsStep(0);
+        setIsSettingsModalVisible(true);
+      }
+    } catch (error) {
+      console.warn("Failed to save tutorial progress", error);
+    }
+  }
+
   const contentPlatformStyle = Platform.select({
     android: {
       paddingTop: insets.top,
@@ -232,10 +247,62 @@ export default function HomeScreen() {
       paddingBottom: Spacing.five,
     },
   });
+  const hasNoPlayers = playerCount === 0;
+  const homeActions = ([
+    {
+      title: hasNoPlayers ? "Add your first players!" : "Players",
+      description: hasNoPlayers
+        ? "Build your squad before planning trainings and matches."
+        : "Manage your squad, positions, and player details.",
+      iconName: { ios: "person.3.fill", android: "groups", web: "groups" },
+      href: "/players",
+      showNotification: hasNoPlayers,
+    },
+    {
+      title: "Add a training",
+      description: "Plan a training session and track attendance.",
+      iconName: {
+        ios: "calendar.badge.plus",
+        android: "event",
+        web: "event",
+      },
+      href: "/events",
+    },
+    {
+      title: "Add a match",
+      description: "Set up your next match and prepare the lineup.",
+      iconName: {
+        ios: "sportscourt.fill",
+        android: "sports_soccer",
+        web: "sports_soccer",
+      },
+      href: "/match-day",
+    },
+    ...(overdueMatchResultCount > 0
+      ? [{
+          title: overdueMatchResultCount === 1 ? "Add match result" : "Add match results",
+          description: overdueMatchResultCount === 1
+            ? "A finished match is waiting for its result and player stats."
+            : `${overdueMatchResultCount} finished matches are waiting for results and player stats.`,
+          iconName: {
+            ios: "exclamationmark.circle.fill" as const,
+            android: "notification_important" as const,
+            web: "notification_important" as const,
+          },
+          href: "/match-day" as const,
+          showNotification: true,
+        }]
+      : []),
+  ] satisfies HomeAction[]).sort(
+    (left, right) =>
+      Number(Boolean(right.showNotification)) -
+      Number(Boolean(left.showNotification)),
+  );
 
   return (
     <>
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -246,50 +313,62 @@ export default function HomeScreen() {
               Team dashboard
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.intro}>
-              Start with the core coaching workflows. Each section can grow into
-              its own feature module when you add SQLite data.
+              Jump straight into the next thing your team needs.
             </ThemedText>
           </ThemedView>
 
-          <ThemedView style={styles.actionsGrid}>
-            {homeActions.map((action) => (
-              <Pressable
-                key={action.title}
-                accessibilityRole="button"
-                accessibilityLabel={action.title}
-                onPress={() => router.push(action.href)}
-                style={({ pressed }) => [
-                  styles.actionPressable,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <ThemedView type="backgroundElement" style={styles.actionCard}>
-                  <ThemedView
-                    type="backgroundSelected"
-                    style={styles.iconContainer}
-                  >
-                    <SymbolView
-                      name={action.iconName}
-                      tintColor={theme.text}
-                      size={24}
-                    />
-                  </ThemedView>
+          <ThemedView style={styles.actionsSection}>
+            <ThemedText type="default">Actions</ThemedText>
+            <ThemedView style={styles.actionsGrid}>
+              {homeActions.map((action) => (
+                <Pressable
+                  key={action.title}
+                  accessibilityRole="button"
+                  accessibilityLabel={action.title}
+                  onPress={() => router.push(action.href)}
+                  style={({ pressed }) => [
+                    styles.actionPressable,
+                    pressed && styles.pressed,
+                  ]}
+                >
                   <ThemedView
                     type="backgroundElement"
-                    style={styles.actionContent}
+                    style={styles.actionCard}
                   >
-                    <ThemedText type="default">{action.title}</ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {action.description}
-                    </ThemedText>
+                    {action.showNotification ? (
+                      <ThemedView style={styles.actionNotificationDot} />
+                    ) : null}
+                    <ThemedView
+                      type="backgroundSelected"
+                      style={styles.iconContainer}
+                    >
+                      <SymbolView
+                        name={action.iconName}
+                        tintColor={theme.text}
+                        size={24}
+                      />
+                    </ThemedView>
+                    <ThemedView
+                      type="backgroundElement"
+                      style={styles.actionContent}
+                    >
+                      <ThemedText type="default">{action.title}</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {action.description}
+                      </ThemedText>
+                    </ThemedView>
                   </ThemedView>
-                </ThemedView>
-              </Pressable>
-            ))}
+                </Pressable>
+              ))}
+            </ThemedView>
           </ThemedView>
         </ThemedView>
       </ScrollView>
 
+      <OnboardingTutorial
+        onFinish={handleFinishTutorial}
+        visible={isTutorialVisible}
+      />
       <TeamSettingsSetupModal
         error={settingsError}
         form={settingsForm}
@@ -299,10 +378,27 @@ export default function HomeScreen() {
         onContinue={handleContinueSettings}
         onSave={handleSaveSettings}
         step={settingsStep}
-        visible={isSettingsModalVisible}
+        visible={isSettingsModalVisible && !isTutorialVisible}
       />
     </>
   );
+}
+
+function isMatchResultOverdue(match: MatchDayMatch, now: Date) {
+  if (match.ownScore !== null && match.opponentScore !== null) return false;
+
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(match.matchDate);
+  const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(match.startTime);
+  if (!dateMatch || !timeMatch) return false;
+
+  const startTime = new Date(
+    Number(dateMatch[1]),
+    Number(dateMatch[2]) - 1,
+    Number(dateMatch[3]),
+    Number(timeMatch[1]),
+    Number(timeMatch[2]),
+  );
+  return now.getTime() - startTime.getTime() >= 3 * 60 * 60 * 1000;
 }
 
 function TeamSettingsSetupModal({
@@ -346,7 +442,7 @@ function TeamSettingsSetupModal({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.settingsModalOverlay}
       >
-        <ThemedView style={styles.settingsModalCard}>
+        <ThemedView type="modalBackground" style={styles.settingsModalCard}>
           <ThemedView style={styles.settingsModalHeader}>
             <ThemedText type="subtitle" style={styles.settingsModalTitle}>
               Set up your team
@@ -374,12 +470,38 @@ function TeamSettingsSetupModal({
                     placeholder="Example FC"
                     placeholderTextColor={theme.textSecondary}
                     value={form.teamName}
+                    onChangeText={(value) => updateFormValue("teamName", value)}
+                    style={[
+                      styles.settingsTextInput,
+                      {
+                        backgroundColor: theme.backgroundElement,
+                        borderColor: theme.backgroundSelected,
+                        color: theme.text,
+                      },
+                    ]}
+                  />
+                </ThemedView>
+
+                <ThemedView style={styles.settingsFieldGroup}>
+                  <ThemedText type="smallBold">
+                    Club location (optional)
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Used as the default location for home matches and trainings.
+                  </ThemedText>
+                  <TextInput
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    placeholder="Sports park, clubhouse, or address"
+                    placeholderTextColor={theme.textSecondary}
+                    value={form.clubLocation}
                     onChangeText={(value) =>
-                      updateFormValue("teamName", value)
+                      updateFormValue("clubLocation", value)
                     }
                     style={[
                       styles.settingsTextInput,
                       {
+                        backgroundColor: theme.backgroundElement,
                         borderColor: theme.backgroundSelected,
                         color: theme.text,
                       },
@@ -408,21 +530,20 @@ function TeamSettingsSetupModal({
                     updateFormValue("secondaryKitColor", value)
                   }
                 />
-                {form.kitDesign === "sash" ? (
+                {form.kitDesign === "sash" ||
+                form.kitDesign === "twoColorStripes" ? (
                   <SettingsColorField
-                    label="Second sash colour"
-                    value={form.sashAccentKitColor}
+                    label="Third colour"
+                    value={form.thirdKitColor}
                     onChange={(value) =>
-                      updateFormValue("sashAccentKitColor", value)
+                      updateFormValue("thirdKitColor", value)
                     }
                   />
                 ) : null}
                 <SettingsColorField
                   label="Kit number colour"
                   value={form.kitNumberColor}
-                  onChange={(value) =>
-                    updateFormValue("kitNumberColor", value)
-                  }
+                  onChange={(value) => updateFormValue("kitNumberColor", value)}
                 />
                 <SettingsColorField
                   label="Goalkeeper kit colour"
@@ -433,10 +554,7 @@ function TeamSettingsSetupModal({
                 />
               </>
             ) : (
-              <SettingsPreferencesStep
-                form={form}
-                onChange={updateFormValue}
-              />
+              <SettingsPreferencesStep form={form} onChange={updateFormValue} />
             )}
 
             {error ? (
@@ -538,7 +656,7 @@ function SettingsKitDesignField({
                   styles.kitDesignOption,
                   {
                     borderColor: isSelected
-                      ? "#536DFE"
+                      ? "#1C7C54"
                       : theme.backgroundSelected,
                   },
                   isSelected && styles.kitDesignOptionSelected,
@@ -593,18 +711,11 @@ function SettingsPreferencesStep({
           Use this for youth teams or competitions with shorter matches.
         </ThemedText>
         <ThemedView style={styles.settingsNumberRow}>
-          <Pressable
-            accessibilityRole="button"
+          <StepperArrowButton
             accessibilityLabel="Decrease match minutes"
+            direction="left"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes - 5)}
-            style={({ pressed }) => [
-              styles.settingsStepperButton,
-              { borderColor: theme.backgroundSelected },
-              pressed && styles.pressed,
-            ]}
-          >
-            <ThemedText type="smallBold">-</ThemedText>
-          </Pressable>
+          />
           <TextInput
             keyboardType="number-pad"
             maxLength={3}
@@ -617,23 +728,17 @@ function SettingsPreferencesStep({
             style={[
               styles.settingsNumberInput,
               {
+                backgroundColor: theme.backgroundElement,
                 borderColor: theme.backgroundSelected,
                 color: theme.text,
               },
             ]}
           />
-          <Pressable
-            accessibilityRole="button"
+          <StepperArrowButton
             accessibilityLabel="Increase match minutes"
+            direction="right"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes + 5)}
-            style={({ pressed }) => [
-              styles.settingsStepperButton,
-              { borderColor: theme.backgroundSelected },
-              pressed && styles.pressed,
-            ]}
-          >
-            <ThemedText type="smallBold">+</ThemedText>
-          </Pressable>
+          />
         </ThemedView>
       </ThemedView>
 
@@ -656,6 +761,17 @@ function SettingsPreferencesStep({
         ]}
         value={form.fineJarEnabled}
         onChange={(value) => onChange("fineJarEnabled", value)}
+      />
+
+      <SettingsSegmentedField
+        label="Does your team have match duties?"
+        helperText="Do your players take care of bringing the jerseys, warm-up equipment, or other match-day materials?"
+        options={[
+          { label: "Use match duties", value: true },
+          { label: "No match duties", value: false },
+        ]}
+        value={form.matchDutyEnabled}
+        onChange={(value) => onChange("matchDutyEnabled", value)}
       />
     </>
   );
@@ -699,7 +815,7 @@ function SettingsSegmentedField({
                 styles.settingsSegmentedOption,
                 {
                   borderColor: isSelected
-                    ? "#536DFE"
+                    ? "#1C7C54"
                     : theme.backgroundSelected,
                 },
                 isSelected && styles.settingsSegmentedOptionSelected,
@@ -721,6 +837,8 @@ function SettingsSegmentedField({
 }
 
 function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
+  const kitOutlineColor = getKitOutlineColor(form.outfieldKitColor);
+
   return (
     <ThemedView style={styles.kitPreviewFrame}>
       <ThemedView style={styles.kitPreviewShirt}>
@@ -734,20 +852,101 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
           <G clipPath="url(#settingsKitPreviewClip)">
             {form.kitDesign === "stripes" ? (
               <>
-                <Rect x="18" y="0" width="11" height="90" fill={form.secondaryKitColor} />
-                <Rect x="45" y="0" width="11" height="90" fill={form.secondaryKitColor} />
-                <Rect x="72" y="0" width="11" height="90" fill={form.secondaryKitColor} />
+                <Rect
+                  x="18"
+                  y="0"
+                  width="11"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="45"
+                  y="0"
+                  width="11"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="72"
+                  y="0"
+                  width="11"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+              </>
+            ) : null}
+            {form.kitDesign === "twoColorStripes" ? (
+              <>
+                <Rect
+                  x="0"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="22.5"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.thirdKitColor}
+                />
+                <Rect
+                  x="45"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="67.5"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.thirdKitColor}
+                />
+                <Rect
+                  x="90"
+                  y="0"
+                  width="10"
+                  height="90"
+                  fill={form.secondaryKitColor}
+                />
               </>
             ) : null}
             {form.kitDesign === "hoops" ? (
               <>
-                <Rect x="0" y="21" width="100" height="10" fill={form.secondaryKitColor} />
-                <Rect x="0" y="44" width="100" height="10" fill={form.secondaryKitColor} />
-                <Rect x="0" y="67" width="100" height="10" fill={form.secondaryKitColor} />
+                <Rect
+                  x="0"
+                  y="21"
+                  width="100"
+                  height="10"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="0"
+                  y="44"
+                  width="100"
+                  height="10"
+                  fill={form.secondaryKitColor}
+                />
+                <Rect
+                  x="0"
+                  y="67"
+                  width="100"
+                  height="10"
+                  fill={form.secondaryKitColor}
+                />
               </>
             ) : null}
             {form.kitDesign === "halves" ? (
-              <Rect x="50" y="0" width="50" height="90" fill={form.secondaryKitColor} />
+              <Rect
+                x="50"
+                y="0"
+                width="50"
+                height="90"
+                fill={form.secondaryKitColor}
+              />
             ) : null}
             {form.kitDesign === "sides" ? (
               <>
@@ -769,7 +968,7 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
                 />
                 <Path
                   d="M14 90 L96 -16 L106 -16 L24 90 Z"
-                  fill={form.sashAccentKitColor}
+                  fill={form.thirdKitColor}
                 />
               </>
             ) : null}
@@ -777,7 +976,7 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
           <Path
             d={kitShirtPath}
             fill="none"
-            stroke="#111827"
+            stroke={kitOutlineColor}
             strokeLinejoin="round"
             strokeLinecap="round"
             strokeWidth={5}
@@ -785,7 +984,7 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
           <Path
             d="M37 7 Q50 15 63 7"
             fill="none"
-            stroke="#111827"
+            stroke={kitOutlineColor}
             strokeLinecap="round"
             strokeWidth={5}
           />
@@ -816,46 +1015,24 @@ function SettingsColorField({
   onChange: (value: string) => void;
   value: string;
 }) {
-  const theme = useTheme();
-
   return (
     <ThemedView style={styles.settingsFieldGroup}>
       <ThemedText type="smallBold">{label}</ThemedText>
-      <ThemedView style={styles.settingsColorRow}>
-        <ThemedView
-          style={[
-            styles.settingsColorPreview,
-            { backgroundColor: value || "transparent" },
-          ]}
-        />
-        <TextInput
-          autoCapitalize="characters"
-          autoCorrect={false}
-          maxLength={7}
-          placeholder="#FFFFFF"
-          placeholderTextColor={theme.textSecondary}
-          value={value}
-          onChangeText={onChange}
-          style={[
-            styles.settingsColorInput,
-            {
-              borderColor: theme.backgroundSelected,
-              color: theme.text,
-            },
-          ]}
-        />
-      </ThemedView>
       <ThemedView style={styles.settingsSwatchRow}>
         {colorOptions.map((color) => (
           <Pressable
             key={`${label}-${color}`}
             accessibilityRole="button"
             accessibilityLabel={`${label} ${color}`}
+            accessibilityState={{
+              selected: value.toUpperCase() === color,
+            }}
             onPress={() => onChange(color)}
-            style={[
+            style={({ pressed }) => [
               styles.settingsSwatch,
               { backgroundColor: color },
               value.toUpperCase() === color && styles.settingsSwatchSelected,
+              pressed && styles.pressed,
             ]}
           />
         ))}
@@ -865,6 +1042,13 @@ function SettingsColorField({
 }
 
 function getKitNumberOutlineColor(color: string) {
+  const normalizedColor = color.trim().toUpperCase();
+  return normalizedColor === "#000000" || normalizedColor === "#111827"
+    ? "#FFFFFF"
+    : "#111827";
+}
+
+function getKitOutlineColor(color: string) {
   const normalizedColor = color.trim().toUpperCase();
   return normalizedColor === "#000000" || normalizedColor === "#111827"
     ? "#FFFFFF"
@@ -884,7 +1068,7 @@ const styles = StyleSheet.create({
     gap: Spacing.five,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: PageTopPadding,
+    paddingTop: AppHeaderHeight + PageTopPadding,
   },
   header: {
     gap: Spacing.two,
@@ -901,6 +1085,9 @@ const styles = StyleSheet.create({
   actionsGrid: {
     gap: Spacing.three,
   },
+  actionsSection: {
+    gap: Spacing.two,
+  },
   actionPressable: {
     borderRadius: Spacing.three,
   },
@@ -914,6 +1101,19 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     minHeight: 104,
     padding: Spacing.three,
+    position: "relative",
+  },
+  actionNotificationDot: {
+    backgroundColor: "#FF7A1A",
+    borderColor: "#ffffff",
+    borderRadius: 999,
+    borderWidth: 2,
+    height: 20,
+    position: "absolute",
+    right: -5,
+    top: -5,
+    width: 20,
+    zIndex: 2,
   },
   iconContainer: {
     alignItems: "center",
@@ -934,7 +1134,6 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
   },
   settingsModalCard: {
-    backgroundColor: ModalBackgroundColor,
     borderRadius: Spacing.three,
     gap: Spacing.three,
     maxHeight: "92%",
@@ -979,7 +1178,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   kitDesignOptionSelected: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
   },
   kitDesignOptionTextSelected: {
     color: "#ffffff",
@@ -1023,40 +1222,10 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: Spacing.three,
   },
-  settingsColorRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: Spacing.two,
-  },
-  settingsColorPreview: {
-    borderColor: "#D1D5DB",
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    height: 44,
-    width: 44,
-  },
-  settingsColorInput: {
-    backgroundColor: "#ffffff",
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    flex: 1,
-    fontSize: 16,
-    minHeight: 44,
-    paddingHorizontal: Spacing.three,
-  },
   settingsNumberRow: {
     alignItems: "center",
     flexDirection: "row",
     gap: Spacing.two,
-  },
-  settingsStepperButton: {
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderRadius: Spacing.two,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: "center",
-    width: 44,
   },
   settingsNumberInput: {
     backgroundColor: "#ffffff",
@@ -1082,7 +1251,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.two,
   },
   settingsSegmentedOptionSelected: {
-    backgroundColor: "#536DFE",
+    backgroundColor: "#1C7C54",
   },
   settingsSegmentedOptionTextSelected: {
     color: "#ffffff",
@@ -1090,17 +1259,17 @@ const styles = StyleSheet.create({
   settingsSwatchRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.two,
+    gap: Spacing.one,
   },
   settingsSwatch: {
     borderColor: "#D1D5DB",
-    borderRadius: 999,
+    borderRadius: Spacing.one,
     borderWidth: 1,
     height: 28,
     width: 28,
   },
   settingsSwatchSelected: {
-    borderColor: "#536DFE",
+    borderColor: "#111827",
     borderWidth: 3,
   },
   settingsError: {
@@ -1122,14 +1291,16 @@ const styles = StyleSheet.create({
   },
   settingsBackButton: {
     alignItems: "center",
-    backgroundColor: "#6B7280",
+    backgroundColor: "transparent",
+    borderColor: "#6B7280",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     flex: 1,
     justifyContent: "center",
     minHeight: 48,
   },
   settingsBackButtonText: {
-    color: "#ffffff",
+    color: "#6B7280",
   },
   settingsSaveButtonText: {
     color: "#ffffff",
