@@ -7,6 +7,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppHeader } from '@/components/app-header';
 import { getDatabaseAsync } from '@/db/database';
 import { configureNotificationPresentation } from '@/features/notifications/match-result-notifications';
+import { I18nProvider } from '@/i18n/i18n-provider';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -39,15 +40,17 @@ export default function TabLayout() {
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppHeader />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="seasons" />
-        <Stack.Screen name="season-summary" />
-      </Stack>
-    </ThemeProvider>
+    <I18nProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AnimatedSplashOverlay />
+        <AppHeader />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="seasons" />
+          <Stack.Screen name="season-summary" />
+        </Stack>
+      </ThemeProvider>
+    </I18nProvider>
   );
 }

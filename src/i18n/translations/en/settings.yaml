@@ -1,0 +1,80 @@
+language:
+  title: Language
+  description: Choose the language used throughout Assistant Coach.
+  english: English
+  dutch: Dutch
+  changed: Language updated.
+header:
+  title: Settings
+  subtitle: Update your team details, kit design, and match preferences.
+introduction:
+  title: Introduction
+  description: Revisit the short guide to players, training, Match Day, sharing and settings.
+  action: View introduction again
+team:
+  title: Team and kit
+  name: Team name
+  name_placeholder: Example FC
+  club_location: Club location
+  club_location_help: Used as the default location for home matches and trainings.
+  club_location_placeholder: Sports park, clubhouse, or address
+kit:
+  title: Kit design
+  player_primary: Player primary color
+  player_secondary: Player secondary color
+  goalkeeper_primary: Goalkeeper primary color
+  goalkeeper_secondary: Goalkeeper secondary color
+  patterns:
+    regular: Regular
+    stripes: Stripes
+    three_color_stripes: Three colour stripes
+    hoops: Hoops
+    two_color_sash: Two colour sash
+    halves: Halves
+    sides: Sides
+match_preferences:
+  title: Match preferences
+  match_minutes: Match minutes
+  match_minutes_help: Use this for youth teams or competitions with shorter matches.
+  player_names:
+    nicknames: Nicknames
+    first_names: First names
+  fine_jar:
+    title: Does your team use a fine jar?
+    enabled: Use fine jar
+    disabled: Skip for now
+  match_duties:
+    title: Does your team have match duties?
+    description: Do your players take care of bringing the jerseys, warming-up equipment, or other match-day tasks?
+    enabled: Use match duties
+    disabled: No match duties
+statistics:
+  title: Player and team statistics
+  friendlies:
+    title: Include friendly matches
+    description: Choose whether friendly matches count toward player and team statistics.
+    include: Include
+    exclude: Exclude
+training_preferences:
+  title: Training preferences
+  days:
+    title: Training days
+    description: Useful for reminders later. Leave empty if training changes every week.
+  default_time:
+    title: Default training time
+    description: New trainings will use this start time automatically.
+season:
+  title: Season
+  current: "Current season:"
+  name: Season name
+  name_placeholder: 2026/27
+  save_help: Saved with the main Save settings button.
+  history: Season history
+  view_summary: View summary ›
+  end: End current season
+actions:
+  save: Save settings
+errors:
+  tutorial:
+    title: Could not open tutorial
+    message: Please try again.

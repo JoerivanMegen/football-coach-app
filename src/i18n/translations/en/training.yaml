@@ -1,0 +1,84 @@
+overview:
+  title: Training
+  subtitle: Plan training sessions and keep attendance ready for player statistics.
+  add_training: Add training
+  create_match: Create match in Match Day
+sections:
+  upcoming:
+    title: Upcoming
+    description: Future trainings will show here.
+  needs_attendance:
+    title: Needs attendance
+    description: Past trainings waiting for attendance will show here.
+  completed:
+    title: Completed
+    description: Trainings with finished attendance will show here.
+  empty: No trainings planned yet.
+add_training:
+  title: Add training
+  steps:
+    type: Event type
+    details: Training details
+    players: Player availability
+    review: Review
+  details:
+    title: Title
+    title_placeholder: Training
+    date: Date
+    start_time: Start time
+    location: Location
+  players:
+    title: Player availability
+    empty: Add players first to plan availability for this event.
+  review:
+    available_players: Available players
+    no_available_players: No players marked available yet.
+  validation:
+    missing_title:
+      title: Missing title
+      message: Add a title for this training.
+    invalid_date:
+      title: Invalid date
+      message: Use DD-MM-YYYY, for example 12-07-2026.
+    invalid_start_time:
+      title: Invalid start time
+      message: Use HH:MM, for example 18:30.
+attendance:
+  add: Add attendance
+  edit: Edit attendance
+  not_marked: Attendance has not been marked for this training yet.
+  loading: Loading attendance...
+  empty: Add players first to record attendance.
+  columns:
+    name: Name
+    minutes: Min
+    rating: Rating
+  fields:
+    late: Late
+    minutes_played: Minutes played
+    match_rating: Match rating
+  validation:
+    invalid_minutes:
+      title: Invalid minutes
+      message: Use whole minutes from 0 to 300.
+    invalid_rating:
+      title: Invalid rating
+      message: Use a match rating from 1 to 10.
+actions:
+  edit: Edit training
+  cancel: Cancel training
+  keep: Keep training
+errors:
+  load:
+    title: Could not load trainings
+    message: Please try again.
+  load_players:
+    title: Could not load players
+    message: You can still plan the training details.
+  save:
+    title: Could not save training
+    message: Please check the training details and try again.
+  edit: Could not edit training
+  cancel: Could not cancel training
+  load_attendance: Could not load attendance
+  save_attendance: Could not save attendance

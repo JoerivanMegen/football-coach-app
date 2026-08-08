@@ -19,14 +19,24 @@ export const Colors = {
   dark: {
     text: "#f4f4f4",
     background: "#090909",
-    backgroundElement: "#1b1b1b",
+    backgroundElement: "#252a26",
     backgroundSelected: "#2E3135",
     textSecondary: "#B0B4BA",
-    modalBackground: "#161c18",
+    modalBackground: "#1d1f1e",
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+
+/** Shared semantic colors for actions and status indicators. */
+export const ActionColors = {
+  primary: "#1C7C54",
+  info: "#2563EB",
+  warning: "#F59E0B",
+  warningText: "#111827",
+  danger: "#B42318",
+  onAccent: "#FFFFFF",
+} as const;
 
 export const Fonts = Platform.select({
   ios: {

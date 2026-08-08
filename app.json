@@ -4,17 +4,18 @@
     "slug": "football-coach-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/assistant-coach-icon.png",
+    "icon": "./assets/images/assistant-coach-app-icon-1024.png",
     "scheme": "footballcoachapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/assistant-coach-icon.png"
+      "icon": "./assets/images/assistant-coach-app-icon-1024.png",
+      "bundleIdentifier": "com.joerivanmegen.football-coach-app"
     },
     "android": {
       "allowBackup": true,
       "adaptiveIcon": {
         "backgroundColor": "#000000",
-        "foregroundImage": "./assets/images/assistant-coach-icon.png"
+        "foregroundImage": "./assets/images/assistant-coach-app-icon-1024.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -27,16 +28,23 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
-          "image": "./assets/images/assistant-coach-splash.png",
+          "backgroundColor": "#1b1b1b",
+          "image": "./assets/images/assistant-coach-splash-transparent.png",
           "imageWidth": 260,
           "resizeMode": "contain"
         }
       ],
       "expo-sqlite",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/assistant-coach-notification-icon.png",
+          "color": "#1C7C54"
+        }
+      ],
       "@react-native-community/datetimepicker",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

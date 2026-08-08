@@ -12,29 +12,31 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AppHeaderHeight, Spacing } from "@/constants/theme";
+import { ActionColors, AppHeaderHeight, Spacing } from "@/constants/theme";
+import { useI18n } from "@/i18n/i18n-provider";
+import type { TranslationKey } from "@/i18n/generated/translations";
 
 type MenuItem = {
   href: Href;
   icon: SymbolViewProps["name"];
-  label: string;
+  labelKey: TranslationKey;
 };
 
 const menuItems: MenuItem[] = [
   {
     href: "/",
     icon: { ios: "house.fill", android: "home", web: "home" },
-    label: "Home",
+    labelKey: "navigation.home",
   },
   {
     href: "/players",
     icon: { ios: "person.3.fill", android: "groups", web: "groups" },
-    label: "Players",
+    labelKey: "navigation.players",
   },
   {
     href: "/events",
     icon: { ios: "calendar", android: "event", web: "event" },
-    label: "Training",
+    labelKey: "navigation.training",
   },
   {
     href: "/match-day",
@@ -43,21 +45,22 @@ const menuItems: MenuItem[] = [
       android: "sports_soccer",
       web: "sports_soccer",
     },
-    label: "Match Day",
+    labelKey: "navigation.matchDay",
   },
   {
     href: "/seasons",
     icon: { ios: "calendar.badge.clock", android: "history", web: "history" },
-    label: "Seasons",
+    labelKey: "navigation.seasons",
   },
   {
     href: "/settings",
     icon: { ios: "gearshape.fill", android: "settings", web: "settings" },
-    label: "Settings",
+    labelKey: "navigation.settings",
   },
 ];
 
 export function AppHeader() {
+  const { locale, setLocale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const router = useRouter();
@@ -109,12 +112,12 @@ export function AppHeader() {
           accessibilityLabel="Assistant Coach"
           contentFit="contain"
           contentPosition="left center"
-          source={require("@/assets/images/assistant-coach-navbar.png")}
+          source={require("@/assets/images/assistant-coach-notification-icon.png")}
           style={styles.logo}
         />
         <Pressable
           accessibilityLabel={
-            isMenuVisible ? "Close navigation menu" : "Open navigation menu"
+            isMenuVisible ? t("navigation.closeMenu") : t("navigation.openMenu")
           }
           accessibilityRole="button"
           accessibilityState={{ expanded: isMenuVisible }}
@@ -134,7 +137,7 @@ export function AppHeader() {
             style={[styles.menuBackdrop, { opacity: menuProgress }]}
           >
             <Pressable
-              accessibilityLabel="Close navigation menu"
+              accessibilityLabel={t("navigation.closeMenu")}
               onPress={() => closeMenu()}
               style={StyleSheet.absoluteFill}
             />
@@ -144,6 +147,7 @@ export function AppHeader() {
               styles.menuPanel,
               {
                 paddingTop: insets.top + AppHeaderHeight + Spacing.three,
+                paddingBottom: insets.bottom + Spacing.three,
               },
               {
                 transform: [
@@ -178,10 +182,42 @@ export function AppHeader() {
                       tintColor="#FFFFFF"
                       size={20}
                     />
-                    <Text style={styles.menuItemText}>{item.label}</Text>
+                    <Text style={styles.menuItemText}>{t(item.labelKey)}</Text>
                   </Pressable>
                 );
               })}
+            </View>
+            <View style={styles.languageSection}>
+              <Text style={styles.languageTitle}>{t("settings.language.title")}</Text>
+              <View style={styles.languageButtons}>
+                {([
+                  { code: "nl" as const, flag: "🇳🇱", label: "NL" },
+                  { code: "en" as const, flag: "🇬🇧", label: "EN" },
+                ]).map((option) => {
+                  const isSelected = locale === option.code;
+                  return (
+                    <Pressable
+                      key={option.code}
+                      accessibilityLabel={t(
+                        option.code === "nl"
+                          ? "settings.language.dutch"
+                          : "settings.language.english",
+                      )}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() => void setLocale(option.code)}
+                      style={({ pressed }) => [
+                        styles.languageButton,
+                        isSelected && styles.languageButtonSelected,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={styles.languageFlag}>{option.flag}</Text>
+                      <Text style={styles.languageCode}>{option.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -255,6 +291,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     height: 54,
+    tintColor: ActionColors.primary,
     width: 270,
   },
   menuButton: {
@@ -304,6 +341,8 @@ const styles = StyleSheet.create({
     height: "100%",
     maxWidth: 340,
     paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.four,
+    justifyContent: "space-between",
     width: "82%",
   },
   menuTitle: {
@@ -329,5 +368,43 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  languageSection: {
+    borderTopColor: "rgba(255, 255, 255, 0.16)",
+    borderTopWidth: 1,
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
+  },
+  languageTitle: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    opacity: 0.7,
+  },
+  languageButtons: {
+    flexDirection: "row",
+    gap: Spacing.two,
+  },
+  languageButton: {
+    alignItems: "center",
+    borderColor: "#1C7C54",
+    borderRadius: Spacing.two,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: "row",
+    gap: Spacing.two,
+    justifyContent: "center",
+    minHeight: 46,
+  },
+  languageButtonSelected: {
+    backgroundColor: "#1C7C54",
+  },
+  languageFlag: {
+    fontSize: 21,
+  },
+  languageCode: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

@@ -1,0 +1,41 @@
+overview:
+  title: Seizoenen
+  subtitle: Bekijk eerdere uitslagen, spelersstatistieken en seizoenshoogtepunten.
+  current:
+    title: Huidig seizoen
+    view_statistics: Huidige statistieken bekijken
+  history:
+    title: Seizoenshistorie
+    completed: afgerond
+    view_summary: Samenvatting bekijken ›
+    empty:
+      title: Nog geen afgeronde seizoenen
+      description: Nadat je je eerste seizoen via Instellingen afsluit, verschijnen de samenvatting en top drieën hier.
+  end_season:
+    title: Seizoen afsluiten
+    description: Archiveer {{season}}, maak de definitieve samenvatting en start het volgende seizoen. Spelers en instellingen blijven behouden.
+    action: Huidig seizoen afsluiten
+summary:
+  title: Seizoenssamenvatting
+  team_overview: Teamoverzicht
+  player_highlights: Spelershoogtepunten
+  player_overview: Spelersoverzicht
+  no_data: Nog geen gegevens
+  no_match: Geen wedstrijd
+  highlights:
+    most_goals: Meeste doelpunten
+    most_assists: Meeste assists
+    most_card_points: Meeste kaartpunten
+    highest_average_minutes: Hoogste gemiddelde minuten
+    best_training_attendance: Beste trainingsopkomst
+    highest_lateness_percentage: Hoogste percentage te laat
+    biggest_win: Grootste overwinning
+    biggest_loss: Grootste nederlaag
+errors:
+  load:
+    title: Seizoen kon niet worden gecontroleerd
+    message: Probeer het opnieuw.
+  not_ended:
+    title: Seizoen niet afgesloten
+    message: Je gegevens zijn niet gewijzigd. Probeer het opnieuw.
+  summary_not_found: De seizoenssamenvatting kon niet worden gevonden.

@@ -51,6 +51,7 @@ import {
 import type { Season } from "@/features/seasons/season-types";
 import { useTheme } from "@/hooks/use-theme";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import { useI18n } from "@/i18n/i18n-provider";
 import {
   cancelAllAssistantCoachNotificationsAsync,
   scheduleMatchResultReminderAsync,
@@ -113,6 +114,7 @@ const trainingDayLabels = {
 
 export default function SettingsScreen() {
   const scrollViewRef = useScrollToTopOnFocus();
+  const { t } = useI18n();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
@@ -480,10 +482,10 @@ export default function SettingsScreen() {
       <ThemedView style={styles.container}>
         <ThemedView style={styles.header}>
           <ThemedText type="subtitle" style={styles.title}>
-            Settings
+            {t("navigation.settings")}
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.intro}>
-            Update your team details, kit design, and match preferences.
+            {t("settings.header.subtitle")}
           </ThemedText>
         </ThemedView>
 
@@ -498,15 +500,14 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Introduction</ThemedText>
+            <ThemedText type="default">{t("settings.introduction.title")}</ThemedText>
           </ThemedView>
           <ThemedText type="small" themeColor="textSecondary">
-            Revisit the short guide to players, training, Match Day, sharing and
-            settings.
+            {t("settings.introduction.description")}
           </ThemedText>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="View introduction again"
+            accessibilityLabel={t("settings.introduction.action")}
             disabled={isOpeningTutorial}
             onPress={() => void handleOpenTutorial()}
             style={({ pressed }) => [
@@ -516,7 +517,7 @@ export default function SettingsScreen() {
             ]}
           >
             <ThemedText type="smallBold" style={styles.tutorialButtonText}>
-              View introduction again
+              {t("settings.introduction.action")}
             </ThemedText>
           </Pressable>
         </ThemedView>
@@ -532,15 +533,15 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Team and kit</ThemedText>
+            <ThemedText type="default">{t("settings.team.title")}</ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.fieldGroup}>
-            <ThemedText type="smallBold">Team name</ThemedText>
+            <ThemedText type="smallBold">{t("settings.team.name")}</ThemedText>
             <TextInput
               autoCapitalize="words"
               autoCorrect={false}
-              placeholder="Example FC"
+              placeholder={t("settings.team.name_placeholder")}
               placeholderTextColor={theme.textSecondary}
               value={form.teamName}
               onChangeText={(value) => updateFormValue("teamName", value)}
@@ -556,14 +557,14 @@ export default function SettingsScreen() {
           </ThemedView>
 
           <ThemedView style={styles.fieldGroup}>
-            <ThemedText type="smallBold">Club location</ThemedText>
+            <ThemedText type="smallBold">{t("settings.team.club_location")}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Used as the default location for home matches and trainings.
+              {t("settings.team.club_location_help")}
             </ThemedText>
             <TextInput
               autoCapitalize="words"
               autoCorrect={false}
-              placeholder="Sports park, clubhouse, or address"
+              placeholder={t("settings.team.club_location_placeholder")}
               placeholderTextColor={theme.textSecondary}
               value={form.clubLocation}
               onChangeText={(value) => updateFormValue("clubLocation", value)}
@@ -623,7 +624,7 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Match preferences</ThemedText>
+            <ThemedText type="default">{t("settings.match_preferences.title")}</ThemedText>
           </ThemedView>
 
           <SettingsPreferencesFields form={form} onChange={updateFormValue} />
@@ -640,15 +641,15 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Player and team statistics</ThemedText>
+            <ThemedText type="default">{t("settings.statistics.title")}</ThemedText>
           </ThemedView>
 
           <SettingsSegmentedField
-            label="Friendly matches"
-            helperText="Excluded friendlies remain saved and visible, but will not count toward player or team statistics."
+            label={t("settings.statistics.friendlies.title")}
+            helperText={t("settings.statistics.friendlies.description")}
             options={[
-              { label: "Include", value: true },
-              { label: "Exclude", value: false },
+              { label: t("settings.statistics.friendlies.include"), value: true },
+              { label: t("settings.statistics.friendlies.exclude"), value: false },
             ]}
             value={form.includeFriendlyMatchesInStats}
             onChange={(value) =>
@@ -668,7 +669,7 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Training preferences</ThemedText>
+            <ThemedText type="default">{t("settings.training_preferences.title")}</ThemedText>
           </ThemedView>
 
           <SettingsTrainingFields form={form} onChange={updateFormValue} />
@@ -681,27 +682,27 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Season</ThemedText>
+            <ThemedText type="default">{t("settings.season.title")}</ThemedText>
           </ThemedView>
           <ThemedText type="small" themeColor="textSecondary">
-            Current season: {activeSeason?.name ?? "Loading..."}
+            {t("settings.season.current")} {activeSeason?.name ?? t("common.loading")}
           </ThemedText>
           {activeSeason ? (
             <ThemedView style={styles.fieldGroup}>
-              <ThemedText type="smallBold">Season name</ThemedText>
+              <ThemedText type="smallBold">{t("settings.season.name")}</ThemedText>
               <TextInput
                 value={seasonName}
                 onChangeText={(value) => { setSeasonName(value); setSaveMessage(null); }}
-                placeholder="2026/27"
+                placeholder={t("settings.season.name_placeholder")}
                 placeholderTextColor={theme.textSecondary}
                 style={[styles.textInput, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected, color: theme.text }]}
               />
-              <ThemedText type="small" themeColor="textSecondary">Saved with the main Save settings button.</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">{t("settings.season.save_help")}</ThemedText>
             </ThemedView>
           ) : null}
           {endedSeasons.length ? (
             <ThemedView style={styles.seasonHistory}>
-              <ThemedText type="smallBold">Season history</ThemedText>
+              <ThemedText type="smallBold">{t("settings.season.history")}</ThemedText>
               {endedSeasons.map((season) => (
                 <Pressable
                   key={season.id}
@@ -709,14 +710,14 @@ export default function SettingsScreen() {
                   style={({ pressed }) => [styles.seasonHistoryButton, { borderColor: theme.backgroundSelected }, pressed && styles.pressed]}
                 >
                   <ThemedText type="smallBold">{season.name}</ThemedText>
-                  <ThemedText type="small" style={styles.greenText}>View summary ›</ThemedText>
+                  <ThemedText type="small" style={styles.greenText}>{t("settings.season.view_summary")}</ThemedText>
                 </Pressable>
               ))}
             </ThemedView>
           ) : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="End current season"
+            accessibilityLabel={t("settings.season.end")}
             disabled={!activeSeason || isEndingSeason}
             onPress={() => void confirmEndSeason()}
             style={({ pressed }) => [styles.endSeasonButton, pressed && styles.pressed, isEndingSeason && styles.disabledButton]}
@@ -738,20 +739,17 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">Data backup</ThemedText>
+            <ThemedText type="default">{t("backup.section.title")}</ThemedText>
           </ThemedView>
 
           <ThemedText type="small" themeColor="textSecondary">
-            Export all players, trainings, matches, statistics, and settings.
-            Choose Files, iCloud Drive, Google Drive, or another available
-            location when the share sheet opens. You can restore that file on
-            this or a new phone later.
+            {t("backup.section.description")}
           </ThemedText>
 
           <ThemedView style={styles.backupActions}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Export data backup"
+              accessibilityLabel={t("backup.export.action")}
               disabled={isExportingBackup || isRestoringBackup}
               onPress={handleExportBackup}
               style={({ pressed }) => [
@@ -777,7 +775,7 @@ export default function SettingsScreen() {
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Restore data backup"
+              accessibilityLabel={t("backup.restore.action")}
               disabled={isExportingBackup || isRestoringBackup}
               onPress={() => void handleChooseBackup()}
               style={({ pressed }) => [
@@ -815,16 +813,15 @@ export default function SettingsScreen() {
               tintColor="#DC2626"
             />
             <ThemedText type="default" style={styles.dangerText}>
-              Delete app data
+              {t("backup.delete.title")}
             </ThemedText>
           </ThemedView>
           <ThemedText type="small" themeColor="textSecondary">
-            Return the app to a completely empty state. This cannot be undone
-            without a backup.
+            {t("backup.delete.description")}
           </ThemedText>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Delete all app data"
+            accessibilityLabel={t("backup.delete.action")}
             disabled={isDeletingData}
             onPress={confirmDeleteAllData}
             style={({ pressed }) => [
@@ -834,7 +831,7 @@ export default function SettingsScreen() {
             ]}
           >
             <ThemedText type="smallBold" style={styles.dangerText}>
-              {isDeletingData ? "Deleting..." : "Delete all app data"}
+              {isDeletingData ? t("common.loading") : t("backup.delete.action")}
             </ThemedText>
           </Pressable>
         </ThemedView>
@@ -1562,6 +1559,9 @@ const styles = StyleSheet.create({
   },
   segmentedOptionTextSelected: {
     color: "#ffffff",
+  },
+  languageOptionText: {
+    color: "#1C7C54",
   },
   trainingDayGrid: {
     flexDirection: "row",

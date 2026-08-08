@@ -1,0 +1,80 @@
+language:
+  title: Taal
+  description: Kies de taal die in Assistant Coach wordt gebruikt.
+  english: Engels
+  dutch: Nederlands
+  changed: Taal aangepast.
+header:
+  title: Instellingen
+  subtitle: Werk je teamgegevens, tenue en wedstrijdvoorkeuren bij.
+introduction:
+  title: Introductie
+  description: Bekijk de korte uitleg over spelers, trainingen, Match day, delen en instellingen opnieuw.
+  action: Introductie opnieuw bekijken
+team:
+  title: Team en tenue
+  name: Teamnaam
+  name_placeholder: Voorbeeld FC
+  club_location: Clublocatie
+  club_location_help: Wordt gebruikt als standaardlocatie voor thuiswedstrijden en trainingen.
+  club_location_placeholder: Sportpark, clubhuis of adres
+kit:
+  title: Tenueontwerp
+  player_primary: Primaire spelerskleur
+  player_secondary: Secundaire spelerskleur
+  goalkeeper_primary: Primaire keeperskleur
+  goalkeeper_secondary: Secundaire keeperskleur
+  patterns:
+    regular: Effen
+    stripes: Strepen
+    three_color_stripes: Driekleurige strepen
+    hoops: Horizontale strepen
+    two_color_sash: Tweekleurige sjerp
+    halves: Helften
+    sides: Zijkanten
+match_preferences:
+  title: Wedstrijdvoorkeuren
+  match_minutes: Wedstrijdduur
+  match_minutes_help: Gebruik dit voor jeugdteams of competities met kortere wedstrijden.
+  player_names:
+    nicknames: Bijnamen
+    first_names: Voornamen
+  fine_jar:
+    title: Gebruikt je team een boetepot?
+    enabled: Boetepot gebruiken
+    disabled: Voorlopig overslaan
+  match_duties:
+    title: Heeft je team wedstrijdtaken?
+    description: Zorgen je spelers voor de tenues, warming-upmaterialen of andere taken op wedstrijddagen?
+    enabled: Wedstrijdtaken gebruiken
+    disabled: Geen wedstrijdtaken
+statistics:
+  title: Speler- en teamstatistieken
+  friendlies:
+    title: Oefenwedstrijden meetellen
+    description: Kies of oefenwedstrijden meetellen voor speler- en teamstatistieken.
+    include: Meetellen
+    exclude: Niet meetellen
+training_preferences:
+  title: Trainingsvoorkeuren
+  days:
+    title: Trainingsdagen
+    description: Handig voor latere herinneringen. Laat leeg als trainingen iedere week veranderen.
+  default_time:
+    title: Standaard trainingstijd
+    description: Nieuwe trainingen gebruiken deze starttijd automatisch.
+season:
+  title: Seizoen
+  current: "Huidig seizoen:"
+  name: Seizoensnaam
+  name_placeholder: 2026/27
+  save_help: Wordt opgeslagen met de hoofdknop Instellingen opslaan.
+  history: Seizoenshistorie
+  view_summary: Samenvatting bekijken ›
+  end: Huidig seizoen afsluiten
+actions:
+  save: Instellingen opslaan
+errors:
+  tutorial:
+    title: Introductie kon niet worden geopend
+    message: Probeer het opnieuw.

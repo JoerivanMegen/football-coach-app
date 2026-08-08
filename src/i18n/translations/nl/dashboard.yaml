@@ -1,0 +1,46 @@
+header:
+  title: Teamdashboard
+  subtitle: Ga meteen naar wat je team nu nodig heeft.
+actions:
+  title: Acties
+  setup_team:
+    title: Stel je team in
+    description: Voordat je je team gaat beheren, moet je de app instellen!
+  add_first_players:
+    title: Voeg je eerste spelers toe!
+    description: Stel je selectie samen voordat je activiteiten plant.
+  players:
+    title: Spelers
+    description: Beheer je selectie, posities en spelersgegevens.
+  add_training:
+    title: Training toevoegen
+    description: Plan een training en houd de aanwezigheid bij.
+  add_match:
+    title: Wedstrijd toevoegen
+    description: Stel je volgende wedstrijd en opstelling samen.
+  add_match_result:
+    title: Wedstrijduitslag toevoegen
+    description: Leg vast hoe je wedstrijd is verlopen.
+setup:
+  team_details:
+    title: Teamgegevens
+    team_name: Teamnaam
+    team_name_placeholder: Voorbeeld FC
+    club_location: Clublocatie (optioneel)
+    club_location_help: Wordt gebruikt als standaardlocatie voor thuiswedstrijden en trainingen.
+    club_location_placeholder: Sportpark, clubhuis of adres
+  kit:
+    title: Tenueontwerp
+  preferences:
+    match_minutes: Wedstrijdduur
+    match_minutes_help: Gebruik dit voor jeugdteams of competities met kortere wedstrijden.
+    nicknames: Bijnamen
+    first_names: Voornamen
+    fine_jar_on: Boetepot gebruiken
+    fine_jar_off: Voorlopig overslaan
+    match_duties_on: Wedstrijdtaken gebruiken
+    match_duties_off: Geen wedstrijdtaken
+  actions:
+    continue_team_settings: Doorgaan met teaminstellingen
+    back_to_kit: Terug naar tenue-instellingen
+    save: Teaminstellingen opslaan

@@ -1,0 +1,32 @@
+section:
+  title: Gegevensback-up
+  description: Exporteer alle spelers, trainingen, wedstrijden, statistieken en instellingen. Kies Bestanden, iCloud Drive, Google Drive of een andere beschikbare locatie zodra het deelvenster opent. Je kunt het bestand later op dit of een nieuw toestel herstellen.
+export:
+  action: Gegevensback-up exporteren
+  error:
+    title: Back-up mislukt
+    message: Het back-upbestand kon niet worden gemaakt. Probeer het opnieuw.
+restore:
+  action: Gegevensback-up herstellen
+  confirm:
+    title: Deze back-up herstellen?
+    message: Hiermee worden alle huidige Assistant Coach-gegevens vervangen door de inhoud van de geselecteerde back-up.
+  file_picker_error:
+    title: Bestanden konden niet worden geopend
+    message: De bestandskiezer kon niet worden geopend. Probeer het opnieuw.
+  success:
+    title: Back-up hersteld
+    message: Je Assistant Coach-gegevens zijn hersteld. De app wordt nu opnieuw geladen.
+  error:
+    title: Back-up kon niet worden hersteld
+    message: Controleer of je een geldige Assistant Coach-back-up hebt geselecteerd en probeer het opnieuw.
+delete:
+  title: Appgegevens verwijderen
+  description: Breng de app terug naar een volledig lege staat. Zonder back-up kan dit niet ongedaan worden gemaakt.
+  action: Alle appgegevens verwijderen
+  confirm:
+    title: Alle appgegevens verwijderen?
+    message: Hiermee verwijder je definitief je spelers, trainingen, wedstrijden, statistieken, gastspelers en teaminstellingen. Exporteer eerst een back-up als je deze gegevens mogelijk nog nodig hebt.
+  error:
+    title: Verwijderen mislukt
+    message: Je gegevens konden niet worden verwijderd. Probeer het opnieuw.

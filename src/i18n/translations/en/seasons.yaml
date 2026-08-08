@@ -1,0 +1,41 @@
+overview:
+  title: Seasons
+  subtitle: Look back at results, player statistics and season highlights.
+  current:
+    title: Current season
+    view_statistics: View current statistics
+  history:
+    title: Season history
+    completed: completed
+    view_summary: View summary ›
+    empty:
+      title: No completed seasons yet
+      description: After ending your first season in Settings, its summary and top threes will appear here.
+  end_season:
+    title: End season
+    description: Archive {{season}}, create its final summary, and start the next season. Players and settings will carry over.
+    action: End current season
+summary:
+  title: Season summary
+  team_overview: Team overview
+  player_highlights: Player highlights
+  player_overview: Player overview
+  no_data: No data yet
+  no_match: No match
+  highlights:
+    most_goals: Most goals
+    most_assists: Most assists
+    most_card_points: Most card points
+    highest_average_minutes: Highest average minutes
+    best_training_attendance: Best training attendance
+    highest_lateness_percentage: Highest lateness percentage
+    biggest_win: Biggest win
+    biggest_loss: Biggest loss
+errors:
+  load:
+    title: Could not check season
+    message: Please try again.
+  not_ended:
+    title: Season not ended
+    message: Your data has not been changed. Please try again.
+  summary_not_found: Season summary could not be found.

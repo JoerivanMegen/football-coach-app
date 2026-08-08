@@ -1,0 +1,185 @@
+overview:
+  title: Match day
+  subtitle: Bereid het wedstrijdformulier en de opstelling voor en leg wedstrijdmomenten vast.
+  add_match: Nieuwe wedstrijd
+  sections:
+    unfinished: Onafgemaakte wedstrijden
+    completed: Afgeronde wedstrijden
+  empty:
+    title: Nog geen opgeslagen wedstrijden
+    description: Voeg een wedstrijd toe om de opstelling en wisselspelers hier op te slaan.
+  actions:
+    edit: Wedstrijd bewerken
+    delete: Wedstrijd verwijderen
+    add_result: Uitslag toevoegen
+    edit_result: Uitslag bewerken
+    share: Delen
+  result:
+    title: Uitslag
+    stats_logged: "{{count}} spelersstatistieken geregistreerd"
+add_match:
+  title: Wedstrijd toevoegen
+  steps:
+    match_details: Wedstrijdgegevens
+    player_availability: Spelersbeschikbaarheid
+    lineup: Opstelling
+    review: Controleren
+  match_details:
+    opponent: Tegenstander
+    date: Datum
+    time: Tijd
+    location:
+      label: Locatie
+      home: Thuis
+      away: Uit
+    type:
+      label: Wedstrijdtype
+      league: Competitie
+      cup: Beker
+      friendly: Oefenwedstrijd
+  availability:
+    title: Spelersbeschikbaarheid
+    description: Alleen beschikbare spelers verschijnen in de opstellingsbouwer.
+    empty: Voeg eerst spelers toe om wedstrijdbeschikbaarheid te kiezen.
+    available: Beschikbaar
+    out: Afwezig
+  roles:
+    title: Wedstrijdrollen
+    captain: Aanvoerder
+    captain_required: Aanvoerder *
+    match_duty: Wedstrijddienst
+    no_available_players: Markeer eerst spelers als beschikbaar.
+  guest_players:
+    title: Gastspeler toevoegen
+    description: Voeg een nieuwe naam toe of gebruik een eerdere gastspeler.
+    name: Naam gastspeler
+    name_placeholder: Spelersnaam
+    position: Positie
+    previous: Eerdere gastspelers
+    empty: Nog geen eerdere gastspelers.
+    added: Toegevoegd
+    error:
+      title: Gastspeler kon niet worden toegevoegd
+    limit:
+      title: Limiet voor gastspelers bereikt
+      message: Je kunt maximaal 10 gastspelers toevoegen met rugnummers 70 tot en met 79.
+  lineup:
+    formation: Formatie
+    select_formation: Formatie kiezen
+    substitutes: Wisselspelers
+    no_substitutes: Geen wisselspelers geselecteerd.
+    add_players_first: Voeg eerst spelers toe om een opstelling te maken.
+    remove_player: Uit positie verwijderen
+  validation:
+    opponent:
+      title: Tegenstander verplicht
+      message: Voeg de naam van de tegenstander toe voordat je doorgaat.
+    date:
+      title: Ongeldige datum
+      message: Gebruik een geldige datum in DD-MM-JJJJ-formaat.
+    time:
+      title: Ongeldige tijd
+      message: Gebruik een geldige tijd in UU:MM-formaat.
+    availability:
+      title: Kies beschikbare spelers
+      message: Markeer minimaal één speler als beschikbaar voordat je de opstelling maakt.
+    low_availability:
+      title: Minder dan 11 beschikbare spelers
+      message: Je hebt minder dan 11 beschikbare spelers geselecteerd!
+    lineup:
+      title: Maak de opstelling compleet
+      message: Voeg 11 spelers toe aan het veld voordat je doorgaat.
+    captain:
+      title: Aanvoerder verplicht
+      message: Kies een aanvoerder voordat je doorgaat met de wedstrijdinstellingen.
+    match_duty:
+      title: Wedstrijddienst vol
+      message: Je kunt maximaal twee spelers voor wedstrijddienst selecteren.
+result:
+  title: Wedstrijduitslag
+  score:
+    your_team: Score van jouw team
+    opponent: Score tegenstander
+  steps:
+    result: Uitslag
+    performance: Spelersprestaties
+    review: Controleren
+  player_performance:
+    description: Basisspelers starten met {{minutes}} minuten en wisselspelers met 0. Het aantal spelersdoelpunten mag de teamscore van {{score}} niet overschrijden.
+    empty: Voeg spelers toe aan de opstelling voordat je prestaties registreert.
+    goals: Doelpunten
+    assists: Assists
+    rating: Beoordeling
+    minutes_played: Gespeelde minuten
+    attendance:
+      label: Aanwezigheid
+      present: Aanwezig
+      late: Te laat
+      no_show: Niet gekomen
+    card:
+      label: Kaart
+      none: Geen
+    cards: Kaarten
+    yellow: Geel
+    red: Rood
+    notes: Notities
+    match_duty_fulfilled: Wedstrijddienst uitgevoerd
+    match_duty_help: Deze speler was ingedeeld voor wedstrijddienst.
+  review:
+    no_match: Selecteer een wedstrijd voordat je de uitslag controleert.
+  validation:
+    goals_mismatch:
+      title: Doelpunten komen niet overeen
+      message: Het aantal doelpunten komt niet overeen met de uitslag! Waren de overige doelpunten eigen doelpunten?
+share:
+  title: Wedstrijdafbeelding delen
+  description: Bekijk de opstellingsafbeelding voordat je deze exporteert.
+  background: Achtergrond
+  backgrounds:
+    day: Dag
+    night: Nacht
+    stadium-day: Stadion overdag
+    stadium-night: Stadion 's nachts
+  overlay: Overlay
+  overlays:
+    classic: Klassiek
+    broadcast: Uitzending
+  close_preview: Deelvoorbeeld sluiten
+  export: Exporteren
+  exporting: Exporteren...
+  colors:
+    title: Kleuren
+    description: Pas de paneel- en tekstkleuren voor deze afbeelding aan.
+    panel: Paneel
+    text: Tekst
+    text_icons: Tekst en iconen
+    team_section: Team, thuisscore en titel wissels
+    opponent_section: Tegenstander, uitscore en wissels
+    info_section: Locatie, datum en accenten
+  errors:
+    no_image:
+      title: Geen afbeelding gereed
+      message: Open eerst een wedstrijdvoorbeeld voordat je exporteert.
+    export:
+      title: Exporteren mislukt
+      message: Er ging iets mis bij het maken van de wedstrijdafbeelding.
+  success:
+    title: Afbeelding gemaakt
+    message: "De afbeelding is hier aangemaakt:\n{{uri}}"
+player_stats:
+  form: Vorm
+  no_ratings: Nog geen beoordelingen
+  training: Training
+  recent_period: afgelopen 5 weken
+  average_minutes: Gem. min
+errors:
+  load:
+    title: Wedstrijden konden niet worden geladen
+    message: Probeer het opnieuw.
+  save_match:
+    title: Wedstrijd kon niet worden opgeslagen
+    message: Controleer de wedstrijdgegevens en probeer het opnieuw.
+  save_result: Uitslag kon niet worden opgeslagen
+  delete: Wedstrijd kon niet worden verwijderd
+confirm:
+  delete_title: Wedstrijd verwijderen?

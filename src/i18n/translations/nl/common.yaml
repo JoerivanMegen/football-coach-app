@@ -1,0 +1,41 @@
+cancel: Annuleren
+save: Opslaan
+back: Terug
+close: Sluiten
+loading: Laden...
+add: Toevoegen
+edit: Bewerken
+delete: Verwijderen
+done: Gereed
+next: Volgende
+continue: Doorgaan
+share: Delen
+export: Exporteren
+restore: Herstellen
+yes: Ja
+no: Nee
+none: Geen
+required: Verplicht
+optional: Optioneel
+step: Stap
+of: van
+actions:
+  retry: Opnieuw proberen
+  remove: Verwijderen
+states:
+  present: Aanwezig
+  late: Te laat
+  no_show: Afwezig
+errors:
+  generic_title: Er ging iets mis
+  generic_message: Probeer het opnieuw.
+fields:
+  date:
+    label: Datum
+    placeholder: DD-MM-JJJJ
+    choose: Kies een datum
+  time:
+    label: Tijd
+    placeholder: UU:MM
+    choose: Kies een tijd
+  location: Locatie

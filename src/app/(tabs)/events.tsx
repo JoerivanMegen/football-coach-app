@@ -33,12 +33,14 @@ import { getTeamSettingsAsync } from "@/features/settings/team-settings-reposito
 import type { TrainingDay } from "@/features/settings/team-settings-types";
 import { useTheme } from "@/hooks/use-theme";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import { useI18n } from "@/i18n/i18n-provider";
 
 export default function EventsScreen() {
   const scrollViewRef = useScrollToTopOnFocus();
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
+  const { t } = useI18n();
   const [events, setEvents] = useState<CoachEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -104,11 +106,11 @@ export default function EventsScreen() {
       setEvents(await listEventsAsync());
     } catch (error) {
       console.warn("Failed to load events", error);
-      Alert.alert("Could not load trainings", "Please try again.");
+      Alert.alert(t("training.errors.load.title"), t("training.errors.load.message"));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let isMounted = true;
@@ -121,7 +123,7 @@ export default function EventsScreen() {
       })
       .catch((error: unknown) => {
         console.warn("Failed to load events", error);
-        Alert.alert("Could not load trainings", "Please try again.");
+        Alert.alert(t("training.errors.load.title"), t("training.errors.load.message"));
       })
       .finally(() => {
         if (isMounted) {
@@ -132,7 +134,7 @@ export default function EventsScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   async function handleSaveEvent(form: EventWizardFormState) {
     try {
@@ -165,8 +167,8 @@ export default function EventsScreen() {
     } catch (error) {
       console.warn("Failed to save event", error);
       Alert.alert(
-        "Could not save training",
-        "Please check the training details and try again.",
+        t("training.errors.save.title"),
+        t("training.errors.save.message"),
       );
       throw error;
     }
@@ -186,7 +188,7 @@ export default function EventsScreen() {
       setIsWizardOpen(true);
     } catch (error) {
       console.warn("Failed to load event for editing", error);
-      Alert.alert("Could not edit training", "Please try again.");
+      Alert.alert(t("training.errors.edit"), t("common.errors.generic_message"));
     }
   }
 
@@ -202,11 +204,11 @@ export default function EventsScreen() {
 
     Alert.alert("Cancel training", message, [
       {
-        text: "Keep training",
+        text: t("training.actions.keep"),
         style: "cancel",
       },
       {
-        text: "Cancel training",
+        text: t("training.actions.cancel"),
         style: "destructive",
         onPress: () => {
           void cancelEventAsync(event);
@@ -221,7 +223,7 @@ export default function EventsScreen() {
       await loadEvents();
     } catch (error) {
       console.warn("Failed to cancel event", error);
-      Alert.alert("Could not cancel training", "Please try again.");
+      Alert.alert(t("training.errors.cancel"), t("common.errors.generic_message"));
     }
   }
 
@@ -250,18 +252,17 @@ export default function EventsScreen() {
           <ThemedView style={styles.header}>
             <ThemedView style={styles.titleGroup}>
               <ThemedText type="subtitle" style={styles.title}>
-                Training
+                {t("training.overview.title")}
               </ThemedText>
               <ThemedText themeColor="textSecondary" style={styles.description}>
-                Plan training sessions and keep attendance ready for player
-                statistics.
+                {t("training.overview.subtitle")}
               </ThemedText>
             </ThemedView>
 
             <ThemedView style={styles.headerActions}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Add training"
+                accessibilityLabel={t("training.overview.add_training")}
                 onPress={openWizard}
                 style={({ pressed }) => [
                   styles.addButton,
@@ -274,13 +275,13 @@ export default function EventsScreen() {
                   size={18}
                 />
                 <ThemedText type="smallBold" style={styles.addButtonText}>
-                  Add training
+                  {t("training.overview.add_training")}
                 </ThemedText>
               </Pressable>
 
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Create match in Match Day"
+                accessibilityLabel={t("training.overview.create_match")}
                 onPress={() => router.push("/match-day")}
                 style={({ pressed }) => [
                   styles.matchDayButton,
@@ -293,7 +294,7 @@ export default function EventsScreen() {
                   size={18}
                 />
                 <ThemedText type="smallBold" style={styles.matchDayButtonText}>
-                  Add match
+                  {t("matchday.overview.add_match")}
                 </ThemedText>
               </Pressable>
             </ThemedView>
@@ -306,24 +307,24 @@ export default function EventsScreen() {
           ) : (
             <ThemedView style={styles.eventSections}>
               <EventSection
-                title="Upcoming"
-                description="Future trainings will show here."
+                title={t("training.sections.upcoming.title")}
+                description={t("training.sections.upcoming.description")}
                 events={eventSections.upcoming}
                 onCancelEvent={handleCancelEvent}
                 onEditEvent={handleEditEvent}
               />
               <EventSection
-                title="Needs attendance"
-                description="Past trainings waiting for attendance will show here."
+                title={t("training.sections.needs_attendance.title")}
+                description={t("training.sections.needs_attendance.description")}
                 events={eventSections.needsAttendance}
-                actionLabel="Add attendance"
+                actionLabel={t("training.attendance.add")}
                 onCancelEvent={handleCancelEvent}
                 onEditEvent={handleEditEvent}
                 onEventAction={handleStartAttendance}
               />
               <EventSection
-                title="Completed"
-                description="Trainings with finished attendance will show here."
+                title={t("training.sections.completed.title")}
+                description={t("training.sections.completed.description")}
                 events={eventSections.completed}
                 onCancelEvent={handleCancelEvent}
                 onEditAttendance={handleStartAttendance}

@@ -7,34 +7,33 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+import { useI18n } from "@/i18n/i18n-provider";
+import type { TranslationKey } from "@/i18n/generated/translations";
 
 type TutorialSlide = {
-  eyebrow: string;
-  title: string;
-  description: string;
+  eyebrowKey: TranslationKey;
+  titleKey: TranslationKey;
+  descriptionKey: TranslationKey;
   icon: SymbolViewProps["name"];
 };
 
 const tutorialSlides: TutorialSlide[] = [
   {
-    eyebrow: "Players",
-    title: "Welcome to Assistant Coach",
-    description:
-      "Build your squad with positions, kit numbers and player details. Their statistics will grow as you use the app.",
+    eyebrowKey: "onboarding.slides.welcome.eyebrow",
+    titleKey: "onboarding.slides.welcome.title",
+    descriptionKey: "onboarding.slides.welcome.description",
     icon: { ios: "person.3.fill", android: "groups", web: "groups" },
   },
   {
-    eyebrow: "Training",
-    title: "Keep attendance effortless",
-    description:
-      "Schedule training sessions, record who attended and follow participation throughout the season.",
+    eyebrowKey: "onboarding.slides.training.eyebrow",
+    titleKey: "onboarding.slides.training.title",
+    descriptionKey: "onboarding.slides.training.description",
     icon: { ios: "calendar", android: "event", web: "event" },
   },
   {
-    eyebrow: "Match Day",
-    title: "Prepare every match",
-    description:
-      "Set availability, build your lineup and record the result, minutes, goals, assists, cards and ratings.",
+    eyebrowKey: "onboarding.slides.matchday.eyebrow",
+    titleKey: "onboarding.slides.matchday.title",
+    descriptionKey: "onboarding.slides.matchday.description",
     icon: {
       ios: "sportscourt.fill",
       android: "sports_soccer",
@@ -42,10 +41,9 @@ const tutorialSlides: TutorialSlide[] = [
     },
   },
   {
-    eyebrow: "Share",
-    title: "Turn lineups into images",
-    description:
-      "Create polished lineup and result images to share with players, supporters and your club community.",
+    eyebrowKey: "onboarding.slides.sharing.eyebrow",
+    titleKey: "onboarding.slides.sharing.title",
+    descriptionKey: "onboarding.slides.sharing.description",
     icon: {
       ios: "square.and.arrow.up",
       android: "share",
@@ -53,10 +51,9 @@ const tutorialSlides: TutorialSlide[] = [
     },
   },
   {
-    eyebrow: "Your data",
-    title: "Your data stays with you",
-    description:
-      "We do not store your coaching data. It is kept locally on your phone, so uninstalling the app can permanently remove it. Before switching phones, export a backup from Settings and save it somewhere safe.",
+    eyebrowKey: "onboarding.slides.privacy.eyebrow",
+    titleKey: "onboarding.slides.privacy.title",
+    descriptionKey: "onboarding.slides.privacy.description",
     icon: {
       ios: "lock.iphone",
       android: "phonelink_lock",
@@ -64,10 +61,9 @@ const tutorialSlides: TutorialSlide[] = [
     },
   },
   {
-    eyebrow: "Settings",
-    title: "Make it your team",
-    description:
-      "Choose your kit, match duration and preferences. You can also export a complete data backup whenever needed.",
+    eyebrowKey: "onboarding.slides.settings.eyebrow",
+    titleKey: "onboarding.slides.settings.title",
+    descriptionKey: "onboarding.slides.settings.description",
     icon: { ios: "gearshape.fill", android: "settings", web: "settings" },
   },
 ];
@@ -80,6 +76,7 @@ export function OnboardingTutorial({
   visible: boolean;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [slideIndex, setSlideIndex] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
   const slide = tutorialSlides[slideIndex];
@@ -107,10 +104,13 @@ export function OnboardingTutorial({
       visible={visible}
     >
       <ThemedView style={styles.overlay}>
-        <ThemedView type="modalBackground" style={styles.card}>
+        <ThemedView
+          type="modalBackground"
+          style={[styles.card, { backgroundColor: theme.modalBackground }]}
+        >
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Skip tutorial"
+            accessibilityLabel={t("onboarding.actions.skip")}
             disabled={isFinishing}
             onPress={() => void finishTutorial()}
             hitSlop={12}
@@ -136,8 +136,8 @@ export function OnboardingTutorial({
             {slideIndex === 0 ? (
               <Image
                 accessibilityLabel="Assistant Coach"
-                contentFit="cover"
-                source={require("@/assets/images/assistant-coach-splash.png")}
+                contentFit="contain"
+                source={require("@/assets/images/assistant-coach-app-icon-1024.png")}
                 style={styles.welcomeLogo}
               />
             ) : (
@@ -147,20 +147,20 @@ export function OnboardingTutorial({
 
           <ThemedView style={styles.copy}>
             <ThemedText type="smallBold" style={styles.eyebrow}>
-              {slide.eyebrow}
+              {t(slide.eyebrowKey)}
             </ThemedText>
             <ThemedText type="subtitle" style={styles.title}>
-              {slide.title}
+              {t(slide.titleKey)}
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.description}>
-              {slide.description}
+              {t(slide.descriptionKey)}
             </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.progress}>
             {tutorialSlides.map((item, index) => (
               <ThemedView
-                key={item.eyebrow}
+                key={item.eyebrowKey}
                 style={[
                   styles.progressDot,
                   index === slideIndex && styles.progressDotSelected,
@@ -180,7 +180,7 @@ export function OnboardingTutorial({
                 ]}
               >
                 <ThemedText type="smallBold" style={styles.backButtonText}>
-                  Back
+                  {t("common.back")}
                 </ThemedText>
               </Pressable>
             ) : (
@@ -202,7 +202,7 @@ export function OnboardingTutorial({
               ]}
             >
               <ThemedText type="smallBold" style={styles.nextButtonText}>
-                {isLastSlide ? "Set up your team" : "Next"}
+                {isLastSlide ? t("onboarding.actions.finish") : t("common.next")}
               </ThemedText>
             </Pressable>
           </ThemedView>

@@ -16,11 +16,13 @@ import {
 import type { Season } from "@/features/seasons/season-types";
 import { useTheme } from "@/hooks/use-theme";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import { useI18n } from "@/i18n/i18n-provider";
 
 export default function SeasonsScreen() {
   const scrollViewRef = useScrollToTopOnFocus();
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useI18n();
   const safeAreaInsets = useSafeAreaInsets();
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [endedSeasons, setEndedSeasons] = useState<Season[]>([]);
@@ -99,7 +101,7 @@ export default function SeasonsScreen() {
       );
     } catch (error) {
       console.warn("Failed to check season", error);
-      Alert.alert("Could not check season", "Please try again.");
+      Alert.alert(t("seasons.errors.load.title"), t("seasons.errors.load.message"));
     }
   }
 
@@ -116,7 +118,7 @@ export default function SeasonsScreen() {
       openSummary(endedSeason);
     } catch (error) {
       console.warn("Failed to end season", error);
-      Alert.alert("Season not ended", "Your data has not been changed. Please try again.");
+      Alert.alert(t("seasons.errors.not_ended.title"), t("seasons.errors.not_ended.message"));
     } finally {
       setIsEndingSeason(false);
     }
@@ -131,9 +133,9 @@ export default function SeasonsScreen() {
     >
       <ThemedView style={styles.container}>
         <View style={styles.heading}>
-          <ThemedText type="subtitle">Seasons</ThemedText>
+          <ThemedText type="subtitle">{t("seasons.overview.title")}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Look back at results, player statistics and season highlights.
+            {t("seasons.overview.subtitle")}
           </ThemedText>
         </View>
 
@@ -150,7 +152,7 @@ export default function SeasonsScreen() {
                     tintColor="#1C7C54"
                   />
                   <View style={styles.cardText}>
-                    <ThemedText type="smallBold">Current season</ThemedText>
+                    <ThemedText type="smallBold">{t("seasons.overview.current.title")}</ThemedText>
                     <ThemedText type="default">{activeSeason.name}</ThemedText>
                   </View>
                 </View>
@@ -160,14 +162,14 @@ export default function SeasonsScreen() {
                   style={({ pressed }) => [styles.outlineButton, pressed && styles.pressed]}
                 >
                   <ThemedText type="smallBold" style={styles.greenText}>
-                    View current statistics
+                    {t("seasons.overview.current.view_statistics")}
                   </ThemedText>
                 </Pressable>
               </ThemedView>
             ) : null}
 
             <View style={styles.historyHeading}>
-              <ThemedText type="default">Season history</ThemedText>
+              <ThemedText type="default">{t("seasons.overview.history.title")}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {endedSeasons.length} completed {endedSeasons.length === 1 ? "season" : "seasons"}
               </ThemedText>
@@ -190,28 +192,28 @@ export default function SeasonsScreen() {
                       </ThemedText>
                     </View>
                     <ThemedText type="smallBold" style={styles.greenText}>
-                      View summary ›
+                      {t("seasons.overview.history.view_summary")}
                     </ThemedText>
                   </ThemedView>
                 </Pressable>
               ))
             ) : (
               <ThemedView type="backgroundElement" style={styles.emptyCard}>
-                <ThemedText type="smallBold">No completed seasons yet</ThemedText>
+                <ThemedText type="smallBold">{t("seasons.overview.history.empty.title")}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  After ending your first season in Settings, its summary and top threes will appear here.
+                  {t("seasons.overview.history.empty.description")}
                 </ThemedText>
               </ThemedView>
             )}
 
             <ThemedView type="backgroundElement" style={styles.endSeasonCard}>
-              <ThemedText type="default">End season</ThemedText>
+              <ThemedText type="default">{t("seasons.overview.end_season.title")}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                Archive {activeSeason?.name ?? "the current season"}, create its final summary, and start the next season. Players and settings will carry over.
+                {t("seasons.overview.end_season.description", { season: activeSeason?.name ?? "" })}
               </ThemedText>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="End current season"
+                accessibilityLabel={t("seasons.overview.end_season.action")}
                 disabled={!activeSeason || isEndingSeason}
                 onPress={() => void confirmEndSeason()}
                 style={({ pressed }) => [
@@ -221,7 +223,7 @@ export default function SeasonsScreen() {
                 ]}
               >
                 <ThemedText type="smallBold" style={styles.dangerText}>
-                  {isEndingSeason ? "Ending season..." : "End season"}
+                  {isEndingSeason ? t("common.loading") : t("seasons.overview.end_season.action")}
                 </ThemedText>
               </Pressable>
             </ThemedView>

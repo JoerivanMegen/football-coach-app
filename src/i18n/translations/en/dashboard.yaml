@@ -1,0 +1,46 @@
+header:
+  title: Team dashboard
+  subtitle: Jump straight into the next thing your team needs.
+actions:
+  title: Actions
+  setup_team:
+    title: Set up your team
+    description: Before you start managing your team, you will need to set up the app!
+  add_first_players:
+    title: Add your first players!
+    description: Build your squad before planning events.
+  players:
+    title: Players
+    description: Manage your squad, positions, and player details.
+  add_training:
+    title: Add a training
+    description: Plan a training session and track attendance.
+  add_match:
+    title: Add a match
+    description: Set up your next match and prepare the lineup.
+  add_match_result:
+    title: Add match result
+    description: Record how your match went.
+setup:
+  team_details:
+    title: Team details
+    team_name: Team name
+    team_name_placeholder: Example FC
+    club_location: Club location (optional)
+    club_location_help: Used as the default location for home matches and trainings.
+    club_location_placeholder: Sports park, clubhouse, or address
+  kit:
+    title: Kit design
+  preferences:
+    match_minutes: Match minutes
+    match_minutes_help: Use this for youth teams or competitions with shorter matches.
+    nicknames: Nicknames
+    first_names: First names
+    fine_jar_on: Use fine jar
+    fine_jar_off: Skip for now
+    match_duties_on: Use match duties
+    match_duties_off: No match duties
+  actions:
+    continue_team_settings: Continue team settings setup
+    back_to_kit: Back to kit settings
+    save: Save team settings

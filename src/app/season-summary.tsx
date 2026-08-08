@@ -13,6 +13,7 @@ import { getSeasonTeamStatsAsync, type SeasonTeamStats } from "@/features/season
 import type { Season } from "@/features/seasons/season-types";
 import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
 import { useTheme } from "@/hooks/use-theme";
+import { useI18n } from "@/i18n/i18n-provider";
 
 type LeaderboardEntry = { id: number; name: string; value: number; display: string };
 
@@ -21,6 +22,7 @@ export default function SeasonSummaryScreen() {
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
+  const { t } = useI18n();
   const numericSeasonId = Number(seasonId);
   const [season, setSeason] = useState<Season | null>(null);
   const [teamStats, setTeamStats] = useState<SeasonTeamStats | null>(null);
@@ -66,14 +68,14 @@ export default function SeasonSummaryScreen() {
   const leaderboards = useMemo(() => {
     const named = players.map((player) => ({ player, name: playerName(player, preferNicknames) }));
     return [
-      { title: "Most goals", entries: topThree(named, (item) => item.player.matchGoals, String) },
-      { title: "Most assists", entries: topThree(named, (item) => item.player.matchAssists, String) },
-      { title: "Most card points", subtitle: "Yellow = 1, red = 3", entries: topThree(named, (item) => item.player.matchYellowCards + item.player.matchRedCards * 3, String) },
-      { title: "Highest average minutes", subtitle: "Minimum 3 appearances", entries: topThree(named.filter((item) => item.player.matchAppearances >= 3), (item) => item.player.averageMatchMinutes ?? -1, (value) => `${Math.round(value)} min`) },
-      { title: "Best training attendance", entries: topThree(named.filter((item) => item.player.trainingAttendancePercentage !== null), (item) => item.player.trainingAttendancePercentage ?? -1, percent) },
-      { title: "Highest lateness percentage", entries: topThree(named.filter((item) => item.player.latePercentage !== null), (item) => item.player.latePercentage ?? -1, percent) },
+      { title: t("seasons.summary.highlights.most_goals"), entries: topThree(named, (item) => item.player.matchGoals, String) },
+      { title: t("seasons.summary.highlights.most_assists"), entries: topThree(named, (item) => item.player.matchAssists, String) },
+      { title: t("seasons.summary.highlights.most_card_points"), subtitle: "Yellow = 1, red = 3", entries: topThree(named, (item) => item.player.matchYellowCards + item.player.matchRedCards * 3, String) },
+      { title: t("seasons.summary.highlights.highest_average_minutes"), subtitle: "Minimum 3 appearances", entries: topThree(named.filter((item) => item.player.matchAppearances >= 3), (item) => item.player.averageMatchMinutes ?? -1, (value) => `${Math.round(value)} min`) },
+      { title: t("seasons.summary.highlights.best_training_attendance"), entries: topThree(named.filter((item) => item.player.trainingAttendancePercentage !== null), (item) => item.player.trainingAttendancePercentage ?? -1, percent) },
+      { title: t("seasons.summary.highlights.highest_lateness_percentage"), entries: topThree(named.filter((item) => item.player.latePercentage !== null), (item) => item.player.latePercentage ?? -1, percent) },
     ];
-  }, [players, preferNicknames]);
+  }, [players, preferNicknames, t]);
 
   return (
     <ScrollView
@@ -83,10 +85,10 @@ export default function SeasonSummaryScreen() {
     >
       <ThemedView style={styles.container}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <ThemedText type="smallBold" style={styles.greenText}>‹ Back</ThemedText>
+          <ThemedText type="smallBold" style={styles.greenText}>‹ {t("common.back")}</ThemedText>
         </Pressable>
         {loading ? <ActivityIndicator color="#1C7C54" /> : !season || !teamStats ? (
-          <ThemedText>Season summary could not be found.</ThemedText>
+          <ThemedText>{t("seasons.errors.summary_not_found")}</ThemedText>
         ) : (
           <>
             <View>
@@ -97,7 +99,7 @@ export default function SeasonSummaryScreen() {
             </View>
 
             <ThemedView type="backgroundElement" style={styles.panel}>
-              <ThemedText type="default">Team overview</ThemedText>
+              <ThemedText type="default">{t("seasons.summary.team_overview")}</ThemedText>
               <View style={styles.statGrid}>
                 <Stat label="Matches" value={teamStats.matches} />
                 <Stat label="Wins" value={teamStats.wins} />
@@ -110,17 +112,17 @@ export default function SeasonSummaryScreen() {
             </ThemedView>
 
             <View style={styles.twoColumn}>
-              <Highlight title="Biggest win" match={teamStats.highestWin} />
-              <Highlight title="Biggest loss" match={teamStats.biggestLoss} />
+              <Highlight title={t("seasons.summary.highlights.biggest_win")} match={teamStats.highestWin} />
+              <Highlight title={t("seasons.summary.highlights.biggest_loss")} match={teamStats.biggestLoss} />
             </View>
 
-            <ThemedText type="default">Player highlights</ThemedText>
+            <ThemedText type="default">{t("seasons.summary.player_highlights")}</ThemedText>
             <View style={styles.leaderboardGrid}>
               {leaderboards.map((board) => <Leaderboard key={board.title} {...board} />)}
             </View>
 
             <ThemedView type="backgroundElement" style={styles.panel}>
-              <ThemedText type="default">Player overview</ThemedText>
+              <ThemedText type="default">{t("seasons.summary.player_overview")}</ThemedText>
               <ScrollView horizontal showsHorizontalScrollIndicator>
                 <View style={styles.playerTable}>
                   <PlayerTableRow values={["Player", "Training", "Match", "Late", "Starts", "Avg min", "Goals", "Assists", "YC", "RC", "CS", "Rating", "Duties"]} header />

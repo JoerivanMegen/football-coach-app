@@ -1,0 +1,72 @@
+overview:
+  title: Players
+  subtitle: Manage your squad list and start collecting player stats.
+  add_player: Add player
+  open_team_stats: Open team statistics
+  empty:
+    title: No players yet
+    description: Add your first player to start building the squad.
+  groups:
+    goalkeepers: Goalkeepers
+    defenders: Defenders
+    midfielders: Midfielders
+    attackers: Attackers
+form:
+  add_title: Add player
+  edit_title: Edit player
+  save: Save player
+  update: Update player
+  saving: Saving...
+  first_name: First name
+  last_name: Last name
+  nickname: Nickname
+  birth_date: Birth date
+  position: Position
+  kit_number: Kit number
+  validation:
+    required_names:
+      title: Missing required fields
+      message: First name and last name are required.
+    invalid_first_name:
+      title: Invalid first name
+      message: Use letters only, with single spaces between names.
+    invalid_last_name:
+      title: Invalid last name
+      message: Use letters only, with single spaces between names.
+    invalid_nickname: Invalid nickname
+    invalid_birth_date:
+      title: Invalid birth date
+      message: Use DD-MM-YYYY, for example 24-09-2012.
+    position_required: Choose a player position.
+    invalid_kit_number:
+      title: Invalid kit number
+      message: Use a whole number, or leave it empty.
+  duplicate:
+    player_title: Possible duplicate player
+    kit_number_title: Kit number already taken
+    kit_number_message: "{{name}} already has this kit number. Do you want to change theirs to {{number}}?"
+stats:
+  player_title: Player statistics
+  player_subtitle: Compare player attendance, match minutes, and recent form.
+  team_title: Team stats
+  empty:
+    title: No team stats yet
+    description: Add players and mark attendance to build the team overview.
+  attendance: Attendance
+  match_data: Match data
+  recent_form: Recent form
+  no_attendance: No marked attendance yet
+  no_attendance_help: These stats update after attendance is saved for an event.
+  no_ratings: No match ratings yet.
+errors:
+  load:
+    title: Could not load players
+    message: Please try again.
+  save:
+    title: Could not save player
+    message: Please check the details and try again.
+  delete:
+    title: Could not delete player
+    message: Please try again.
+confirm:
+  delete_title: Delete player

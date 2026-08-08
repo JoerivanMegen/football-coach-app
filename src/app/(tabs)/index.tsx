@@ -16,6 +16,7 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { OnboardingTutorial } from "@/components/onboarding-tutorial";
+import { LanguageSelectionModal } from "@/components/language-selection-modal";
 import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import {
   AppHeaderHeight,
@@ -33,6 +34,7 @@ import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-reposit
 import type { MatchDayMatch } from "@/features/match-day/match-day-types";
 import {
   hasCompletedOnboardingAsync,
+  hasSelectedAppLocaleAsync,
   setOnboardingCompletedAsync,
 } from "@/features/settings/app-preferences-repository";
 import type {
@@ -41,6 +43,7 @@ import type {
 } from "@/features/settings/team-settings-types";
 import { useTheme } from "@/hooks/use-theme";
 import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import { useI18n } from "@/i18n/i18n-provider";
 
 type HomeAction = {
   title: string;
@@ -99,6 +102,7 @@ export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
+  const { setLocale, t } = useI18n();
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SaveTeamSettingsInput>(
     defaultTeamSettingsForm,
@@ -109,6 +113,8 @@ export default function HomeScreen() {
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [hasTeamSettings, setHasTeamSettings] = useState(false);
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
+  const [isLanguageSelectionVisible, setIsLanguageSelectionVisible] =
+    useState(false);
   const [overdueMatchResultCount, setOverdueMatchResultCount] = useState(0);
   const insets = {
     ...safeAreaInsets,
@@ -121,10 +127,11 @@ export default function HomeScreen() {
 
       async function loadHomeData() {
         try {
-          const [settings, players, hasCompletedOnboarding, matches] = await Promise.all([
+          const [settings, players, hasCompletedOnboarding, hasSelectedLanguage, matches] = await Promise.all([
             getTeamSettingsAsync(),
             listPlayersAsync(),
             hasCompletedOnboardingAsync(),
+            hasSelectedAppLocaleAsync(),
             listMatchDayMatchesAsync(),
           ]);
 
@@ -134,7 +141,12 @@ export default function HomeScreen() {
 
           setPlayerCount(players.length);
           setHasTeamSettings(Boolean(settings));
-          setIsTutorialVisible(!hasCompletedOnboarding);
+          setIsLanguageSelectionVisible(
+            !hasCompletedOnboarding && !hasSelectedLanguage,
+          );
+          setIsTutorialVisible(
+            !hasCompletedOnboarding && hasSelectedLanguage,
+          );
           setOverdueMatchResultCount(
             matches.filter((match) => isMatchResultOverdue(match, new Date())).length,
           );
@@ -250,17 +262,17 @@ export default function HomeScreen() {
   const hasNoPlayers = playerCount === 0;
   const homeActions = ([
     {
-      title: hasNoPlayers ? "Add your first players!" : "Players",
+      title: hasNoPlayers ? t("dashboard.actions.add_first_players.title") : t("dashboard.actions.players.title"),
       description: hasNoPlayers
-        ? "Build your squad before planning trainings and matches."
-        : "Manage your squad, positions, and player details.",
+        ? t("dashboard.actions.add_first_players.description")
+        : t("dashboard.actions.players.description"),
       iconName: { ios: "person.3.fill", android: "groups", web: "groups" },
       href: "/players",
       showNotification: hasNoPlayers,
     },
     {
-      title: "Add a training",
-      description: "Plan a training session and track attendance.",
+      title: t("dashboard.actions.add_training.title"),
+      description: t("dashboard.actions.add_training.description"),
       iconName: {
         ios: "calendar.badge.plus",
         android: "event",
@@ -269,8 +281,8 @@ export default function HomeScreen() {
       href: "/events",
     },
     {
-      title: "Add a match",
-      description: "Set up your next match and prepare the lineup.",
+      title: t("dashboard.actions.add_match.title"),
+      description: t("dashboard.actions.add_match.description"),
       iconName: {
         ios: "sportscourt.fill",
         android: "sports_soccer",
@@ -310,15 +322,15 @@ export default function HomeScreen() {
         <ThemedView style={styles.container}>
           <ThemedView style={styles.header}>
             <ThemedText type="subtitle" style={styles.title}>
-              Team dashboard
+              {t("dashboard.header.title")}
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.intro}>
-              Jump straight into the next thing your team needs.
+              {t("dashboard.header.subtitle")}
             </ThemedText>
           </ThemedView>
 
           <ThemedView style={styles.actionsSection}>
-            <ThemedText type="default">Actions</ThemedText>
+            <ThemedText type="default">{t("dashboard.actions.title")}</ThemedText>
             <ThemedView style={styles.actionsGrid}>
               {homeActions.map((action) => (
                 <Pressable
@@ -368,6 +380,14 @@ export default function HomeScreen() {
       <OnboardingTutorial
         onFinish={handleFinishTutorial}
         visible={isTutorialVisible}
+      />
+      <LanguageSelectionModal
+        visible={isLanguageSelectionVisible}
+        onSelect={async (locale) => {
+          await setLocale(locale);
+          setIsLanguageSelectionVisible(false);
+          setIsTutorialVisible(true);
+        }}
       />
       <TeamSettingsSetupModal
         error={settingsError}

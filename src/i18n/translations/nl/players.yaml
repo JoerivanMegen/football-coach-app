@@ -1,0 +1,72 @@
+overview:
+  title: Spelers
+  subtitle: Beheer je selectie en verzamel spelersstatistieken.
+  add_player: Nieuwe speler
+  open_team_stats: Teamstatistieken openen
+  empty:
+    title: Nog geen spelers
+    description: Voeg je eerste speler toe om je selectie samen te stellen.
+  groups:
+    goalkeepers: Keepers
+    defenders: Verdedigers
+    midfielders: Middenvelders
+    attackers: Aanvallers
+form:
+  add_title: Speler toevoegen
+  edit_title: Speler bewerken
+  save: Speler opslaan
+  update: Speler bijwerken
+  saving: Opslaan...
+  first_name: Voornaam
+  last_name: Achternaam
+  nickname: Bijnaam
+  birth_date: Geboortedatum
+  position: Positie
+  kit_number: Rugnummer
+  validation:
+    required_names:
+      title: Verplichte velden ontbreken
+      message: Voornaam en achternaam zijn verplicht.
+    invalid_first_name:
+      title: Ongeldige voornaam
+      message: Gebruik alleen letters, met enkele spaties tussen namen.
+    invalid_last_name:
+      title: Ongeldige achternaam
+      message: Gebruik alleen letters, met enkele spaties tussen namen.
+    invalid_nickname: Ongeldige bijnaam
+    invalid_birth_date:
+      title: Ongeldige geboortedatum
+      message: Gebruik DD-MM-JJJJ, bijvoorbeeld 24-09-2012.
+    position_required: Kies een spelerspositie.
+    invalid_kit_number:
+      title: Ongeldig rugnummer
+      message: Gebruik een heel getal of laat het veld leeg.
+  duplicate:
+    player_title: Mogelijk dubbele speler
+    kit_number_title: Rugnummer is al bezet
+    kit_number_message: "{{name}} heeft dit rugnummer al. Wil je diens nummer wijzigen naar {{number}}?"
+stats:
+  player_title: Spelersstatistieken
+  player_subtitle: Vergelijk aanwezigheid, wedstrijdminuten en recente vorm.
+  team_title: Team stats
+  empty:
+    title: Nog geen teamstatistieken
+    description: Voeg spelers toe en registreer aanwezigheid om het teamoverzicht op te bouwen.
+  attendance: Aanwezigheid
+  match_data: Wedstrijdgegevens
+  recent_form: Recente vorm
+  no_attendance: Nog geen aanwezigheid geregistreerd
+  no_attendance_help: Deze statistieken worden bijgewerkt nadat aanwezigheid voor een activiteit is opgeslagen.
+  no_ratings: Nog geen wedstrijdbeoordelingen.
+errors:
+  load:
+    title: Spelers konden niet worden geladen
+    message: Probeer het opnieuw.
+  save:
+    title: Speler kon niet worden opgeslagen
+    message: Controleer de gegevens en probeer het opnieuw.
+  delete:
+    title: Speler kon niet worden verwijderd
+    message: Probeer het opnieuw.
+confirm:
+  delete_title: Speler verwijderen

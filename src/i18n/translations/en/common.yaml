@@ -1,0 +1,41 @@
+cancel: Cancel
+save: Save
+back: Back
+close: Close
+loading: Loading...
+add: Add
+edit: Edit
+delete: Delete
+done: Done
+next: Next
+continue: Continue
+share: Share
+export: Export
+restore: Restore
+yes: Yes
+no: No
+none: None
+required: Required
+optional: Optional
+step: Step
+of: of
+actions:
+  retry: Try again
+  remove: Remove
+states:
+  present: Present
+  late: Late
+  no_show: No-show
+errors:
+  generic_title: Something went wrong
+  generic_message: Please try again.
+fields:
+  date:
+    label: Date
+    placeholder: DD-MM-YYYY
+    choose: Choose date
+  time:
+    label: Time
+    placeholder: HH:MM
+    choose: Choose time
+  location: Location
