@@ -24,30 +24,42 @@ kit:
   player_secondary: Secundaire spelerskleur
   goalkeeper_primary: Primaire keeperskleur
   goalkeeper_secondary: Secundaire keeperskleur
+  third: Derde kleur
+  number: Kleur rugnummer
   patterns:
     regular: Effen
     stripes: Strepen
     three_color_stripes: Driekleurige strepen
     hoops: Horizontale strepen
-    two_color_sash: Tweekleurige sjerp
+    two_color_sash: Dubbele diagonaal
     halves: Helften
     sides: Zijkanten
 match_preferences:
   title: Wedstrijdvoorkeuren
   match_minutes: Wedstrijdduur
   match_minutes_help: Gebruik dit voor jeugdteams of competities met kortere wedstrijden.
+  decrease_match_minutes: Wedstrijdduur verkorten
+  increase_match_minutes: Wedstrijdduur verlengen
   player_names:
+    title: Namen in de opstelling
     nicknames: Bijnamen
     first_names: Voornamen
   fine_jar:
-    title: Gebruikt je team een boetepot?
+    title: Boetepot
+    description: Je kunt dit later gebruiken voor boetes, herinneringen en teamregels.
     enabled: Boetepot gebruiken
     disabled: Voorlopig overslaan
+    currency:
+      title: Valuta van de boetepot
+      description: Kies de valuta voor boetetypes en totalen.
+      euro: Euro (€)
+      pound: Pond (£)
+      dollar: Dollar ($)
   match_duties:
-    title: Heeft je team wedstrijdtaken?
+    title: Heeft je team corvee?
     description: Zorgen je spelers voor de tenues, warming-upmaterialen of andere taken op wedstrijddagen?
-    enabled: Wedstrijdtaken gebruiken
-    disabled: Geen wedstrijdtaken
+    enabled: Corvee gebruiken
+    disabled: Geen corvee
 statistics:
   title: Speler- en teamstatistieken
   friendlies:
@@ -63,6 +75,14 @@ training_preferences:
   default_time:
     title: Standaard trainingstijd
     description: Nieuwe trainingen gebruiken deze starttijd automatisch.
+  day_labels:
+    monday: Ma
+    tuesday: Di
+    wednesday: Wo
+    thursday: Do
+    friday: Vr
+    saturday: Za
+    sunday: Zo
 season:
   title: Seizoen
   current: "Huidig seizoen:"
@@ -72,9 +92,33 @@ season:
   history: Seizoenshistorie
   view_summary: Samenvatting bekijken ›
   end: Huidig seizoen afsluiten
+  ending: Seizoen afsluiten...
+  confirm:
+    title: "Seizoen {{name}} afsluiten?"
+    message: Hiermee maak je een permanent seizoensoverzicht en start je een nieuw seizoen. Je spelers en instellingen blijven behouden.
+    unfinished: "Er zijn nog {{items}} niet afgerond. Deze worden in de huidige staat gearchiveerd.\n\n"
+    join: "{{first}} en {{second}}"
+    match_result: "{{count}} wedstrijduitslag"
+    match_results: "{{count}} wedstrijduitslagen"
+    training_record: "{{count}} trainingsregistratie"
+    training_records: "{{count}} trainingsregistraties"
 actions:
   save: Instellingen opslaan
+  saving: Opslaan...
+  saved: Instellingen opgeslagen.
 errors:
+  load: Je teaminstellingen konden niet worden geladen.
+  team_name_required: Teamnaam is verplicht.
+  season_name_required: Seizoensnaam is verplicht.
+  match_minutes: De wedstrijdduur moet tussen 1 en 120 minuten liggen.
+  training_time: "De trainingstijd moet het formaat UU:MM gebruiken, bijvoorbeeld 19:30."
+  save: Controleer je teamnaam en kleurwaarden.
   tutorial:
     title: Introductie kon niet worden geopend
     message: Probeer het opnieuw.
+  season_check:
+    title: Seizoen kon niet worden gecontroleerd
+    message: Probeer het opnieuw.
+  season_end:
+    title: Seizoen niet afgesloten
+    message: Je gegevens zijn niet gewijzigd. Probeer het opnieuw.

@@ -109,6 +109,15 @@ export function isMatchResultActionDue(match: MatchDayMatch) {
   return Date.now() >= resultDueDate.getTime();
 }
 
+export function hasMatchStarted(match: MatchDayMatch, now = new Date()) {
+  const matchStartDate = parseIsoDateAndDisplayTimeToDate(
+    match.matchDate,
+    match.startTime,
+  );
+
+  return matchStartDate !== null && now.getTime() >= matchStartDate.getTime();
+}
+
 export function parseIsoDateAndDisplayTimeToDate(
   dateValue: string,
   timeValue: string,
@@ -164,4 +173,3 @@ export function parseDisplayTimeToDate(value: string) {
 
   return date;
 }
-

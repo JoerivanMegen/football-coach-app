@@ -131,6 +131,11 @@ export const eventWizardStyles = StyleSheet.create({
     gap: Spacing.two,
     padding: Spacing.two,
   },
+  availabilityPlayerNameRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: Spacing.one,
+  },
   availabilityOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',

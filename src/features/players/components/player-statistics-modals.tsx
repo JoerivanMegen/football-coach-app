@@ -1,5 +1,5 @@
 import { SymbolView } from "expo-symbols";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,7 +11,9 @@ import { getPlayerPositionLabel } from "@/features/players/player-position-label
 import { playerStyles as styles } from "@/features/players/components/player-styles";
 import { compareTeamStats, formatNullableNumber, formatPercentage, isCleanSheetPosition, type TeamStatsSortKey } from "@/features/players/player-stats-utils";
 import { useTheme } from "@/hooks/use-theme";
-import { DEFAULT_LOCALE } from "@/i18n/locales";
+import { useI18n } from "@/i18n/i18n-provider";
+import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
+import type { FineJarCurrency } from "@/features/settings/team-settings-types";
 
 export function TeamStatsModal({
   onClose,
@@ -24,12 +26,37 @@ export function TeamStatsModal({
 }) {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
+  const { locale, t } = useI18n();
+  const [fineJarCurrency, setFineJarCurrency] = useState<FineJarCurrency>(
+    locale === "nl" ? "EUR" : "GBP",
+  );
   const [sortKey, setSortKey] = useState<TeamStatsSortKey>("player");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const statsHeaderScrollRef = useRef<ScrollView>(null);
   const sortedStats = useMemo(
     () => [...stats].sort((left, right) => compareTeamStats(left, right, sortKey, sortDirection)),
     [sortDirection, sortKey, stats],
   );
+
+  useEffect(() => {
+    if (!visible) return;
+    void getTeamSettingsAsync()
+      .then((settings) => {
+        setFineJarCurrency(
+          settings?.fineJarCurrency ?? (locale === "nl" ? "EUR" : "GBP"),
+        );
+      })
+      .catch((error: unknown) => {
+        console.warn("Failed to load Fine Jar currency for team stats", error);
+      });
+  }, [locale, visible]);
+
+  const formatCurrency = (amountCents: number) =>
+    new Intl.NumberFormat(locale === "nl" ? "nl-NL" : "en-GB", {
+      style: "currency",
+      currency: fineJarCurrency,
+      currencyDisplay: "narrowSymbol",
+    }).format(amountCents / 100);
 
   function changeSort(nextKey: TeamStatsSortKey) {
     if (nextKey === sortKey) {
@@ -55,16 +82,16 @@ export function TeamStatsModal({
         <ThemedView style={styles.teamStatsModalHeader}>
           <ThemedView style={styles.teamStatsModalTitleGroup}>
             <ThemedText type="subtitle" style={styles.teamStatsModalTitle}>
-              Team stats
+              {t("players.stats.team_title")}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Compare player attendance, match minutes, and recent form.
+              {t("players.stats.player_subtitle")}
             </ThemedText>
           </ThemedView>
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Close team statistics"
+            accessibilityLabel={t("players.stats.close_team_statistics")}
             onPress={onClose}
             style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
           >
@@ -78,53 +105,54 @@ export function TeamStatsModal({
 
         {stats.length === 0 ? (
           <ThemedView type="backgroundElement" style={styles.emptyPanel}>
-            <ThemedText type="smallBold">No team stats yet</ThemedText>
+            <ThemedText type="smallBold">{t("players.stats.empty.title")}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={styles.emptyText}>
-              Add players and mark attendance to build the team overview.
+              {t("players.stats.empty.description")}
             </ThemedText>
           </ThemedView>
         ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator
-            contentContainerStyle={styles.teamStatsTableScrollContent}
-          >
-            <ThemedView type="backgroundElement" style={styles.teamStatsTable}>
-              <ThemedView type="backgroundSelected" style={styles.teamStatsTableHeaderRow}>
-                {([
-                  ["Player", "player", styles.teamStatsPlayerCell],
-                  ["Training %", "trainingAttendancePercentage"],
-                  ["Match %", "matchAttendancePercentage"],
-                  ["Late %", "latePercentage"],
-                  ["Starts", "matchStarts"],
-                  ["Starter %", "matchStarterPercentage"],
-                  ["Avg min", "averageMatchMinutes"],
-                  ["Goals", "matchGoals"],
-                  ["Assists", "matchAssists"],
-                  ["YC", "matchYellowCards"],
-                  ["RC", "matchRedCards"],
-                  ["Clean sheets", "matchCleanSheets"],
-                  ["Avg rating", "averageMatchRating"],
-                  ["Goals/90", "matchGoalsPer90"],
-                  ["Assists/90", "matchAssistsPer90"],
-                  ["Duties", "matchDutiesAssigned"],
-                  ["Fulfilled", "matchDutiesFulfilled"],
-                  ["Duty %", "matchDutyFulfillmentPercentage"],
-                  ["Last 5", "recentForm", styles.teamStatsRecentCell],
-                ] as [string, TeamStatsSortKey, object?][]).map(([label, key, style]) => (
-                  <TeamStatsHeaderCell
-                    key={key}
-                    activeSortKey={sortKey}
-                    direction={sortDirection}
-                    label={label}
-                    onSort={changeSort}
-                    sortKey={key}
-                    style={style}
-                  />
-                ))}
+          <>
+            <ThemedView style={styles.teamStatsFrozenHeaderLayout}>
+              <ThemedView
+                type="backgroundSelected"
+                style={styles.teamStatsFrozenHeaderCell}
+              >
+                <TeamStatsHeaderCell
+                  activeSortKey={sortKey}
+                  direction={sortDirection}
+                  label={t("players.stats.columns.player")}
+                  onSort={changeSort}
+                  sortKey="player"
+                  style={styles.teamStatsPlayerCell}
+                />
               </ThemedView>
+              <ScrollView
+                ref={statsHeaderScrollRef}
+                horizontal
+                scrollEnabled={false}
+                showsHorizontalScrollIndicator={false}
+                style={styles.teamStatsHeaderScrollableColumns}
+              >
+                <ThemedView
+                  type="backgroundSelected"
+                  style={styles.teamStatsTableHeaderRow}
+                >
+                  {renderTeamStatsHeaderCells(
+                    t,
+                    sortKey,
+                    sortDirection,
+                    changeSort,
+                  )}
+                </ThemedView>
+              </ScrollView>
+            </ThemedView>
 
-              <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+            <ThemedView style={styles.teamStatsFrozenLayout}>
+              <ThemedView
+                type="backgroundElement"
+                style={styles.teamStatsFrozenColumn}
+              >
                 {sortedStats.map((playerStats) => (
                   <ThemedView
                     key={playerStats.playerId}
@@ -133,15 +161,42 @@ export function TeamStatsModal({
                   >
                     <ThemedView
                       type="backgroundElement"
-                      style={[styles.teamStatsPlayerCell, styles.teamStatsPlayerDataCell]}
+                      style={[
+                        styles.teamStatsPlayerCell,
+                        styles.teamStatsPlayerDataCell,
+                      ]}
                     >
-                      <ThemedText type="smallBold">
+                      <ThemedText type="smallBold" numberOfLines={2}>
                         {playerStats.firstName} {playerStats.lastName}
                       </ThemedText>
-                      <ThemedText type="code" themeColor="textSecondary">
-                        {getPlayerPositionLabel(playerStats.position, DEFAULT_LOCALE)}
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {getPlayerPositionLabel(playerStats.position, locale)}
                       </ThemedText>
                     </ThemedView>
+                  </ThemedView>
+                ))}
+              </ThemedView>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator
+                style={styles.teamStatsScrollableColumns}
+                contentContainerStyle={styles.teamStatsTableScrollContent}
+                onScroll={(event) =>
+                  statsHeaderScrollRef.current?.scrollTo({
+                    x: event.nativeEvent.contentOffset.x,
+                    animated: false,
+                  })
+                }
+                scrollEventThrottle={16}
+              >
+                <ThemedView type="backgroundElement" style={styles.teamStatsTable}>
+                {sortedStats.map((playerStats) => (
+                  <ThemedView
+                    key={playerStats.playerId}
+                    type="backgroundElement"
+                    style={styles.teamStatsTableRow}
+                  >
                     <TeamStatsValueCell
                       value={formatPercentage(playerStats.trainingAttendancePercentage)}
                     />
@@ -177,6 +232,10 @@ export function TeamStatsModal({
                     <TeamStatsValueCell
                       value={formatPercentage(playerStats.matchDutyFulfillmentPercentage)}
                     />
+                    <TeamStatsValueCell value={String(playerStats.fineCount)} />
+                    <TeamStatsValueCell
+                      value={formatCurrency(playerStats.fineAmountCents)}
+                    />
                     <ThemedView type="backgroundElement" style={styles.teamStatsRecentCell}>
                       <TeamStatsRecentRatings
                         ratings={playerStats.recentMatchRatings.map((rating) => rating.rating)}
@@ -184,13 +243,55 @@ export function TeamStatsModal({
                     </ThemedView>
                   </ThemedView>
                 ))}
+                </ThemedView>
               </ScrollView>
             </ThemedView>
           </ScrollView>
+          </>
         )}
       </ThemedView>
     </Modal>
   );
+}
+
+function renderTeamStatsHeaderCells(
+  t: ReturnType<typeof useI18n>["t"],
+  sortKey: TeamStatsSortKey,
+  sortDirection: "asc" | "desc",
+  onSort: (key: TeamStatsSortKey) => void,
+) {
+  return ([
+    [t("players.stats.columns.training_percentage"), "trainingAttendancePercentage"],
+    [t("players.stats.columns.match_percentage"), "matchAttendancePercentage"],
+    [t("players.stats.columns.late_percentage"), "latePercentage"],
+    [t("players.stats.columns.starts"), "matchStarts"],
+    [t("players.stats.columns.starter_percentage"), "matchStarterPercentage"],
+    [t("players.stats.columns.average_minutes"), "averageMatchMinutes"],
+    [t("players.stats.columns.goals"), "matchGoals"],
+    [t("players.stats.columns.assists"), "matchAssists"],
+    [t("players.stats.columns.yellow_cards"), "matchYellowCards"],
+    [t("players.stats.columns.red_cards"), "matchRedCards"],
+    [t("players.stats.columns.clean_sheets"), "matchCleanSheets"],
+    [t("players.stats.columns.average_rating"), "averageMatchRating"],
+    [t("players.stats.columns.goals_per_90"), "matchGoalsPer90"],
+    [t("players.stats.columns.assists_per_90"), "matchAssistsPer90"],
+    [t("players.stats.columns.duties"), "matchDutiesAssigned"],
+    [t("players.stats.columns.fulfilled"), "matchDutiesFulfilled"],
+    [t("players.stats.columns.duty_percentage"), "matchDutyFulfillmentPercentage"],
+    [t("players.stats.columns.fines"), "fineCount"],
+    [t("players.stats.columns.fine_amount"), "fineAmountCents"],
+    [t("players.stats.columns.last_five"), "recentForm", styles.teamStatsRecentCell],
+  ] as [string, TeamStatsSortKey, object?][]).map(([label, key, style]) => (
+    <TeamStatsHeaderCell
+      key={key}
+      activeSortKey={sortKey}
+      direction={sortDirection}
+      label={label}
+      onSort={onSort}
+      sortKey={key}
+      style={style}
+    />
+  ));
 }
 
 function TeamStatsHeaderCell({
@@ -209,11 +310,12 @@ function TeamStatsHeaderCell({
   style?: object;
 }) {
   const isActive = activeSortKey === sortKey;
+  const { t } = useI18n();
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Sort by ${label}`}
+      accessibilityLabel={t("players.stats.sort_by", { column: label })}
       accessibilityState={{ selected: isActive }}
       onPress={() => onSort(sortKey)}
       style={({ pressed }) => [
@@ -275,14 +377,15 @@ function TeamStatsRecentRatings({ ratings }: { ratings: number[] }) {
 }
 
 export function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
+  const { t } = useI18n();
   const hasMarkedEvents = stats.totalEvents > 0 || stats.matchAppearances > 0;
 
   if (!hasMarkedEvents) {
     return (
       <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
-        <ThemedText type="smallBold">No marked attendance yet</ThemedText>
+        <ThemedText type="smallBold">{t("players.stats.no_attendance")}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          These stats update after attendance is saved for an event.
+          {t("players.stats.no_attendance_help")}
         </ThemedText>
       </ThemedView>
     );
@@ -291,110 +394,110 @@ export function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
   return (
     <ThemedView style={styles.statsSections}>
       <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
-        <ThemedText type="smallBold">Attendance</ThemedText>
+        <ThemedText type="smallBold">{t("players.stats.attendance")}</ThemedText>
         <ThemedView type="backgroundElement" style={styles.statList}>
           <PlayerStatRow
-            label="Training"
+            label={t("players.stats.detail.training")}
             value={formatPercentage(stats.trainingAttendancePercentage)}
-            detail={`${stats.trainingAttended}/${stats.trainingEvents} attended`}
+            detail={t("players.stats.detail.attended", { attended: stats.trainingAttended, total: stats.trainingEvents })}
           />
           <PlayerStatRow
-            label="Matches"
+            label={t("players.stats.detail.matches")}
             value={formatPercentage(stats.matchAttendancePercentage)}
-            detail={`${stats.matchAttended}/${stats.matchEvents} attended`}
+            detail={t("players.stats.detail.attended", { attended: stats.matchAttended, total: stats.matchEvents })}
           />
           <PlayerStatRow
-            label="Late"
+            label={t("players.stats.detail.late")}
             value={formatPercentage(stats.latePercentage)}
-            detail={`${stats.lateCount} ${stats.lateCount === 1 ? "time" : "times"}`}
+            detail={t(stats.lateCount === 1 ? "players.stats.detail.late_count" : "players.stats.detail.late_count_plural", { count: stats.lateCount })}
           />
           <PlayerStatRow
-            label="Available but absent"
+            label={t("players.stats.detail.available_but_absent")}
             value={String(stats.availableButAbsentCount)}
-            detail="signed available, did not attend"
+            detail={t("players.stats.detail.available_but_absent_help")}
           />
           <PlayerStatRow
-            label="Out but attended"
+            label={t("players.stats.detail.out_but_attended")}
             value={String(stats.signedOutButAttendedCount)}
-            detail="signed out, still attended"
+            detail={t("players.stats.detail.out_but_attended_help")}
           />
         </ThemedView>
       </ThemedView>
 
       <ThemedView type="backgroundElement" style={styles.playerStatsPanel}>
-        <ThemedText type="smallBold">Match data</ThemedText>
+        <ThemedText type="smallBold">{t("players.stats.match_data")}</ThemedText>
         <ThemedView type="backgroundElement" style={styles.statList}>
           <PlayerStatRow
-            label="Appearances"
+            label={t("players.stats.detail.appearances")}
             value={String(stats.matchAppearances)}
-            detail={`${stats.matchEvents} completed matches`}
+            detail={t("players.stats.detail.completed_matches", { count: stats.matchEvents })}
           />
           <PlayerStatRow
-            label="Starts"
+            label={t("players.stats.detail.starts")}
             value={String(stats.matchStarts)}
-            detail="named in the starting XI"
+            detail={t("players.stats.detail.starts_help")}
           />
           <PlayerStatRow
-            label="Starter"
+            label={t("players.stats.detail.starter")}
             value={formatPercentage(stats.matchStarterPercentage)}
-            detail="starts per appearance"
+            detail={t("players.stats.detail.starter_help")}
           />
           <PlayerStatRow
-            label="Avg mins"
+            label={t("players.stats.detail.average_minutes")}
             value={formatNullableNumber(stats.averageMatchMinutes)}
-            detail={`${stats.totalMatchMinutes} total minutes`}
+            detail={t("players.stats.detail.total_minutes", { count: stats.totalMatchMinutes })}
           />
           <PlayerStatRow
-            label="Goals"
+            label={t("players.stats.detail.goals")}
             value={String(stats.matchGoals)}
-            detail="season match goals"
+            detail={t("players.stats.detail.goals_help")}
           />
           <PlayerStatRow
-            label="Assists"
+            label={t("players.stats.detail.assists")}
             value={String(stats.matchAssists)}
-            detail="season match assists"
+            detail={t("players.stats.detail.assists_help")}
           />
           <PlayerStatRow
-            label="Yellow cards"
+            label={t("players.stats.detail.yellow_cards")}
             value={String(stats.matchYellowCards)}
-            detail="season yellow cards"
+            detail={t("players.stats.detail.yellow_cards_help")}
           />
           <PlayerStatRow
-            label="Red cards"
+            label={t("players.stats.detail.red_cards")}
             value={String(stats.matchRedCards)}
-            detail="season red cards"
+            detail={t("players.stats.detail.red_cards_help")}
           />
           {isCleanSheetPosition(stats.position) ? (
             <PlayerStatRow
-              label="Clean sheets"
+              label={t("players.stats.detail.clean_sheets")}
               value={String(stats.matchCleanSheets)}
-              detail="0 conceded and at least 60 minutes played"
+              detail={t("players.stats.detail.clean_sheets_help")}
             />
           ) : null}
           <PlayerStatRow
-            label="Average rating"
+            label={t("players.stats.detail.average_rating")}
             value={formatNullableNumber(stats.averageMatchRating)}
-            detail="per rated match"
+            detail={t("players.stats.detail.average_rating_help")}
           />
           <PlayerStatRow
-            label="Goals/90"
+            label={t("players.stats.detail.goals_per_90")}
             value={formatNullableNumber(stats.matchGoalsPer90)}
-            detail="goals per 90 minutes"
+            detail={t("players.stats.detail.goals_per_90_help")}
           />
           <PlayerStatRow
-            label="Assists/90"
+            label={t("players.stats.detail.assists_per_90")}
             value={formatNullableNumber(stats.matchAssistsPer90)}
-            detail="assists per 90 minutes"
+            detail={t("players.stats.detail.assists_per_90_help")}
           />
           <PlayerStatRow
-            label="Match duties"
+            label={t("players.stats.detail.match_duties")}
             value={String(stats.matchDutiesAssigned)}
-            detail={`${stats.matchDutiesFulfilled} fulfilled`}
+            detail={t("players.stats.detail.duties_fulfilled", { count: stats.matchDutiesFulfilled })}
           />
           <PlayerStatRow
-            label="Duty fulfillment"
+            label={t("players.stats.detail.duty_fulfillment")}
             value={formatPercentage(stats.matchDutyFulfillmentPercentage)}
-            detail="fulfilled per assignment"
+            detail={t("players.stats.detail.duty_fulfillment_help")}
           />
         </ThemedView>
         <RecentMatchRatings
@@ -407,12 +510,13 @@ export function PlayerStatsPanel({ stats }: { stats: PlayerAttendanceStats }) {
 }
 
 function RecentMatchRatings({ ratings }: { ratings: number[] }) {
+  const { t } = useI18n();
   return (
     <ThemedView type="backgroundElement" style={styles.recentRatingsGroup}>
-      <ThemedText type="smallBold">Recent form</ThemedText>
+      <ThemedText type="smallBold">{t("players.stats.recent_form")}</ThemedText>
       {ratings.length === 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          No match ratings yet.
+          {t("players.stats.no_ratings")}
         </ThemedText>
       ) : (
         <ThemedView type="backgroundElement" style={styles.recentRatingList}>

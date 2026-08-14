@@ -187,7 +187,7 @@ export function formatPlayerMeta(player: Player) {
   return `${kitNumber} · ${player.position}`;
 }
 
-export function formatPlayerName(player: Player, preferNicknames = true) {
+export function formatPlayerName(player: Player, preferNicknames = false) {
   return preferNicknames && player.nickName
     ? player.nickName
     : player.firstName;
@@ -196,4 +196,3 @@ export function formatPlayerName(player: Player, preferNicknames = true) {
 export function formatPlayerDisplayName(player: Player) {
   return [player.firstName, player.lastName].filter(Boolean).join(" ");
 }
-

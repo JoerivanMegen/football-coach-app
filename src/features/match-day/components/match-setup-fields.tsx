@@ -59,9 +59,11 @@ export function MatchTextInput({
 }
 
 export function MatchDatePickerField({
+  maximumDate,
   onChange,
   value,
 }: {
+  maximumDate?: Date;
   onChange: (value: string) => void;
   value: string;
 }) {
@@ -118,6 +120,7 @@ export function MatchDatePickerField({
           <DateTimePicker
             display={Platform.OS === "ios" ? "spinner" : "calendar"}
             mode="date"
+            maximumDate={maximumDate}
             onDismiss={handleDismiss}
             onValueChange={handleValueChange}
             value={selectedDate}

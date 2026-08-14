@@ -1,10 +1,11 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { SymbolView } from "expo-symbols";
 import { type Dispatch, type SetStateAction, useState } from "react";
-import { Pressable } from "react-native";
+import { Modal, Pressable, ScrollView } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ActionColors } from "@/constants/theme";
 import { LineupJersey, ReviewPitch } from "@/features/match-day/components/lineup-components";
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
 import {
@@ -39,8 +40,6 @@ import {
 import {
   clearSubstitutionMinutes,
   createDefaultMatchPlayerResultStat,
-  getAttendanceLabel,
-  getCardLabel,
   getMaxAssistsForPlayer,
   getMaxGoalsForPlayer,
   getRestoredAttendanceMinutes,
@@ -54,13 +53,11 @@ export function MatchResultScoreStep({
   form,
   onChangeForm,
   opponent,
-  resultLabel,
   teamName,
 }: {
   form: MatchResultFormState;
   onChangeForm: Dispatch<SetStateAction<MatchResultFormState>>;
   opponent: string;
-  resultLabel: string;
   teamName: string;
 }) {
   const { t } = useI18n();
@@ -72,7 +69,7 @@ export function MatchResultScoreStep({
             {teamName}
           </ThemedText>
           <ScoreStepper
-            accessibilityLabel={`${teamName} score`}
+            accessibilityLabel={t("matchday.result.score.your_team")}
             value={form.ownScore}
             onChange={(ownScore) =>
               onChangeForm((currentForm) => ({
@@ -105,10 +102,18 @@ export function MatchResultScoreStep({
       </ThemedView>
 
       <ThemedView type="backgroundElement" style={styles.resultSummary}>
-        <ThemedText type="code" themeColor="textSecondary">
+        <ThemedText type="small" themeColor="textSecondary">
           {t("matchday.result.steps.result")}
         </ThemedText>
-        <ThemedText type="smallBold">{resultLabel}</ThemedText>
+        <ThemedText type="smallBold">
+          {t(
+            form.ownScore > form.opponentScore
+              ? "matchday.result.outcome.won"
+              : form.ownScore < form.opponentScore
+                ? "matchday.result.outcome.lost"
+                : "matchday.result.outcome.drawn",
+          )}
+        </ThemedText>
       </ThemedView>
 
       <MatchTextInput
@@ -128,32 +133,28 @@ export function MatchResultScoreStep({
 
 export function MatchResultPlayerStep({
   form,
+  kitSettings,
   matchDurationMinutes,
+  match,
   matchDutyPlayerIds,
   onChangeForm,
   preferNicknames,
   squadEntries,
-  teamName,
 }: {
   form: MatchResultFormState;
+  kitSettings: LineupKitSettings;
   matchDurationMinutes: number;
+  match: MatchDayMatch | null;
   matchDutyPlayerIds: number[];
   onChangeForm: Dispatch<SetStateAction<MatchResultFormState>>;
   preferNicknames: boolean;
   squadEntries: MatchResultSquadEntry[];
-  teamName: string;
 }) {
   const { t } = useI18n();
-  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(
-    squadEntries[0]?.player.id ?? null,
-  );
-  const availablePlayerIds = new Set(
-    squadEntries.map((entry) => entry.player.id),
-  );
-  const effectiveExpandedPlayerId =
-    expandedPlayerId !== null && availablePlayerIds.has(expandedPlayerId)
-      ? expandedPlayerId
-      : (squadEntries[0]?.player.id ?? null);
+  const theme = useTheme();
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const selectedEntry =
+    squadEntries.find((entry) => entry.player.id === selectedPlayerId) ?? null;
 
   function updatePlayerStat(
     playerId: number,
@@ -200,69 +201,188 @@ export function MatchResultPlayerStep({
         <ThemedText type="small" themeColor="textSecondary">
           {t("matchday.result.player_performance.description", {
             minutes: matchDurationMinutes,
-            score: teamName,
+            score: form.ownScore,
           })}
         </ThemedText>
       </ThemedView>
 
       {squadEntries.length > 0 ? (
-        <ThemedView style={styles.playerPerformanceList}>
-          {squadEntries.map((entry) => {
-            const stat =
-              form.playerResultStats[entry.player.id] ??
-              createDefaultMatchPlayerResultStat(
-                entry.role,
-                matchDurationMinutes,
-              );
-            const isExpanded = effectiveExpandedPlayerId === entry.player.id;
-            const maxGoalsForPlayer = getMaxGoalsForPlayer(
-              entry.player.id,
-              stat.goals,
-              form.playerResultStats,
-              squadEntries,
-              form.ownScore,
-            );
-            const maxAssistsForPlayer = getMaxAssistsForPlayer(
-              entry.player.id,
-              stat.assists,
-              form.playerResultStats,
-              squadEntries,
-              form.ownScore,
-            );
+        <>
+          {match ? (
+            <ReviewPitch
+              form={createMatchSetupFormStateFromMatch(match)}
+              kitSettings={kitSettings}
+              matchDurationMinutes={matchDurationMinutes}
+              onPlayerPress={(player) => setSelectedPlayerId(player.id)}
+              playerResultStats={form.playerResultStats}
+              playerRoleById={new Map(
+                squadEntries.map((entry) => [entry.player.id, entry.role]),
+              )}
+              players={squadEntries.map((entry) => entry.player)}
+              preferNicknames={preferNicknames}
+            />
+          ) : null}
 
-            return (
-              <PlayerPerformanceCard
-                key={entry.player.id}
-                isExpanded={isExpanded}
-                isMatchDuty={matchDutyPlayerIds.includes(entry.player.id)}
-                isMatchDutyFulfilled={form.fulfilledMatchDutyPlayerIds.includes(
-                  entry.player.id,
-                )}
-                maxAssists={maxAssistsForPlayer}
-                maxGoals={maxGoalsForPlayer}
-                player={entry.player}
-                preferNicknames={preferNicknames}
-                role={entry.role}
-                stat={stat}
-                teamScore={form.ownScore}
-                matchDurationMinutes={matchDurationMinutes}
-                onChange={(update) =>
-                  updatePlayerStat(entry.player.id, entry.role, update)
-                }
-                onMatchDutyFulfilledChange={(isFulfilled) =>
-                  updateMatchDutyFulfilled(entry.player.id, isFulfilled)
-                }
-                onToggle={() =>
-                  setExpandedPlayerId((currentPlayerId) =>
-                    currentPlayerId === entry.player.id
-                      ? null
-                      : entry.player.id,
-                  )
-                }
+          <ThemedView style={styles.reviewListSection}>
+            <ThemedText type="default">
+              {t("matchday.add_match.lineup.substitutes")}
+            </ThemedText>
+            <ThemedView style={styles.resultSubstituteGrid}>
+              {squadEntries
+                .filter((entry) => entry.role === "substitute")
+                .map((entry) => (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t(
+                      "matchday.result.player_performance.edit_player",
+                      {
+                        player: formatPlayerName(
+                          entry.player,
+                          preferNicknames,
+                        ),
+                      },
+                    )}
+                    key={entry.player.id}
+                    onPress={() => setSelectedPlayerId(entry.player.id)}
+                    style={({ pressed }) => [
+                      styles.resultSubstituteRow,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <LineupJersey
+                      compact
+                      dense
+                      isCaptain={entry.player.id === match?.captainPlayerId}
+                      kitSettings={kitSettings}
+                      player={entry.player}
+                      preferNicknames={preferNicknames}
+                      resultBadges={getJerseyResultBadges(
+                        form.playerResultStats[entry.player.id],
+                        entry.role,
+                        matchDurationMinutes,
+                      )}
+                      showName
+                    />
+                  </Pressable>
+                ))}
+            </ThemedView>
+          </ThemedView>
+
+          <Modal
+            animationType="fade"
+            onRequestClose={() => setSelectedPlayerId(null)}
+            transparent
+            visible={selectedEntry !== null}
+          >
+            <ThemedView style={styles.playerResultEditorOverlay}>
+              <Pressable
+                onPress={() => setSelectedPlayerId(null)}
+                style={styles.playerResultEditorBackdrop}
               />
-            );
-          })}
-        </ThemedView>
+              <ThemedView
+                type="modalBackground"
+                style={styles.playerResultEditorCard}
+              >
+                <ThemedView style={styles.playerResultEditorHeader}>
+                  <ThemedText type="default">
+                    {selectedEntry
+                      ? formatPlayerName(
+                          selectedEntry.player,
+                          preferNicknames,
+                        )
+                      : ""}
+                  </ThemedText>
+                  <Pressable
+                    accessibilityLabel={t("common.close")}
+                    accessibilityRole="button"
+                    onPress={() => setSelectedPlayerId(null)}
+                    style={({ pressed }) => pressed && styles.pressed}
+                  >
+                    <SymbolView
+                      name={{ ios: "xmark", android: "close", web: "close" }}
+                      size={20}
+                      tintColor={theme.text}
+                    />
+                  </Pressable>
+                </ThemedView>
+                <ScrollView
+                  contentContainerStyle={styles.playerResultEditorContent}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {selectedEntry ? (
+                    <PlayerPerformanceCard
+                      isExpanded
+                      isMatchDuty={matchDutyPlayerIds.includes(
+                        selectedEntry.player.id,
+                      )}
+                      isMatchDutyFulfilled={form.fulfilledMatchDutyPlayerIds.includes(
+                        selectedEntry.player.id,
+                      )}
+                      matchDurationMinutes={matchDurationMinutes}
+                      maxAssists={getMaxAssistsForPlayer(
+                        selectedEntry.player.id,
+                        form.playerResultStats[selectedEntry.player.id]
+                          ?.assists ?? 0,
+                        form.playerResultStats,
+                        squadEntries,
+                        form.ownScore,
+                      )}
+                      maxGoals={getMaxGoalsForPlayer(
+                        selectedEntry.player.id,
+                        form.playerResultStats[selectedEntry.player.id]?.goals ??
+                          0,
+                        form.playerResultStats,
+                        squadEntries,
+                        form.ownScore,
+                      )}
+                      onChange={(update) =>
+                        updatePlayerStat(
+                          selectedEntry.player.id,
+                          selectedEntry.role,
+                          update,
+                        )
+                      }
+                      onMatchDutyFulfilledChange={(isFulfilled) =>
+                        updateMatchDutyFulfilled(
+                          selectedEntry.player.id,
+                          isFulfilled,
+                        )
+                      }
+                      onToggle={() => undefined}
+                      player={selectedEntry.player}
+                      preferNicknames={preferNicknames}
+                      role={selectedEntry.role}
+                      stat={
+                        form.playerResultStats[selectedEntry.player.id] ??
+                        createDefaultMatchPlayerResultStat(
+                          selectedEntry.role,
+                          matchDurationMinutes,
+                        )
+                      }
+                      teamScore={form.ownScore}
+                    />
+                  ) : null}
+                </ScrollView>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setSelectedPlayerId(null)}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    styles.playerResultEditorDoneButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <ThemedText
+                    type="smallBold"
+                    style={styles.primaryButtonText}
+                  >
+                    {t("common.done")}
+                  </ThemedText>
+                </Pressable>
+              </ThemedView>
+            </ThemedView>
+          </Modal>
+        </>
       ) : (
         <ThemedView type="backgroundElement" style={styles.resultSummary}>
           <ThemedText type="small" themeColor="textSecondary">
@@ -321,7 +441,10 @@ export function MatchResultReviewStep({
           {teamName} {form.ownScore} - {form.opponentScore} {match.opponent}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {formatIsoDateForDisplay(match.matchDate)} at {match.startTime}
+          {t("matchday.overview.card.date_time", {
+            date: formatIsoDateForDisplay(match.matchDate),
+            time: match.startTime,
+          })}
         </ThemedText>
       </ThemedView>
 
@@ -369,7 +492,7 @@ export function MatchResultReviewStep({
 
       {form.resultNotes.trim() ? (
         <ThemedView type="backgroundElement" style={styles.resultSummary}>
-          <ThemedText type="code" themeColor="textSecondary">
+          <ThemedText type="small" themeColor="textSecondary">
             {t("matchday.result.player_performance.notes")}
           </ThemedText>
           <ThemedText type="small">{form.resultNotes.trim()}</ThemedText>
@@ -431,14 +554,28 @@ export function PlayerPerformanceCard({
           <ThemedText type="smallBold" numberOfLines={1}>
             {formatPlayerName(player, preferNicknames)}
           </ThemedText>
-          <ThemedText type="code" themeColor="textSecondary">
-            {isStarter ? "Starter" : "Substitute"}
+          <ThemedText type="small" themeColor="textSecondary">
+            {t(
+              isStarter
+                ? "matchday.result.player_performance.role.starter"
+                : "matchday.result.player_performance.role.substitute",
+            )}
           </ThemedText>
         </ThemedView>
-        <ThemedText type="code" themeColor="textSecondary">
-          {stat.minutesPlayed} min · {stat.goals}G · {stat.assists}A ·{" "}
-          {stat.rating} · {getAttendanceLabel(stat.attendance)}
-          {stat.card === "none" ? "" : ` · ${getCardLabel(stat.card)}`}
+        <ThemedText type="small" themeColor="textSecondary">
+          {t("matchday.result.player_performance.summary", {
+            minutes: stat.minutesPlayed,
+            goals: stat.goals,
+            assists: stat.assists,
+            rating: stat.rating,
+            attendance: t(
+              `matchday.result.player_performance.attendance.${stat.attendance === "no-show" ? "no_show" : stat.attendance}`,
+            ),
+            card:
+              stat.card === "none"
+                ? ""
+                : ` · ${t(`matchday.result.player_performance.${stat.card}`)}`,
+          })}
         </ThemedText>
       </Pressable>
 
@@ -448,7 +585,9 @@ export function PlayerPerformanceCard({
             <StatStepper
               label={t("matchday.result.player_performance.goals")}
               max={maxGoals}
-              maxWarning={`You've already added ${teamScore} goals scored!`}
+              maxWarning={t("matchday.result.validation.scoring_limit", {
+                score: teamScore,
+              })}
               value={stat.goals}
               onChange={(goals) =>
                 onChange((currentStat) => ({ ...currentStat, goals }))
@@ -457,7 +596,9 @@ export function PlayerPerformanceCard({
             <StatStepper
               label={t("matchday.result.player_performance.assists")}
               max={maxAssists}
-              maxWarning={`You've already added ${teamScore} goals scored!`}
+              maxWarning={t("matchday.result.validation.scoring_limit", {
+                score: teamScore,
+              })}
               value={stat.assists}
               onChange={(assists) =>
                 onChange((currentStat) => ({ ...currentStat, assists }))
@@ -620,9 +761,8 @@ function getSubDirection(
 }
 
 function MatchCategoryIcon({ category, size }: { category: MatchCategory; size: number }) {
-  const theme = useTheme();
   if (category === "friendly") {
-    return <FontAwesome6 name="handshake" solid color={theme.text} size={size} />;
+    return <FontAwesome6 name="handshake" solid color={ActionColors.primary} size={size} />;
   }
-  return <SymbolView name={getMatchCategoryIcon(category)} tintColor={theme.text} size={size} />;
+  return <SymbolView name={getMatchCategoryIcon(category)} tintColor={ActionColors.primary} size={size} />;
 }

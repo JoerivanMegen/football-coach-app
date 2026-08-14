@@ -1,6 +1,13 @@
 import { StyleSheet } from "react-native";
 
-import { AppHeaderHeight, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import {
+  ActionColors,
+  AppHeaderHeight,
+  CompactScreenTopMargin,
+  MaxContentWidth,
+  PageTopPadding,
+  Spacing,
+} from "@/constants/theme";
 
 export const matchDayStyles = StyleSheet.create({
   scrollView: {
@@ -14,6 +21,7 @@ export const matchDayStyles = StyleSheet.create({
     flexGrow: 1,
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
+    marginTop: CompactScreenTopMargin,
     paddingHorizontal: Spacing.four,
     paddingTop: AppHeaderHeight + PageTopPadding,
   },
@@ -167,6 +175,23 @@ export const matchDayStyles = StyleSheet.create({
   },
   resultMatchButtonText: {
     color: "#ffffff",
+  },
+  editResultMatchButton: {
+    alignItems: "center",
+    backgroundColor: "transparent",
+    borderColor: ActionColors.primary,
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    flex: 1,
+    flexDirection: "row",
+    gap: Spacing.one,
+    justifyContent: "center",
+    minHeight: 40,
+    minWidth: 116,
+    paddingHorizontal: Spacing.two,
+  },
+  editResultMatchButtonText: {
+    color: ActionColors.primary,
   },
   editMatchButton: {
     alignItems: "center",
@@ -339,6 +364,14 @@ export const matchDayStyles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.two,
     justifyContent: "space-between",
+    width: "100%",
+  },
+  shareColorHeaderText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  shareColorHeaderChevron: {
+    flexShrink: 0,
   },
   shareColorSectionList: {
     gap: Spacing.three,
@@ -500,6 +533,40 @@ export const matchDayStyles = StyleSheet.create({
   playerPerformanceList: {
     gap: Spacing.two,
   },
+  playerResultEditorOverlay: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+    padding: Spacing.three,
+  },
+  playerResultEditorBackdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.58)",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  playerResultEditorCard: {
+    borderRadius: Spacing.three,
+    gap: Spacing.two,
+    maxHeight: "90%",
+    maxWidth: 560,
+    padding: Spacing.three,
+    width: "100%",
+  },
+  playerResultEditorHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 36,
+  },
+  playerResultEditorContent: {
+    paddingBottom: Spacing.one,
+  },
+  playerResultEditorDoneButton: {
+    width: "100%",
+  },
   playerPerformanceCard: {
     borderRadius: Spacing.two,
     gap: Spacing.two,
@@ -635,6 +702,11 @@ export const matchDayStyles = StyleSheet.create({
   },
   availabilityPlayerInfo: {
     flex: 1,
+    gap: Spacing.half,
+  },
+  availabilityPlayerNameRow: {
+    alignItems: "center",
+    flexDirection: "row",
     gap: Spacing.half,
   },
   availabilityToggle: {
@@ -986,8 +1058,10 @@ export const matchDayStyles = StyleSheet.create({
     padding: Spacing.three,
   },
   statsPopupCard: {
+    borderColor: ActionColors.primary,
     borderRadius: Spacing.three,
-    gap: Spacing.three,
+    borderWidth: 1,
+    gap: Spacing.two,
     maxWidth: 580,
     padding: Spacing.three,
     width: "100%",
@@ -999,15 +1073,17 @@ export const matchDayStyles = StyleSheet.create({
   },
   statsPopupTitleGroup: {
     flex: 1,
+    gap: Spacing.one,
   },
   statsPopupName: {
-    fontSize: 48,
-    fontWeight: "500",
-    lineHeight: 54,
+    fontSize: 32,
+    fontWeight: "700",
+    lineHeight: 38,
   },
   statsPopupPosition: {
-    fontSize: 20,
-    lineHeight: 28,
+    fontSize: 14,
+    fontWeight: "600",
+    lineHeight: 20,
   },
   statsPopupGrid: {
     flexDirection: "row",
@@ -1015,90 +1091,92 @@ export const matchDayStyles = StyleSheet.create({
     gap: Spacing.one,
   },
   statsPopupPanel: {
-    backgroundColor: "#4752A0",
+    borderColor: ActionColors.primary,
     borderRadius: Spacing.three,
+    borderWidth: 1,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.two,
   },
   statsPopupWidePanel: {
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: "48%",
-    minHeight: 112,
+    minHeight: 88,
   },
   statsPopupMetricPanel: {
     alignItems: "center",
     flexGrow: 1,
     flexShrink: 1,
     flexBasis: "31%",
-    minHeight: 108,
+    minHeight: 82,
   },
   statsPopupPanelTitle: {
-    color: "#ffffff",
-    fontSize: 24,
-    lineHeight: 30,
+    color: ActionColors.primary,
+    fontSize: 18,
+    fontWeight: "700",
+    lineHeight: 24,
   },
   statsPopupRatingList: {
     backgroundColor: "transparent",
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Spacing.one,
-    marginTop: Spacing.two,
+    marginTop: Spacing.one,
   },
   statsPopupRatingPill: {
     alignItems: "center",
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
     height: 36,
     justifyContent: "center",
     width: 36,
   },
   statsPopupRatingGood: {
-    backgroundColor: "#5ED94F",
+    borderColor: ActionColors.primary,
   },
   statsPopupRatingOk: {
-    backgroundColor: "#FFE05C",
+    borderColor: ActionColors.warning,
   },
   statsPopupRatingPoor: {
-    backgroundColor: "#DC2626",
+    borderColor: ActionColors.danger,
   },
   statsPopupRatingText: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 16,
+    lineHeight: 20,
   },
-  statsPopupRatingTextLight: {
-    color: "#ffffff",
+  statsPopupRatingTextGood: {
+    color: ActionColors.primary,
   },
-  statsPopupRatingTextDark: {
-    color: "#111827",
+  statsPopupRatingTextOk: {
+    color: ActionColors.warning,
+  },
+  statsPopupRatingTextPoor: {
+    color: ActionColors.danger,
   },
   statsPopupEmptyText: {
-    color: "#ffffff",
     marginTop: Spacing.two,
   },
   statsPopupLargeValue: {
-    color: "#ffffff",
-    fontSize: 36,
+    color: ActionColors.primary,
+    fontSize: 28,
     fontWeight: "700",
-    lineHeight: 42,
-    marginTop: Spacing.one,
+    lineHeight: 34,
   },
   statsPopupSmallDetail: {
-    color: "rgba(255, 255, 255, 0.78)",
     fontSize: 12,
     lineHeight: 16,
   },
   statsPopupMetricTitle: {
-    color: "#ffffff",
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
-    lineHeight: 24,
+    lineHeight: 20,
     textAlign: "center",
   },
   statsPopupMetricValue: {
-    color: "#ffffff",
-    fontSize: 48,
-    fontWeight: "400",
-    lineHeight: 56,
+    color: ActionColors.primary,
+    fontSize: 30,
+    fontWeight: "700",
+    lineHeight: 36,
     textAlign: "center",
   },
   playerPickerList: {
@@ -1423,12 +1501,14 @@ export const matchDayStyles = StyleSheet.create({
     backgroundColor: "#FF7A1A",
   },
   reviewSaveButton: {
-    backgroundColor: "transparent",
-    borderColor: "#1C7C54",
+    backgroundColor: ActionColors.primary,
+    borderColor: ActionColors.primary,
     borderWidth: 1.5,
+    flex: 1.35,
   },
   reviewSaveButtonText: {
-    color: "#1C7C54",
+    color: ActionColors.onAccent,
+    textAlign: "center",
   },
   reviewActionText: {
     color: "#ffffff",

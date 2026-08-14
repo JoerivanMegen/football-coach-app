@@ -10,7 +10,7 @@ import { defaultMatchDurationMinutes, formationSlots, kitShirtPath, matchFormati
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
 import type { AssignmentSlot, DropTarget, JerseyResultBadges, LayoutBox, LineupAssignments, LineupKitSettings, MatchFormation, MatchResultSquadEntry, MatchSetupFormState, PitchLayout } from "@/features/match-day/match-day-view-types";
 import type { MatchPlayerResultStat, MatchPlayerResultStats } from "@/features/match-day/match-day-types";
-import { findNearestDropTarget, formatAssignmentSlotLabel, formatPlayerDisplayName, formatPlayerMeta, formatPlayerName, getAssignedPlayer, getPitchSlotCenter, resetDragPosition, sortPlayersForAssignmentSlot } from "@/features/match-day/lineup-utils";
+import { findNearestDropTarget, formatPlayerDisplayName, formatPlayerMeta, formatPlayerName, getAssignedPlayer, getPitchSlotCenter, resetDragPosition, sortPlayersForAssignmentSlot } from "@/features/match-day/lineup-utils";
 import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
 import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
 import type { Player } from "@/features/players/player-types";
@@ -21,6 +21,7 @@ export function ReviewPitch({
   form,
   kitSettings,
   matchDurationMinutes = defaultMatchDurationMinutes,
+  onPlayerPress,
   playerResultStats,
   playerRoleById,
   players,
@@ -29,11 +30,13 @@ export function ReviewPitch({
   form: MatchSetupFormState;
   kitSettings: LineupKitSettings;
   matchDurationMinutes?: number;
+  onPlayerPress?: (player: Player) => void;
   playerResultStats?: MatchPlayerResultStats;
   playerRoleById?: Map<number, MatchResultSquadEntry["role"]>;
   players: Player[];
   preferNicknames: boolean;
 }) {
+  const { t } = useI18n();
   const selectedFormation = normalizeMatchFormation(form.formation);
   const slots = formationSlots[selectedFormation];
 
@@ -59,8 +62,24 @@ export function ReviewPitch({
           }
 
           return (
-            <ThemedView
+            <Pressable
+              accessibilityRole={onPlayerPress ? "button" : undefined}
+              accessibilityLabel={
+                onPlayerPress
+                  ? t("matchday.result.player_performance.edit_player", {
+                      player: formatPlayerName(
+                        assignedPlayer,
+                        preferNicknames,
+                      ),
+                    })
+                  : undefined
+              }
               key={`${selectedFormation}-${slot.id}`}
+              onPress={
+                onPlayerPress
+                  ? () => onPlayerPress(assignedPlayer)
+                  : undefined
+              }
               style={[
                 styles.reviewPitchPlayer,
                 {
@@ -87,7 +106,7 @@ export function ReviewPitch({
                 }
                 showName
               />
-            </ThemedView>
+            </Pressable>
           );
         })}
       </ThemedView>
@@ -200,7 +219,9 @@ export function SubstituteBench({
             <Pressable
               key={slot.id}
               accessibilityRole="button"
-              accessibilityLabel={`Add substitute ${slot.label}`}
+              accessibilityLabel={t("matchday.add_match.lineup.add_substitute", {
+                label: slot.label,
+              })}
               onLayout={(event) => handleSlotLayout(slot.id, event)}
               onPress={() => onSelectSlot(slot.id)}
               style={({ pressed }) => [
@@ -324,7 +345,7 @@ export function FootballPitch({
                 +
               </ThemedText>
               {slot.label ? (
-                <ThemedText type="code" style={styles.pitchSlotLabel}>
+                <ThemedText type="small" style={styles.pitchSlotLabel}>
                   {slot.label}
                 </ThemedText>
               ) : null}
@@ -580,7 +601,10 @@ export function MatchdayPlayerStatsModal({
               <ThemedText style={styles.statsPopupName} numberOfLines={1}>
                 {formatPlayerDisplayName(player)}
               </ThemedText>
-              <ThemedText style={styles.statsPopupPosition}>
+              <ThemedText
+                themeColor="textSecondary"
+                style={styles.statsPopupPosition}
+              >
                 {getPlayerPositionLabel(player.position, locale)}
               </ThemedText>
             </ThemedView>
@@ -604,6 +628,7 @@ export function MatchdayPlayerStatsModal({
 
           <ThemedView style={styles.statsPopupGrid}>
             <ThemedView
+              type="backgroundElement"
               style={[styles.statsPopupPanel, styles.statsPopupWidePanel]}
             >
               <ThemedText style={styles.statsPopupPanelTitle}>
@@ -632,13 +657,17 @@ export function MatchdayPlayerStatsModal({
                   ))}
                 </ThemedView>
               ) : (
-                <ThemedText style={styles.statsPopupEmptyText}>
+                <ThemedText
+                  themeColor="textSecondary"
+                  style={styles.statsPopupEmptyText}
+                >
                   {t("matchday.player_stats.no_ratings")}
                 </ThemedText>
               )}
             </ThemedView>
 
             <ThemedView
+              type="backgroundElement"
               style={[styles.statsPopupPanel, styles.statsPopupWidePanel]}
             >
               <ThemedText style={styles.statsPopupPanelTitle}>
@@ -649,7 +678,10 @@ export function MatchdayPlayerStatsModal({
                   stats?.recentTrainingAttendancePercentage ?? null,
                 )}
               </ThemedText>
-              <ThemedText style={styles.statsPopupSmallDetail}>
+              <ThemedText
+                themeColor="textSecondary"
+                style={styles.statsPopupSmallDetail}
+              >
                 {t("matchday.player_stats.recent_period")}
               </ThemedText>
             </ThemedView>
@@ -681,7 +713,10 @@ export function MatchdayStatsMetric({
   value: string;
 }) {
   return (
-    <ThemedView style={[styles.statsPopupPanel, styles.statsPopupMetricPanel]}>
+    <ThemedView
+      type="backgroundElement"
+      style={[styles.statsPopupPanel, styles.statsPopupMetricPanel]}
+    >
       <ThemedText style={styles.statsPopupMetricTitle}>{label}</ThemedText>
       <ThemedText style={styles.statsPopupMetricValue}>{value}</ThemedText>
     </ThemedView>
@@ -709,6 +744,7 @@ export function PlayerPickerSheet({
   selectedSlot: AssignmentSlot | null;
   visible: boolean;
 }) {
+  const { t } = useI18n();
   const assignedPlayerId = selectedSlot
     ? assignedPlayerIds[selectedSlot.id]
     : undefined;
@@ -736,18 +772,15 @@ export function PlayerPickerSheet({
           <ThemedView style={styles.playerPickerHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">
-                {selectedPlayer ? "Change player" : "Choose player"}
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {selectedSlot
-                  ? formatAssignmentSlotLabel(selectedSlot)
-                  : "Position"}
+                {selectedPlayer
+                  ? t("matchday.add_match.lineup.change_player")
+                  : t("matchday.add_match.lineup.choose_player")}
               </ThemedText>
             </ThemedView>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close player picker"
+              accessibilityLabel={t("matchday.add_match.lineup.close_picker")}
               onPress={onClose}
               style={({ pressed }) => [
                 styles.iconButton,
@@ -788,7 +821,7 @@ export function PlayerPickerSheet({
                       <ThemedText type="smallBold">
                         {formatPlayerName(player, preferNicknames)}
                       </ThemedText>
-                      <ThemedText type="code" themeColor="textSecondary">
+                      <ThemedText type="small" themeColor="textSecondary">
                         {formatPlayerMeta(player)}
                       </ThemedText>
                     </ThemedView>
@@ -797,7 +830,7 @@ export function PlayerPickerSheet({
               })
             ) : (
               <ThemedText type="small" themeColor="textSecondary">
-                Add players first to build a lineup.
+                {t("matchday.add_match.lineup.add_players_first")}
               </ThemedText>
             )}
           </ScrollView>
@@ -805,7 +838,7 @@ export function PlayerPickerSheet({
           {selectedPlayer ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Remove player from position"
+              accessibilityLabel={t("matchday.add_match.lineup.remove_player")}
               onPress={onRemove}
               style={({ pressed }) => [
                 styles.removePlayerButton,
@@ -816,7 +849,7 @@ export function PlayerPickerSheet({
                 type="smallBold"
                 style={styles.removePlayerButtonText}
               >
-                Remove from position
+                {t("matchday.add_match.lineup.remove_player")}
               </ThemedText>
             </Pressable>
           ) : null}
@@ -882,7 +915,7 @@ export function LineupJersey({
             ]}
           >
             <ThemedText
-              type="code"
+              type="small"
               style={[
                 styles.captainBadgeText,
                 compact && styles.captainBadgeTextCompact,
@@ -928,12 +961,24 @@ export function LineupJersey({
             ]}
             numberOfLines={compact ? 2 : 1}
           >
-            {formatPlayerName(player, preferNicknames ?? true)}
+            {formatPlayerName(player, preferNicknames ?? false)}
           </ThemedText>
         </ThemedView>
       ) : null}
     </ThemedView>
   );
+}
+
+function getMatchdayRatingPillStyle(rating: number) {
+  if (rating >= 8) return styles.statsPopupRatingGood;
+  if (rating >= 5) return styles.statsPopupRatingOk;
+  return styles.statsPopupRatingPoor;
+}
+
+function getMatchdayRatingTextStyle(rating: number) {
+  if (rating >= 8) return styles.statsPopupRatingTextGood;
+  if (rating >= 5) return styles.statsPopupRatingTextOk;
+  return styles.statsPopupRatingTextPoor;
 }
 
 export function LineupJerseyShape({
@@ -948,7 +993,9 @@ export function LineupJerseyShape({
   const fillColor = isGoalkeeper
     ? kitSettings.goalkeeperKitColor
     : kitSettings.outfieldKitColor;
-  const strokeColor = getKitOutlineColor(fillColor);
+  const strokeColor = isGoalkeeper
+    ? getKitOutlineColor(fillColor)
+    : "#111827";
 
   return (
     <Svg
@@ -1202,7 +1249,7 @@ export function JerseyResultBadgeOverlay({
             </ThemedView>
           ))}
           {badges.goals > 3 ? (
-            <ThemedText type="code" style={styles.jerseyResultEventCount}>
+            <ThemedText type="small" style={styles.jerseyResultEventCount}>
               {badges.goals}
             </ThemedText>
           ) : null}
@@ -1240,7 +1287,7 @@ export function JerseyResultBadgeOverlay({
             </ThemedView>
           ))}
           {badges.assists > 3 ? (
-            <ThemedText type="code" style={styles.jerseyResultEventCount}>
+            <ThemedText type="small" style={styles.jerseyResultEventCount}>
               {badges.assists}
             </ThemedText>
           ) : null}
@@ -1252,9 +1299,12 @@ export function JerseyResultBadgeOverlay({
 
 function getKitNumberOutlineColor(color: string) { return color.toUpperCase() === "#111827" ? "#FFFFFF" : "#111827"; }
 function normalizeMatchFormation(value: unknown): MatchFormation { return matchFormations.includes(value as MatchFormation) ? value as MatchFormation : "4-3-3"; }
-function getKitOutlineColor(color: string) { return color.toUpperCase() === "#111827" ? "#FFFFFF" : "#111827"; }
+function getKitOutlineColor(color: string) {
+  const normalizedColor = color.trim().toUpperCase();
+  return normalizedColor === "#000000" || normalizedColor === "#111827"
+    ? "#FFFFFF"
+    : "#111827";
+}
 function formatPercentage(value: number | null) { return value === null ? "-" : `${value}%`; }
 function formatNullableNumber(value: number | null) { return value === null ? "-" : String(value); }
-function getMatchdayRatingPillStyle(rating: number) { if (rating >= 8) return styles.statsPopupRatingGood; if (rating >= 5) return styles.statsPopupRatingOk; return styles.statsPopupRatingPoor; }
-function getMatchdayRatingTextStyle(rating: number) { return rating >= 5 && rating < 8 ? styles.statsPopupRatingTextDark : styles.statsPopupRatingTextLight; }
 function getJerseyResultBadges(stat: MatchPlayerResultStat | undefined, role: MatchResultSquadEntry["role"], duration: number): JerseyResultBadges | null { if (!stat) return null; return { assists: stat.assists, card: stat.card, goals: stat.goals, subDirection: stat.attendance === "no-show" ? null : role === "starter" && stat.minutesPlayed < duration ? "off" : role === "substitute" && stat.minutesPlayed > 0 ? "on" : null }; }

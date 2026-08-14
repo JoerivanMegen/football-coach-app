@@ -20,14 +20,29 @@ export function PlayerCard({
   onEditPlayer: (player: Player) => void;
   onOpenStats: () => void;
 }) {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const name = `${player.firstName} ${player.lastName}`;
 
   return (
     <ThemedView type="backgroundElement" style={styles.card}>
       <ThemedView type="backgroundElement" style={styles.row}>
         <ThemedView type="backgroundElement" style={styles.nameGroup}>
-          <ThemedText type="default">{name}</ThemedText>
+          <ThemedView type="backgroundElement" style={styles.playerNameRow}>
+            <ThemedText type="default">{name}</ThemedText>
+            {player.activeInjuryStartDate ? (
+              <ThemedView
+                accessibilityLabel={t("players.form.injury.badge")}
+                type="backgroundElement"
+                style={styles.injuryBadge}
+              >
+                <SymbolView
+                  name={{ ios: "cross.case.fill", android: "healing", web: "healing" }}
+                  tintColor={ActionColors.danger}
+                  size={16}
+                />
+              </ThemedView>
+            ) : null}
+          </ThemedView>
           <ThemedText type="small" themeColor="textSecondary">
             {getPlayerPositionLabel(player.position, locale)}
             {player.kitNumber !== null ? ` · #${player.kitNumber}` : ""}
@@ -81,6 +96,8 @@ const styles = StyleSheet.create({
   card: { borderRadius: Spacing.three, gap: Spacing.two, padding: Spacing.three },
   row: { alignItems: "center", flexDirection: "row", gap: Spacing.two, minHeight: 52 },
   nameGroup: { flex: 1, gap: Spacing.one },
+  playerNameRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
+  injuryBadge: { alignItems: "center", justifyContent: "center" },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.one, justifyContent: "flex-end" },
   actionButton: { alignItems: "center", backgroundColor: "transparent", borderRadius: Spacing.two, borderWidth: 1.5, height: 40, justifyContent: "center", minHeight: 40, width: 40 },
   pressed: { opacity: 0.65 },

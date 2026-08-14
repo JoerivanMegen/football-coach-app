@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 21;
+export const DATABASE_VERSION = 27;
 
 type UserVersionRow = {
   user_version: number;
@@ -375,7 +375,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
           match_duration_minutes INTEGER NOT NULL DEFAULT 90,
           training_days_json TEXT NOT NULL DEFAULT '[]',
           training_start_time TEXT NOT NULL DEFAULT '',
-          prefer_nicknames INTEGER NOT NULL DEFAULT 1,
+          prefer_nicknames INTEGER NOT NULL DEFAULT 0,
           fine_jar_enabled INTEGER NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL DEFAULT (datetime('now')),
           updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -434,7 +434,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
       await ensureTeamSettingsColumnAsync(
         db,
         "prefer_nicknames",
-        "INTEGER NOT NULL DEFAULT 1",
+        "INTEGER NOT NULL DEFAULT 0",
       );
       await ensureTeamSettingsColumnAsync(
         db,
@@ -609,6 +609,157 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         "INTEGER NOT NULL DEFAULT 1",
       );
       await db.execAsync("PRAGMA user_version = 21");
+    });
+  }
+
+  if (currentVersion < 22) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS fine_types (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+          amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS player_fines (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+          fine_type_id INTEGER REFERENCES fine_types(id) ON DELETE SET NULL,
+          fine_name TEXT NOT NULL,
+          amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+          is_paid INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_player_fines_paid_created
+          ON player_fines (is_paid, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_player_fines_player
+          ON player_fines (player_id);
+
+        CREATE TRIGGER IF NOT EXISTS trg_fine_types_updated_at
+        AFTER UPDATE ON fine_types
+        FOR EACH ROW
+        BEGIN
+          UPDATE fine_types SET updated_at = datetime('now') WHERE id = OLD.id;
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS trg_player_fines_updated_at
+        AFTER UPDATE ON player_fines
+        FOR EACH ROW
+        BEGIN
+          UPDATE player_fines SET updated_at = datetime('now') WHERE id = OLD.id;
+        END;
+      `);
+      await db.execAsync("PRAGMA user_version = 22");
+    });
+  }
+
+  if (currentVersion < 23) {
+    await db.withTransactionAsync(async () => {
+      await ensureTeamSettingsColumnAsync(
+        db,
+        "fine_jar_currency",
+        "TEXT NOT NULL DEFAULT 'EUR'",
+      );
+      await db.execAsync("PRAGMA user_version = 23");
+    });
+  }
+
+  if (currentVersion < 24) {
+    await db.withTransactionAsync(async () => {
+      await db.execAsync(`
+        CREATE TABLE IF NOT EXISTS player_injuries (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+          start_date TEXT NOT NULL,
+          end_date TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          CHECK (end_date IS NULL OR end_date >= start_date)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_player_injuries_player_dates
+          ON player_injuries (player_id, start_date, end_date);
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_player_injuries_active
+          ON player_injuries (player_id)
+          WHERE end_date IS NULL;
+
+        CREATE TRIGGER IF NOT EXISTS trg_player_injuries_updated_at
+        AFTER UPDATE ON player_injuries
+        FOR EACH ROW
+        BEGIN
+          UPDATE player_injuries
+          SET updated_at = datetime('now')
+          WHERE id = OLD.id;
+        END;
+      `);
+      await db.execAsync("PRAGMA user_version = 24");
+    });
+  }
+
+  if (currentVersion < 25) {
+    await db.withTransactionAsync(async () => {
+      const columns = await db.getAllAsync<TableInfoRow>(
+        "PRAGMA table_info(player_injuries)",
+      );
+      if (!columns.some((column) => column.name === "note")) {
+        await db.execAsync(
+          "ALTER TABLE player_injuries ADD COLUMN note TEXT NOT NULL DEFAULT ''",
+        );
+      }
+      await db.execAsync("PRAGMA user_version = 25");
+    });
+  }
+
+  if (currentVersion < 26) {
+    await db.withTransactionAsync(async () => {
+      const columns = await db.getAllAsync<TableInfoRow>(
+        "PRAGMA table_info(player_fines)",
+      );
+      if (!columns.some((column) => column.name === "season_id")) {
+        await db.execAsync(
+          "ALTER TABLE player_fines ADD COLUMN season_id INTEGER REFERENCES seasons(id) ON DELETE SET NULL",
+        );
+      }
+      await db.execAsync(`
+        UPDATE player_fines
+        SET season_id = (
+          SELECT id FROM seasons WHERE status = 'active' LIMIT 1
+        )
+        WHERE season_id IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_player_fines_season
+          ON player_fines (season_id);
+      `);
+      await db.execAsync("PRAGMA user_version = 26");
+    });
+  }
+
+  if (currentVersion < 27) {
+    await db.withTransactionAsync(async () => {
+      const columns = await db.getAllAsync<TableInfoRow>(
+        "PRAGMA table_info(player_fines)",
+      );
+      if (!columns.some((column) => column.name === "is_written_off")) {
+        await db.execAsync(
+          "ALTER TABLE player_fines ADD COLUMN is_written_off INTEGER NOT NULL DEFAULT 0",
+        );
+      }
+      if (!columns.some((column) => column.name === "is_carried_over")) {
+        await db.execAsync(
+          "ALTER TABLE player_fines ADD COLUMN is_carried_over INTEGER NOT NULL DEFAULT 0",
+        );
+      }
+      if (!columns.some((column) => column.name === "carried_from_fine_id")) {
+        await db.execAsync(
+          "ALTER TABLE player_fines ADD COLUMN carried_from_fine_id INTEGER REFERENCES player_fines(id) ON DELETE SET NULL",
+        );
+      }
+      await db.execAsync("PRAGMA user_version = 27");
     });
   }
 }

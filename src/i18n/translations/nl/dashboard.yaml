@@ -1,6 +1,17 @@
 header:
   title: Teamdashboard
   subtitle: Ga meteen naar wat je team nu nodig heeft.
+  injuries: "{{count}} geblesseerde speler"
+  injuries_plural: "{{count}} geblesseerde spelers"
+next_match:
+  preparation: "Klaar voor je wedstrijd tegen {{opponent}}? Plan je trainingen als voorbereiding!"
+  good_luck: "Veel succes tegen {{opponent}}!"
+  open_training: Open Trainingen om je op de komende wedstrijd voor te bereiden
+recent_win:
+  message: Gefeliciteerd met de overwinning!
+  result: "{{score}} tegen {{opponent}}"
+  share: Delen
+  share_accessibility: "De overwinning tegen {{opponent}} delen"
 actions:
   title: Acties
   setup_team:
@@ -20,8 +31,22 @@ actions:
     description: Stel je volgende wedstrijd en opstelling samen.
   add_match_result:
     title: Wedstrijduitslag toevoegen
+    title_plural: Wedstrijduitslagen toevoegen
     description: Leg vast hoe je wedstrijd is verlopen.
+    waiting_description: Voor een afgelopen wedstrijd moeten de uitslag en spelersstatistieken nog worden ingevuld.
+    waiting_description_plural: "Voor {{count}} afgelopen wedstrijden moeten de uitslagen en spelersstatistieken nog worden ingevuld."
+  add_training_attendance:
+    title: Trainingsaanwezigheid toevoegen
+    title_plural: Trainingsaanwezigheden toevoegen
+    description: Voor een afgelopen training moet de aanwezigheid nog worden ingevuld.
+    description_plural: "Voor {{count}} afgelopen trainingen moet de aanwezigheid nog worden ingevuld."
+  shortcuts:
+    training: Trainingen
+    match_day: Match day
+    team_stats: Teamstatistieken
 setup:
+  header:
+    step_progress: "Stap {{step}} van {{total}}"
   team_details:
     title: Teamgegevens
     team_name: Teamnaam
@@ -31,6 +56,8 @@ setup:
     club_location_placeholder: Sportpark, clubhuis of adres
   kit:
     title: Tenueontwerp
+    third_colour: Derde kleur
+    number_colour: Kleur rugnummer
   preferences:
     match_minutes: Wedstrijdduur
     match_minutes_help: Gebruik dit voor jeugdteams of competities met kortere wedstrijden.
@@ -38,9 +65,14 @@ setup:
     first_names: Voornamen
     fine_jar_on: Boetepot gebruiken
     fine_jar_off: Voorlopig overslaan
-    match_duties_on: Wedstrijdtaken gebruiken
-    match_duties_off: Geen wedstrijdtaken
+    match_duties_on: Corvee gebruiken
+    match_duties_off: Geen corvee
   actions:
     continue_team_settings: Doorgaan met teaminstellingen
     back_to_kit: Terug naar tenue-instellingen
-    save: Teaminstellingen opslaan
+    save: Instellingen opslaan
+    saving: Opslaan...
+  errors:
+    team_name_required: Teamnaam is verplicht.
+    invalid_match_minutes: De wedstrijdduur moet tussen 1 en 120 minuten liggen.
+    invalid_values: Controleer je teamnaam en kleurwaarden.

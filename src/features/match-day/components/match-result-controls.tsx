@@ -5,6 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { clampNumber, parseNumericInputValue } from "@/features/match-day/match-result-utils";
 import { useTheme } from "@/hooks/use-theme";
+import { useI18n } from "@/i18n/i18n-provider";
 
 import { matchDayStyles as styles } from "./match-day-styles";
 
@@ -12,11 +13,12 @@ export function NumericStepperInput({ label, max, min = 0, onChange, value }: {
   label: string; max: number; min?: number; onChange: (value: number) => void; value: number;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   return (
     <ThemedView style={styles.numericStepperGroup}>
-      <ThemedText type="code" themeColor="textSecondary">{label}</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">{label}</ThemedText>
       <ThemedView style={styles.numericStepper}>
-        <StepperButton label={`Decrease ${label}`} symbol="minus" onPress={() => onChange(clampNumber(value - 1, min, max))} />
+        <StepperButton label={t("matchday.result.controls.decrease", { label })} symbol="minus" onPress={() => onChange(clampNumber(value - 1, min, max))} />
         <TextInput
           keyboardType="number-pad"
           inputMode="numeric"
@@ -26,7 +28,7 @@ export function NumericStepperInput({ label, max, min = 0, onChange, value }: {
           style={[styles.numericStepperInput, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected, color: theme.text }]}
           value={String(value)}
         />
-        <StepperButton label={`Increase ${label}`} symbol="plus" onPress={() => onChange(clampNumber(value + 1, min, max))} />
+        <StepperButton label={t("matchday.result.controls.increase", { label })} symbol="plus" onPress={() => onChange(clampNumber(value + 1, min, max))} />
       </ThemedView>
     </ThemedView>
   );
@@ -35,20 +37,23 @@ export function NumericStepperInput({ label, max, min = 0, onChange, value }: {
 export function StatStepper({ label, max, maxWarning, min = 0, onChange, value }: {
   label: string; max?: number; maxWarning?: string; min?: number; onChange: (value: number) => void; value: number;
 }) {
+  const { t } = useI18n();
   function handleIncrease() {
     if (max !== undefined && value >= max) {
-      if (maxWarning) Alert.alert("Limit reached", maxWarning);
+      if (maxWarning) {
+        Alert.alert(t("matchday.result.validation.limit_reached"), maxWarning);
+      }
       return;
     }
     onChange(max === undefined ? value + 1 : Math.min(max, value + 1));
   }
   return (
     <ThemedView style={styles.statStepperGroup}>
-      <ThemedText type="code" themeColor="textSecondary">{label}</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">{label}</ThemedText>
       <ThemedView style={styles.statStepper}>
-        <StepperButton label={`Decrease ${label}`} symbol="minus" onPress={() => onChange(Math.max(min, value - 1))} />
+        <StepperButton label={t("matchday.result.controls.decrease", { label })} symbol="minus" onPress={() => onChange(Math.max(min, value - 1))} />
         <ThemedText type="smallBold" style={styles.statStepperValue}>{value}</ThemedText>
-        <StepperButton label={`Increase ${label}`} symbol="plus" onPress={handleIncrease} />
+        <StepperButton label={t("matchday.result.controls.increase", { label })} symbol="plus" onPress={handleIncrease} />
       </ThemedView>
     </ThemedView>
   );
@@ -59,7 +64,7 @@ export function ResultSegmentedField<TValue extends string>({ label, onChange, o
 }) {
   return (
     <ThemedView style={styles.fieldGroup}>
-      <ThemedText type="code" themeColor="textSecondary">{label}</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">{label}</ThemedText>
       <ThemedView style={styles.resultSegmentedControl}>
         {options.map((option) => {
           const isSelected = option.value === value;
@@ -83,11 +88,12 @@ export function ResultSegmentedField<TValue extends string>({ label, onChange, o
 export function ScoreStepper({ accessibilityLabel, onChange, value }: {
   accessibilityLabel: string; onChange: (value: number) => void; value: number;
 }) {
+  const { t } = useI18n();
   return (
     <ThemedView style={styles.scoreStepper}>
-      <ScoreButton label={`Decrease ${accessibilityLabel}`} symbol="minus" onPress={() => onChange(Math.max(0, value - 1))} />
+      <ScoreButton label={t("matchday.result.controls.decrease", { label: accessibilityLabel })} symbol="minus" onPress={() => onChange(Math.max(0, value - 1))} />
       <ThemedText type="title" style={styles.scoreValue}>{value}</ThemedText>
-      <ScoreButton label={`Increase ${accessibilityLabel}`} symbol="plus" onPress={() => onChange(value + 1)} />
+      <ScoreButton label={t("matchday.result.controls.increase", { label: accessibilityLabel })} symbol="plus" onPress={() => onChange(value + 1)} />
     </ThemedView>
   );
 }

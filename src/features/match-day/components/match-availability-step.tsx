@@ -8,29 +8,54 @@ import { matchDayStyles as styles } from "@/features/match-day/components/match-
 import type { MatchSetupFormState } from "@/features/match-day/match-day-view-types";
 import type { SignupStatus } from "@/features/events/components/event-wizard/event-wizard-types";
 import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
-import type { Player } from "@/features/players/player-types";
+import type { Player, PlayerInjury } from "@/features/players/player-types";
 import { useI18n } from "@/i18n/i18n-provider";
+import { isPlayerInjuredOnDate } from "@/features/players/player-injury-utils";
 
 export function MatchAvailabilityStep({
   form,
   matchDutyEnabled,
   onChangeForm,
   onOpenGuestPlayerModal,
+  injuriesByPlayerId,
   players,
 }: {
   form: MatchSetupFormState;
   matchDutyEnabled: boolean;
   onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>;
   onOpenGuestPlayerModal: () => void;
+  injuriesByPlayerId: Map<number, PlayerInjury[]>;
   players: Player[];
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const availablePlayers = players.filter(
     (player) => form.playerStatuses[player.id] === "available",
   );
   const availableSquadPlayers = availablePlayers.filter(
     (player) => !player.isGuest,
   );
+
+  function makePlayerAvailable(player: Player) {
+    const update = () =>
+      updateMatchPlayerStatus(onChangeForm, player.id, "available");
+    if (!isPlayerInjuredOnDate(player, form.date, injuriesByPlayerId)) {
+      update();
+      return;
+    }
+    Alert.alert(
+      t("matchday.add_match.availability.injury_override.title"),
+      t("matchday.add_match.availability.injury_override.message", {
+        name: formatPlayerDisplayName(player),
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("matchday.add_match.availability.injury_override.action"),
+          onPress: update,
+        },
+      ],
+    );
+  }
 
   return (
     <ThemedView style={styles.availabilityStep}>
@@ -55,13 +80,27 @@ export function MatchAvailabilityStep({
                 style={styles.availabilityRow}
               >
                 <ThemedView style={styles.availabilityPlayerInfo}>
-                  <ThemedText type="smallBold" numberOfLines={1}>
-                    {formatPlayerDisplayName(player)}
-                  </ThemedText>
-                  <ThemedText type="code" themeColor="textSecondary">
+                  <ThemedView style={styles.availabilityPlayerNameRow}>
+                    <ThemedText type="smallBold" numberOfLines={1}>
+                      {formatPlayerDisplayName(player)}
+                    </ThemedText>
+                    {isPlayerInjuredOnDate(player, form.date, injuriesByPlayerId) ? (
+                      <SymbolView
+                        accessibilityLabel={t("matchday.add_match.availability.injured")}
+                        name={{ ios: "cross.case.fill", android: "healing", web: "healing" }}
+                        tintColor="#B42318"
+                        size={16}
+                      />
+                    ) : null}
+                  </ThemedView>
+                  <ThemedText type="small" themeColor="textSecondary">
                     {player.isGuest
-                      ? `Guest · ${getPlayerPositionLabel(player.position, "en")} · #${player.kitNumber}`
-                      : formatPlayerMeta(player)}
+                      ? `${t("matchday.add_match.availability.guest")} · ${getPlayerPositionLabel(player.position, locale)} · #${player.kitNumber}`
+                      : formatPlayerMeta(
+                          player,
+                          locale,
+                          t("matchday.add_match.availability.no_kit_number"),
+                        )}
                   </ThemedText>
                 </ThemedView>
 
@@ -69,13 +108,7 @@ export function MatchAvailabilityStep({
                   <AvailabilityOption
                     isSelected={status === "available"}
                     label={t("matchday.add_match.availability.available")}
-                    onPress={() =>
-                      updateMatchPlayerStatus(
-                        onChangeForm,
-                        player.id,
-                        "available",
-                      )
-                    }
+                    onPress={() => makePlayerAvailable(player)}
                   />
                   <AvailabilityOption
                     isSelected={status === "unavailable"}
@@ -95,7 +128,7 @@ export function MatchAvailabilityStep({
         ) : (
           <ThemedView type="backgroundElement" style={styles.availabilityRow}>
             <ThemedText type="small" themeColor="textSecondary">
-              Add players first to choose match availability.
+              {t("matchday.add_match.availability.empty")}
             </ThemedText>
           </ThemedView>
         )}
@@ -130,8 +163,8 @@ export function MatchAvailabilityStep({
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {matchDutyEnabled
-              ? "Choose one captain and up to two players for match duty."
-              : "Choose one captain for this match."}
+              ? t("matchday.add_match.roles.instructions.captain_and_duty")
+              : t("matchday.add_match.roles.instructions.captain")}
           </ThemedText>
         </ThemedView>
 
@@ -156,7 +189,7 @@ export function MatchAvailabilityStep({
               ))
             ) : (
               <ThemedText type="small" themeColor="textSecondary">
-                Mark players available first.
+                {t("matchday.add_match.roles.no_available_players")}
               </ThemedText>
             )}
           </ThemedView>
@@ -182,6 +215,7 @@ export function MatchAvailabilityStep({
                           onChangeForm,
                           form.matchDutyPlayerIds,
                           player.id,
+                          t,
                         )
                       }
                     />
@@ -189,7 +223,7 @@ export function MatchAvailabilityStep({
                 })
               ) : (
                 <ThemedText type="small" themeColor="textSecondary">
-                  Mark players available first.
+                  {t("matchday.add_match.roles.no_available_players")}
                 </ThemedText>
               )}
             </ThemedView>
@@ -263,8 +297,8 @@ function AvailabilityOption({
 }
 
 function formatPlayerDisplayName(player: Player) { return [player.firstName, player.lastName].filter(Boolean).join(" "); }
-function formatPlayerMeta(player: Player) { const kitNumber = player.kitNumber ? `#${player.kitNumber}` : "No kit number"; return `${kitNumber} · ${player.position}`; }
+function formatPlayerMeta(player: Player, locale: "en" | "nl", noKitNumber: string) { const kitNumber = player.kitNumber ? `#${player.kitNumber}` : noKitNumber; return `${kitNumber} · ${getPlayerPositionLabel(player.position, locale)}`; }
 function removePlayerFromAssignments(assignments: MatchSetupFormState["lineupAssignments"], playerId: number) { return Object.fromEntries(Object.entries(assignments).filter(([, assignedPlayerId]) => assignedPlayerId !== playerId)); }
 function updateMatchPlayerStatus(onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>, playerId: number, status: SignupStatus) { onChangeForm((currentForm) => ({ ...currentForm, captainPlayerId: status === "available" || currentForm.captainPlayerId !== playerId ? currentForm.captainPlayerId : null, matchDutyPlayerIds: status === "available" ? currentForm.matchDutyPlayerIds : currentForm.matchDutyPlayerIds.filter((id) => id !== playerId), lineupAssignments: status === "available" ? currentForm.lineupAssignments : removePlayerFromAssignments(currentForm.lineupAssignments, playerId), playerStatuses: { ...currentForm.playerStatuses, [playerId]: status } })); }
 function updateCaptainPlayer(onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>, playerId: number | null) { onChangeForm((current) => ({ ...current, captainPlayerId: playerId })); }
-function toggleMatchDutyPlayer(onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>, selected: number[], playerId: number) { if (selected.includes(playerId)) { onChangeForm((current) => ({ ...current, matchDutyPlayerIds: current.matchDutyPlayerIds.filter((id) => id !== playerId) })); return; } if (selected.length >= 2) { Alert.alert("Match duty full", "You can select up to two match duty players."); return; } onChangeForm((current) => ({ ...current, matchDutyPlayerIds: [...current.matchDutyPlayerIds, playerId] })); }
+function toggleMatchDutyPlayer(onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>, selected: number[], playerId: number, t: ReturnType<typeof useI18n>["t"]) { if (selected.includes(playerId)) { onChangeForm((current) => ({ ...current, matchDutyPlayerIds: current.matchDutyPlayerIds.filter((id) => id !== playerId) })); return; } if (selected.length >= 2) { Alert.alert(t("matchday.add_match.validation.match_duty.title"), t("matchday.add_match.validation.match_duty.message")); return; } onChangeForm((current) => ({ ...current, matchDutyPlayerIds: [...current.matchDutyPlayerIds, playerId] })); }

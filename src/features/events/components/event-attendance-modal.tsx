@@ -26,6 +26,7 @@ import type {
   EventAttendancePlayer,
 } from "@/features/events/event-types";
 import { useTheme } from "@/hooks/use-theme";
+import { useI18n } from "@/i18n/i18n-provider";
 
 type EventAttendanceModalProps = {
   event: CoachEvent | null;
@@ -41,6 +42,7 @@ export function EventAttendanceModal({
   onSaved,
 }: EventAttendanceModalProps) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [players, setPlayers] = useState<EventAttendancePlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -211,7 +213,7 @@ export function EventAttendanceModal({
                       style={styles.attendanceGroup}
                     >
                       <ThemedText type="smallBold">
-                        {getSignupStatusLabel(signupStatus)}
+                        {getSignupStatusLabel(signupStatus, t)}
                       </ThemedText>
                       {groupPlayers.map((player) => (
                         <ThemedView

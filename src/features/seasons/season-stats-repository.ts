@@ -17,6 +17,7 @@ export type SeasonTeamStats = {
   goalsFor: number;
   goalsAgainst: number;
   trainings: number;
+  fineAmountCents: number;
   highestWin: SeasonMatchHighlight | null;
   biggestLoss: SeasonMatchHighlight | null;
 };
@@ -33,7 +34,7 @@ export async function getSeasonTeamStatsAsync(seasonId: number): Promise<SeasonT
   const db = await getDatabaseAsync();
   const settings = await getTeamSettingsAsync();
   const includeFriendlies = settings?.includeFriendlyMatchesInStats ?? true;
-  const [matches, trainingRow] = await Promise.all([
+  const [matches, trainingRow, fineRow] = await Promise.all([
     db.getAllAsync<MatchRow>(
       `SELECT opponent, match_date, location, own_score, opponent_score
        FROM match_day_matches
@@ -46,6 +47,12 @@ export async function getSeasonTeamStatsAsync(seasonId: number): Promise<SeasonT
     db.getFirstAsync<{ count: number }>(
       `SELECT COUNT(*) AS count FROM events
        WHERE season_id = ? AND type = 'training'`,
+      [seasonId],
+    ),
+    db.getFirstAsync<{ amount_cents: number }>(
+      `SELECT COALESCE(SUM(amount_cents), 0) AS amount_cents
+       FROM player_fines
+       WHERE season_id = ? AND is_carried_over = 0`,
       [seasonId],
     ),
   ]);
@@ -61,6 +68,7 @@ export async function getSeasonTeamStatsAsync(seasonId: number): Promise<SeasonT
     goalsFor: matches.reduce((total, match) => total + match.own_score, 0),
     goalsAgainst: matches.reduce((total, match) => total + match.opponent_score, 0),
     trainings: Number(trainingRow?.count ?? 0),
+    fineAmountCents: Number(fineRow?.amount_cents ?? 0),
     highestWin: mapHighlight(pickLargestMargin(wins, "win")),
     biggestLoss: mapHighlight(pickLargestMargin(losses, "loss")),
   };

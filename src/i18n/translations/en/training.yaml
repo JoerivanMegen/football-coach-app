@@ -14,8 +14,18 @@ sections:
     title: Completed
     description: Trainings with finished attendance will show here.
   empty: No trainings planned yet.
+  count: "{{count}} training"
+  count_plural: "{{count}} trainings"
+card:
+  title: Training
+  signup_summary: "{{available}} available · {{unavailable}} out · {{unknown}} unknown"
+  action_for: "{{action}} for {{title}}"
+  edit_attendance_for: "Edit attendance for {{title}}"
+  edit_for: "Edit {{title}}"
+  cancel_for: "Cancel {{title}}"
 add_training:
   title: Add training
+  progress: "Step {{current}} of {{total}}: {{step}}"
   steps:
     type: Event type
     details: Training details
@@ -27,10 +37,43 @@ add_training:
     date: Date
     start_time: Start time
     location: Location
+    opponent: Opponent
+    notes: Notes
+    open_date_picker: Open training date picker
+    open_time_picker: Open training time picker
+    confirm_picker: Confirm picker value
+    locations:
+      home: Home
+      away: Away
+  types:
+    training:
+      label: Training
+      description: Training session or practice.
+    match:
+      label: Match
+      description: Fixture, friendly, or tournament match.
+    other:
+      label: Other
+      description: Team night, meeting, or custom event.
   players:
     title: Player availability
     empty: Add players first to plan availability for this event.
+    available: Available
+    out: Out
+    unknown: Unknown
+    injured: Injured
+    injury_override:
+      title: Injured player
+      message: This player is injured. Do you want to add them to the training anyway?
+      action: Add anyway
   review:
+    type: Type
+    title: Title
+    date: Date
+    start_time: Start time
+    location: Location
+    opponent: Opponent
+    players_tracked: Players tracked
     available_players: Available players
     no_available_players: No players marked available yet.
   validation:
@@ -48,6 +91,8 @@ attendance:
   edit: Edit attendance
   not_marked: Attendance has not been marked for this training yet.
   loading: Loading attendance...
+  attended: Attended
+  none: None
   empty: Add players first to record attendance.
   columns:
     name: Name
@@ -68,6 +113,13 @@ actions:
   edit: Edit training
   cancel: Cancel training
   keep: Keep training
+  save: Save training
+  save_changes: Save changes
+  saving: Saving...
+confirm:
+  cancel:
+    title: Cancel training
+    message: "Cancel “{{title}}”? This will remove the training and its attendance data."
 errors:
   load:
     title: Could not load trainings

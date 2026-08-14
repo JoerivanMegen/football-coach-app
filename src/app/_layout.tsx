@@ -3,7 +3,6 @@ import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider } from 'expo-rout
 import { useEffect } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppHeader } from '@/components/app-header';
 import { getDatabaseAsync } from '@/db/database';
 import { configureNotificationPresentation } from '@/features/notifications/match-result-notifications';
@@ -21,8 +20,11 @@ export default function TabLayout() {
     if (Platform.OS === "web") return;
 
     function openNotification(notification: Notifications.Notification) {
-      if (notification.request.content.data?.url === "/match-day") {
+      const url = notification.request.content.data?.url;
+      if (url === "/match-day") {
         router.push("/match-day");
+      } else if (url === "/events") {
+        router.push("/events");
       }
     }
 
@@ -42,11 +44,11 @@ export default function TabLayout() {
   return (
     <I18nProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AnimatedSplashOverlay />
         <AppHeader />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="fine-jar" />
           <Stack.Screen name="seasons" />
           <Stack.Screen name="season-summary" />
         </Stack>

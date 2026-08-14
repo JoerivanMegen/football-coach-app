@@ -9,6 +9,7 @@ export const translations = {
       },
       "export": {
         "action": "Export data backup",
+        "preparing": "Preparing backup...",
         "error": {
           "title": "Backup failed",
           "message": "The backup file could not be created. Please try again."
@@ -16,9 +17,12 @@ export const translations = {
       },
       "restore": {
         "action": "Restore data backup",
+        "restoring": "Restoring...",
         "confirm": {
           "title": "Restore this backup?",
-          "message": "This replaces all current Assistant Coach data with the contents of the selected backup."
+          "message": "This replaces all current Assistant Coach data with the contents of the selected backup.",
+          "file_message": "Restoring “{{name}}” will replace all players, trainings, matches, statistics, guest players, and settings currently in the app. This cannot be undone.",
+          "action": "Restore backup"
         },
         "file_picker_error": {
           "title": "Could not open files",
@@ -26,7 +30,8 @@ export const translations = {
         },
         "success": {
           "title": "Backup restored",
-          "message": "Your Assistant Coach data has been restored successfully. The app will now reload."
+          "message": "Your Assistant Coach data has been restored successfully. The app will now reload.",
+          "continue": "Continue"
         },
         "error": {
           "title": "Backup could not be restored",
@@ -39,7 +44,8 @@ export const translations = {
         "action": "Delete all app data",
         "confirm": {
           "title": "Delete all app data?",
-          "message": "This permanently deletes your players, trainings, matches, statistics, guest players, and team settings. Export a backup first if you may need this data again."
+          "message": "This permanently deletes your players, trainings, matches, statistics, guest players, and team settings. Export a backup first if you may need this data again.",
+          "action": "Delete everything"
         },
         "error": {
           "title": "Delete failed",
@@ -99,7 +105,20 @@ export const translations = {
     "dashboard": {
       "header": {
         "title": "Team dashboard",
-        "subtitle": "Jump straight into the next thing your team needs."
+        "subtitle": "Jump straight into the next thing your team needs.",
+        "injuries": "{{count}} injured player",
+        "injuries_plural": "{{count}} injured players"
+      },
+      "next_match": {
+        "preparation": "Ready for your match against {{opponent}}? Plan your trainings to prepare!",
+        "good_luck": "Good luck against {{opponent}}!",
+        "open_training": "Open Training to prepare for the upcoming match"
+      },
+      "recent_win": {
+        "message": "Congrats on your win!",
+        "result": "{{score}} against {{opponent}}",
+        "share": "Share",
+        "share_accessibility": "Share the win against {{opponent}}"
       },
       "actions": {
         "title": "Actions",
@@ -125,10 +144,27 @@ export const translations = {
         },
         "add_match_result": {
           "title": "Add match result",
-          "description": "Record how your match went."
+          "title_plural": "Add match results",
+          "description": "Record how your match went.",
+          "waiting_description": "A finished match is waiting for its result and player stats.",
+          "waiting_description_plural": "{{count}} finished matches are waiting for results and player stats."
+        },
+        "add_training_attendance": {
+          "title": "Add training attendance",
+          "title_plural": "Add training attendances",
+          "description": "A finished training is waiting for its attendance.",
+          "description_plural": "{{count}} finished trainings are waiting for attendance."
+        },
+        "shortcuts": {
+          "training": "Training",
+          "match_day": "Match Day",
+          "team_stats": "Team Stats"
         }
       },
       "setup": {
+        "header": {
+          "step_progress": "Step {{step}} of {{total}}"
+        },
         "team_details": {
           "title": "Team details",
           "team_name": "Team name",
@@ -138,7 +174,9 @@ export const translations = {
           "club_location_placeholder": "Sports park, clubhouse, or address"
         },
         "kit": {
-          "title": "Kit design"
+          "title": "Kit design",
+          "third_colour": "Third colour",
+          "number_colour": "Kit number colour"
         },
         "preferences": {
           "match_minutes": "Match minutes",
@@ -153,8 +191,73 @@ export const translations = {
         "actions": {
           "continue_team_settings": "Continue team settings setup",
           "back_to_kit": "Back to kit settings",
-          "save": "Save team settings"
+          "save": "Save team settings",
+          "saving": "Saving..."
+        },
+        "errors": {
+          "team_name_required": "Team name is required.",
+          "invalid_match_minutes": "Match minutes must be between 1 and 120.",
+          "invalid_values": "Please check your team name and colour values."
         }
+      }
+    },
+    "fine_jar": {
+      "header": {
+        "title": "Fine Jar",
+        "subtitle": "Create your team's fines and keep track of what has been paid."
+      },
+      "actions": {
+        "add_fine": "Add fine",
+        "add_fine_type": "Add fine type"
+      },
+      "fine_types": {
+        "title": "Fine types",
+        "description": "Create the fines your team uses. For example, “Late for training – €2”.",
+        "empty": "No fine types yet. Add your first fine type to get started.",
+        "expand": "Show fine types",
+        "collapse": "Hide fine types"
+      },
+      "overview": {
+        "title": "Fine overview",
+        "unpaid": "Unpaid fines",
+        "paid": "Paid fines",
+        "empty_unpaid": "There are no unpaid fines.",
+        "empty_paid": "There are no paid fines yet.",
+        "total": "Total: {{amount}}",
+        "paid_value": "Total paid",
+        "unpaid_value": "Total unpaid"
+      },
+      "fine": {
+        "mark_paid": "Mark as paid",
+        "mark_unpaid": "Mark as unpaid",
+        "paid": "Paid",
+        "unpaid": "Unpaid"
+      },
+      "type_modal": {
+        "title": "Add fine type",
+        "name": "Fine name",
+        "name_placeholder": "Late for training",
+        "price": "Price",
+        "price_placeholder": "2.00",
+        "submit": "Add fine type"
+      },
+      "add_modal": {
+        "title": "Add fine",
+        "player": "Choose a player",
+        "fine_type": "Choose a fine type",
+        "payment_status": "Payment status",
+        "submit": "Add fine"
+      },
+      "validation": {
+        "fine_name": "Enter a name for the fine.",
+        "price": "Enter a valid price.",
+        "duplicate": "A fine type with this name already exists.",
+        "player": "Choose a player.",
+        "fine_type": "Choose a fine type."
+      },
+      "errors": {
+        "load": "Fine Jar could not be loaded.",
+        "save": "The fine could not be saved."
       }
     },
     "matchday": {
@@ -180,10 +283,25 @@ export const translations = {
         "result": {
           "title": "Result",
           "stats_logged": "{{count}} player stats logged"
+        },
+        "card": {
+          "date_time": "{{date}} at {{time}}",
+          "location": {
+            "home": "Home",
+            "away": "Away"
+          },
+          "category": {
+            "league": "League match",
+            "cup": "Cup match",
+            "friendly": "Friendly match"
+          }
         }
       },
       "add_match": {
         "title": "Add match",
+        "edit_title": "Edit match",
+        "close": "Close match setup",
+        "progress": "Step {{step}} of {{total}}: {{label}}",
         "steps": {
           "match_details": "Match details",
           "player_availability": "Player availability",
@@ -211,14 +329,26 @@ export const translations = {
           "description": "Only players marked available will appear in the formation builder.",
           "empty": "Add players first to choose match availability.",
           "available": "Available",
-          "out": "Out"
+          "out": "Out",
+          "injured": "Injured",
+          "guest": "Guest",
+          "no_kit_number": "No kit number",
+          "injury_override": {
+            "title": "Injured player",
+            "message": "{{name}} is marked as injured for this match date. Do you want to make them available anyway?",
+            "action": "Make available"
+          }
         },
         "roles": {
           "title": "Match roles",
           "captain": "Captain",
           "captain_required": "Captain *",
-          "match_duty": "Match duty",
-          "no_available_players": "Mark players available first."
+          "match_duty": "Match chores",
+          "no_available_players": "Mark players available first.",
+          "instructions": {
+            "captain": "Choose one captain for this match.",
+            "captain_and_duty": "Choose one captain and up to two players for match chores."
+          }
         },
         "guest_players": {
           "title": "Add guest player",
@@ -243,7 +373,23 @@ export const translations = {
           "substitutes": "Substitutes",
           "no_substitutes": "No substitutes selected.",
           "add_players_first": "Add players first to build a lineup.",
-          "remove_player": "Remove from position"
+          "remove_player": "Remove from position",
+          "choose_player": "Choose player",
+          "change_player": "Change player",
+          "position": "Position",
+          "close_picker": "Close player picker",
+          "add_substitute": "Add substitute {{label}}",
+          "substitute_prefix": "SUB"
+        },
+        "review": {
+          "date_time": "{{date}} at {{time}}",
+          "location": "{{location}} match"
+        },
+        "actions": {
+          "go_back": "Go back",
+          "continue_anyway": "Continue anyway",
+          "review": "Review",
+          "update": "Update"
         },
         "validation": {
           "opponent": {
@@ -257,6 +403,10 @@ export const translations = {
           "time": {
             "title": "Invalid time",
             "message": "Use a valid time in HH:MM format."
+          },
+          "result_date": {
+            "title": "Invalid result date",
+            "message": "A match with a saved result cannot be moved to a future date."
           },
           "availability": {
             "title": "Choose available players",
@@ -275,16 +425,26 @@ export const translations = {
             "message": "Choose a captain before continuing with the match setup."
           },
           "match_duty": {
-            "title": "Match duty full",
-            "message": "You can select up to two match duty players."
+            "title": "Match chores full",
+            "message": "You can select up to two players for match chores."
           }
         }
       },
       "result": {
         "title": "Match result",
+        "actions": {
+          "save_and_share": "Save and share",
+          "saving": "Saving..."
+        },
         "score": {
           "your_team": "Your team score",
-          "opponent": "Opponent score"
+          "opponent": "Opponent score",
+          "unknown_opponent": "Opponent"
+        },
+        "outcome": {
+          "won": "Won",
+          "drawn": "Draw",
+          "lost": "Lost"
         },
         "steps": {
           "result": "Result",
@@ -292,7 +452,8 @@ export const translations = {
           "review": "Review"
         },
         "player_performance": {
-          "description": "Starters default to {{minutes}} minutes and substitutes default to 0. Player goals cannot exceed the {{score}} score.",
+          "description": "Tap a player on the lineup to add their stats. Starters default to {{minutes}} minutes and substitutes default to 0. Player goals cannot exceed the {{score}} score.",
+          "edit_player": "Add statistics for {{player}}",
           "empty": "Add players to the lineup before logging player performance.",
           "goals": "Goals",
           "assists": "Assists",
@@ -312,17 +473,28 @@ export const translations = {
           "yellow": "Yellow",
           "red": "Red",
           "notes": "Notes",
-          "match_duty_fulfilled": "Match duty fulfilled",
-          "match_duty_help": "This player was assigned match duty."
+          "match_duty_fulfilled": "Match chores fulfilled",
+          "match_duty_help": "This player was assigned match chores.",
+          "role": {
+            "starter": "Starter",
+            "substitute": "Substitute"
+          },
+          "summary": "{{minutes}} min · {{goals}}G · {{assists}}A · {{rating}} · {{attendance}}{{card}}"
         },
         "review": {
           "no_match": "Select a match before reviewing the result."
         },
         "validation": {
+          "limit_reached": "Limit reached",
+          "scoring_limit": "You've already added {{score}} goals scored!",
           "goals_mismatch": {
             "title": "Goals don't match",
             "message": "The number of goals doesn't match with the result! Were the remaining ones own goals?"
           }
+        },
+        "controls": {
+          "decrease": "Decrease {{label}}",
+          "increase": "Increase {{label}}"
         }
       },
       "share": {
@@ -343,6 +515,13 @@ export const translations = {
         "close_preview": "Close share preview",
         "export": "Export",
         "exporting": "Exporting...",
+        "poster": {
+          "opponent": "OPPONENT",
+          "home_match": "Home match",
+          "away_match": "Away match",
+          "subs": "SUBS",
+          "substitutes": "SUBSTITUTES:"
+        },
         "colors": {
           "title": "Colors",
           "description": "Tweak panel and text colors for this image.",
@@ -388,7 +567,8 @@ export const translations = {
         "delete": "Could not delete match"
       },
       "confirm": {
-        "delete_title": "Delete match?"
+        "delete_title": "Delete match?",
+        "delete_message": "This will permanently delete the saved match against {{opponent}}."
       }
     },
     "navigation": {
@@ -396,6 +576,7 @@ export const translations = {
       "players": "Players",
       "training": "Training",
       "matchDay": "Match Day",
+      "fineJar": "Fine Jar",
       "seasons": "Seasons",
       "settings": "Settings",
       "openMenu": "Open navigation menu",
@@ -405,6 +586,10 @@ export const translations = {
       "match_result": {
         "title": "How did your match go?",
         "body": "Fill in your result!"
+      },
+      "training_attendance": {
+        "title": "How was the training?",
+        "body": "Did everyone show up?"
       }
     },
     "onboarding": {
@@ -459,7 +644,7 @@ export const translations = {
     "players": {
       "overview": {
         "title": "Players",
-        "subtitle": "Manage your squad list and start collecting player stats.",
+        "subtitle": "Manage your players, injuries, and start collecting player stats.",
         "add_player": "Add player",
         "open_team_stats": "Open team statistics",
         "empty": {
@@ -485,6 +670,28 @@ export const translations = {
         "birth_date": "Birth date",
         "position": "Position",
         "kit_number": "Kit number",
+        "injury": {
+          "title": "Injury status",
+          "toggle_label": "Injured",
+          "injured": "Player is injured",
+          "healthy": "Player is available",
+          "start_date": "Injured since",
+          "recovery_date": "Recovery date",
+          "note": "Injury note (optional)",
+          "note_placeholder": "For example, hamstring injury",
+          "help": "Matches and trainings during an injury period do not count towards this player's statistics.",
+          "badge": "Injured",
+          "history_title": "Current and past injuries",
+          "history_empty": "No injuries recorded yet.",
+          "present": "Present",
+          "active": "Active",
+          "edit": "Edit injury",
+          "delete": "Delete injury",
+          "save_changes": "Save changes",
+          "delete_title": "Delete injury?",
+          "delete_message": "Events during this period will count towards the player's statistics again.",
+          "overlap_error": "Injury periods cannot overlap."
+        },
         "validation": {
           "required_names": {
             "title": "Missing required fields",
@@ -507,6 +714,10 @@ export const translations = {
           "invalid_kit_number": {
             "title": "Invalid kit number",
             "message": "Use a whole number, or leave it empty."
+          },
+          "invalid_injury_date": {
+            "title": "Invalid injury date",
+            "message": "Choose a valid date. A recovery date cannot be earlier than the injury start date."
           }
         },
         "duplicate": {
@@ -526,9 +737,74 @@ export const translations = {
         "attendance": "Attendance",
         "match_data": "Match data",
         "recent_form": "Recent form",
+        "columns": {
+          "player": "Player",
+          "training_percentage": "Training %",
+          "match_percentage": "Match %",
+          "late_percentage": "Late %",
+          "starts": "Starts",
+          "starter_percentage": "Starter %",
+          "average_minutes": "Avg min",
+          "goals": "Goals",
+          "assists": "Assists",
+          "yellow_cards": "YC",
+          "red_cards": "RC",
+          "clean_sheets": "Clean sheets",
+          "average_rating": "Avg rating",
+          "goals_per_90": "Goals/90",
+          "assists_per_90": "Assists/90",
+          "duties": "Duties",
+          "fulfilled": "Fulfilled",
+          "duty_percentage": "Duty %",
+          "fines": "Fines",
+          "fine_amount": "Fine amount",
+          "last_five": "Last 5"
+        },
+        "close_team_statistics": "Close team statistics",
         "no_attendance": "No marked attendance yet",
         "no_attendance_help": "These stats update after attendance is saved for an event.",
-        "no_ratings": "No match ratings yet."
+        "no_ratings": "No match ratings yet.",
+        "sort_by": "Sort by {{column}}",
+        "detail": {
+          "training": "Training",
+          "matches": "Matches",
+          "late": "Late",
+          "attended": "{{attended}}/{{total}} attended",
+          "late_count": "{{count}} time",
+          "late_count_plural": "{{count}} times",
+          "available_but_absent": "No show",
+          "available_but_absent_help": "signed up, did not attend",
+          "out_but_attended": "Show up",
+          "out_but_attended_help": "didn't sign up, still attended",
+          "appearances": "Appearances",
+          "completed_matches": "{{count}} completed matches",
+          "starts": "Starts",
+          "starts_help": "named in the starting XI",
+          "starter": "Starter",
+          "starter_help": "starts per appearance",
+          "average_minutes": "Avg mins",
+          "total_minutes": "{{count}} total minutes",
+          "goals": "Goals",
+          "goals_help": "season match goals",
+          "assists": "Assists",
+          "assists_help": "season match assists",
+          "yellow_cards": "Yellow cards",
+          "yellow_cards_help": "season yellow cards",
+          "red_cards": "Red cards",
+          "red_cards_help": "season red cards",
+          "clean_sheets": "Clean sheets",
+          "clean_sheets_help": "0 conceded and at least 60 minutes played",
+          "average_rating": "Average rating",
+          "average_rating_help": "per rated match",
+          "goals_per_90": "Goals/90",
+          "goals_per_90_help": "goals per 90 minutes",
+          "assists_per_90": "Assists/90",
+          "assists_per_90_help": "assists per 90 minutes",
+          "match_duties": "Match chores",
+          "duties_fulfilled": "{{count}} fulfilled",
+          "duty_fulfillment": "Chore fulfillment",
+          "duty_fulfillment_help": "fulfilled per assignment"
+        }
       },
       "errors": {
         "load": {
@@ -563,7 +839,10 @@ export const translations = {
           "empty": {
             "title": "No completed seasons yet",
             "description": "After ending your first season in Settings, its summary and top threes will appear here."
-          }
+          },
+          "count": "{{count}} completed season",
+          "count_plural": "{{count}} completed seasons",
+          "view_accessibility": "View {{season}} season summary"
         },
         "end_season": {
           "title": "End season",
@@ -573,11 +852,45 @@ export const translations = {
       },
       "summary": {
         "title": "Season summary",
+        "season_title": "Season {{season}}",
+        "current_season": "Current season",
         "team_overview": "Team overview",
         "player_highlights": "Player highlights",
         "player_overview": "Player overview",
         "no_data": "No data yet",
         "no_match": "No match",
+        "card_points_help": "Yellow = 1, red = 3",
+        "minimum_appearances": "Minimum 3 appearances",
+        "minutes_short": "{{count}} min",
+        "match_location": {
+          "home": "vs",
+          "away": "at"
+        },
+        "team_stats": {
+          "matches": "Matches",
+          "wins": "Wins",
+          "draws": "Draws",
+          "losses": "Losses",
+          "goals_for": "Goals for",
+          "goals_against": "Goals against",
+          "trainings": "Trainings",
+          "fine_amount": "Final Fine Jar amount"
+        },
+        "player_columns": {
+          "player": "Player",
+          "training": "Training",
+          "match": "Match",
+          "late": "Late",
+          "starts": "Starts",
+          "average_minutes": "Avg min",
+          "goals": "Goals",
+          "assists": "Assists",
+          "yellow_cards": "YC",
+          "red_cards": "RC",
+          "clean_sheets": "CS",
+          "rating": "Rating",
+          "duties": "Duties"
+        },
         "highlights": {
           "most_goals": "Most goals",
           "most_assists": "Most assists",
@@ -585,9 +898,13 @@ export const translations = {
           "highest_average_minutes": "Highest average minutes",
           "best_training_attendance": "Best training attendance",
           "highest_lateness_percentage": "Highest lateness percentage",
+          "minutes_per_training": "Match minutes per attended training",
+          "most_fines": "Most fines",
           "biggest_win": "Biggest win",
           "biggest_loss": "Biggest loss"
-        }
+        },
+        "fine_count": "{{count}} fine",
+        "fine_count_plural": "{{count}} fines"
       },
       "errors": {
         "load": {
@@ -599,6 +916,23 @@ export const translations = {
           "message": "Your data has not been changed. Please try again."
         },
         "summary_not_found": "Season summary could not be found."
+      },
+      "confirm_end": {
+        "title": "End season {{season}}?",
+        "unfinished_matches": "{{count}} match result",
+        "unfinished_matches_plural": "{{count}} match results",
+        "unfinished_trainings": "{{count}} training attendance record",
+        "unfinished_trainings_plural": "{{count}} training attendance records",
+        "unfinished_warning": "There are still {{items}} unfinished. They will be archived as they are.\n\n",
+        "message": "This creates a permanent season summary and starts a new season. Your players and settings will carry over.",
+        "action": "End season",
+        "join": " and ",
+        "unpaid_fines": {
+          "title": "Unpaid fines",
+          "message": "There are {{count}} unpaid fines worth {{amount}}. Paid fines will be archived. Would you like to carry the unpaid fines into the new season or write them off?",
+          "carry": "Carry into new season",
+          "write_off": "Write off"
+        }
       }
     },
     "settings": {
@@ -632,6 +966,8 @@ export const translations = {
         "player_secondary": "Player secondary color",
         "goalkeeper_primary": "Goalkeeper primary color",
         "goalkeeper_secondary": "Goalkeeper secondary color",
+        "third": "Third color",
+        "number": "Kit number color",
         "patterns": {
           "regular": "Regular",
           "stripes": "Stripes",
@@ -646,14 +982,25 @@ export const translations = {
         "title": "Match preferences",
         "match_minutes": "Match minutes",
         "match_minutes_help": "Use this for youth teams or competitions with shorter matches.",
+        "decrease_match_minutes": "Decrease match minutes",
+        "increase_match_minutes": "Increase match minutes",
         "player_names": {
+          "title": "Lineup names",
           "nicknames": "Nicknames",
           "first_names": "First names"
         },
         "fine_jar": {
-          "title": "Does your team use a fine jar?",
+          "title": "Fine jar",
+          "description": "You can turn this into fines, reminders, and team rules later.",
           "enabled": "Use fine jar",
-          "disabled": "Skip for now"
+          "disabled": "Skip for now",
+          "currency": {
+            "title": "Fine Jar currency",
+            "description": "Choose the currency used for fine types and totals.",
+            "euro": "Euro (€)",
+            "pound": "Pound (£)",
+            "dollar": "Dollar ($)"
+          }
         },
         "match_duties": {
           "title": "Does your team have match duties?",
@@ -680,6 +1027,15 @@ export const translations = {
         "default_time": {
           "title": "Default training time",
           "description": "New trainings will use this start time automatically."
+        },
+        "day_labels": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
         }
       },
       "season": {
@@ -690,15 +1046,42 @@ export const translations = {
         "save_help": "Saved with the main Save settings button.",
         "history": "Season history",
         "view_summary": "View summary ›",
-        "end": "End current season"
+        "end": "End current season",
+        "ending": "Ending season...",
+        "confirm": {
+          "title": "End season {{name}}?",
+          "message": "This creates a permanent season summary and starts a new season. Your players and settings will carry over.",
+          "unfinished": "There are still {{items}} unfinished. They will be archived as they are.\n\n",
+          "join": "{{first}} and {{second}}",
+          "match_result": "{{count}} match result",
+          "match_results": "{{count}} match results",
+          "training_record": "{{count}} training attendance record",
+          "training_records": "{{count}} training attendance records"
+        }
       },
       "actions": {
-        "save": "Save settings"
+        "save": "Save settings",
+        "saving": "Saving...",
+        "saved": "Settings saved."
       },
       "errors": {
+        "load": "Could not load your team settings.",
+        "team_name_required": "Team name is required.",
+        "season_name_required": "Season name is required.",
+        "match_minutes": "Match minutes must be between 1 and 120.",
+        "training_time": "Training time must use HH:MM, for example 19:30.",
+        "save": "Please check your team name and color values.",
         "tutorial": {
           "title": "Could not open tutorial",
           "message": "Please try again."
+        },
+        "season_check": {
+          "title": "Could not check season",
+          "message": "Please try again."
+        },
+        "season_end": {
+          "title": "Season not ended",
+          "message": "Your data has not been changed. Please try again."
         }
       }
     },
@@ -722,10 +1105,21 @@ export const translations = {
           "title": "Completed",
           "description": "Trainings with finished attendance will show here."
         },
-        "empty": "No trainings planned yet."
+        "empty": "No trainings planned yet.",
+        "count": "{{count}} training",
+        "count_plural": "{{count}} trainings"
+      },
+      "card": {
+        "title": "Training",
+        "signup_summary": "{{available}} available · {{unavailable}} out · {{unknown}} unknown",
+        "action_for": "{{action}} for {{title}}",
+        "edit_attendance_for": "Edit attendance for {{title}}",
+        "edit_for": "Edit {{title}}",
+        "cancel_for": "Cancel {{title}}"
       },
       "add_training": {
         "title": "Add training",
+        "progress": "Step {{current}} of {{total}}: {{step}}",
         "steps": {
           "type": "Event type",
           "details": "Training details",
@@ -737,13 +1131,52 @@ export const translations = {
           "title_placeholder": "Training",
           "date": "Date",
           "start_time": "Start time",
-          "location": "Location"
+          "location": "Location",
+          "opponent": "Opponent",
+          "notes": "Notes",
+          "open_date_picker": "Open training date picker",
+          "open_time_picker": "Open training time picker",
+          "confirm_picker": "Confirm picker value",
+          "locations": {
+            "home": "Home",
+            "away": "Away"
+          }
+        },
+        "types": {
+          "training": {
+            "label": "Training",
+            "description": "Training session or practice."
+          },
+          "match": {
+            "label": "Match",
+            "description": "Fixture, friendly, or tournament match."
+          },
+          "other": {
+            "label": "Other",
+            "description": "Team night, meeting, or custom event."
+          }
         },
         "players": {
           "title": "Player availability",
-          "empty": "Add players first to plan availability for this event."
+          "empty": "Add players first to plan availability for this event.",
+          "available": "Available",
+          "out": "Out",
+          "unknown": "Unknown",
+          "injured": "Injured",
+          "injury_override": {
+            "title": "Injured player",
+            "message": "This player is injured. Do you want to add them to the training anyway?",
+            "action": "Add anyway"
+          }
         },
         "review": {
+          "type": "Type",
+          "title": "Title",
+          "date": "Date",
+          "start_time": "Start time",
+          "location": "Location",
+          "opponent": "Opponent",
+          "players_tracked": "Players tracked",
           "available_players": "Available players",
           "no_available_players": "No players marked available yet."
         },
@@ -767,6 +1200,8 @@ export const translations = {
         "edit": "Edit attendance",
         "not_marked": "Attendance has not been marked for this training yet.",
         "loading": "Loading attendance...",
+        "attended": "Attended",
+        "none": "None",
         "empty": "Add players first to record attendance.",
         "columns": {
           "name": "Name",
@@ -792,7 +1227,16 @@ export const translations = {
       "actions": {
         "edit": "Edit training",
         "cancel": "Cancel training",
-        "keep": "Keep training"
+        "keep": "Keep training",
+        "save": "Save training",
+        "save_changes": "Save changes",
+        "saving": "Saving..."
+      },
+      "confirm": {
+        "cancel": {
+          "title": "Cancel training",
+          "message": "Cancel “{{title}}”? This will remove the training and its attendance data."
+        }
       },
       "errors": {
         "load": {
@@ -821,7 +1265,8 @@ export const translations = {
         "description": "Exporteer alle spelers, trainingen, wedstrijden, statistieken en instellingen. Kies Bestanden, iCloud Drive, Google Drive of een andere beschikbare locatie zodra het deelvenster opent. Je kunt het bestand later op dit of een nieuw toestel herstellen."
       },
       "export": {
-        "action": "Gegevensback-up exporteren",
+        "action": "Gegevensback-up downloaden",
+        "preparing": "Back-up voorbereiden...",
         "error": {
           "title": "Back-up mislukt",
           "message": "Het back-upbestand kon niet worden gemaakt. Probeer het opnieuw."
@@ -829,9 +1274,12 @@ export const translations = {
       },
       "restore": {
         "action": "Gegevensback-up herstellen",
+        "restoring": "Herstellen...",
         "confirm": {
           "title": "Deze back-up herstellen?",
-          "message": "Hiermee worden alle huidige Assistant Coach-gegevens vervangen door de inhoud van de geselecteerde back-up."
+          "message": "Hiermee worden alle huidige Assistant Coach-gegevens vervangen door de inhoud van de geselecteerde back-up.",
+          "file_message": "Als je ‘{{name}}’ herstelt, worden alle huidige spelers, trainingen, wedstrijden, statistieken, gastspelers en instellingen in de app vervangen. Dit kan niet ongedaan worden gemaakt.",
+          "action": "Back-up herstellen"
         },
         "file_picker_error": {
           "title": "Bestanden konden niet worden geopend",
@@ -839,7 +1287,8 @@ export const translations = {
         },
         "success": {
           "title": "Back-up hersteld",
-          "message": "Je Assistant Coach-gegevens zijn hersteld. De app wordt nu opnieuw geladen."
+          "message": "Je Assistant Coach-gegevens zijn hersteld. De app wordt nu opnieuw geladen.",
+          "continue": "Doorgaan"
         },
         "error": {
           "title": "Back-up kon niet worden hersteld",
@@ -852,7 +1301,8 @@ export const translations = {
         "action": "Alle appgegevens verwijderen",
         "confirm": {
           "title": "Alle appgegevens verwijderen?",
-          "message": "Hiermee verwijder je definitief je spelers, trainingen, wedstrijden, statistieken, gastspelers en teaminstellingen. Exporteer eerst een back-up als je deze gegevens mogelijk nog nodig hebt."
+          "message": "Hiermee verwijder je definitief je spelers, trainingen, wedstrijden, statistieken, gastspelers en teaminstellingen. Exporteer eerst een back-up als je deze gegevens mogelijk nog nodig hebt.",
+          "action": "Alles verwijderen"
         },
         "error": {
           "title": "Verwijderen mislukt",
@@ -912,7 +1362,20 @@ export const translations = {
     "dashboard": {
       "header": {
         "title": "Teamdashboard",
-        "subtitle": "Ga meteen naar wat je team nu nodig heeft."
+        "subtitle": "Ga meteen naar wat je team nu nodig heeft.",
+        "injuries": "{{count}} geblesseerde speler",
+        "injuries_plural": "{{count}} geblesseerde spelers"
+      },
+      "next_match": {
+        "preparation": "Klaar voor je wedstrijd tegen {{opponent}}? Plan je trainingen als voorbereiding!",
+        "good_luck": "Veel succes tegen {{opponent}}!",
+        "open_training": "Open Trainingen om je op de komende wedstrijd voor te bereiden"
+      },
+      "recent_win": {
+        "message": "Gefeliciteerd met de overwinning!",
+        "result": "{{score}} tegen {{opponent}}",
+        "share": "Delen",
+        "share_accessibility": "De overwinning tegen {{opponent}} delen"
       },
       "actions": {
         "title": "Acties",
@@ -938,10 +1401,27 @@ export const translations = {
         },
         "add_match_result": {
           "title": "Wedstrijduitslag toevoegen",
-          "description": "Leg vast hoe je wedstrijd is verlopen."
+          "title_plural": "Wedstrijduitslagen toevoegen",
+          "description": "Leg vast hoe je wedstrijd is verlopen.",
+          "waiting_description": "Voor een afgelopen wedstrijd moeten de uitslag en spelersstatistieken nog worden ingevuld.",
+          "waiting_description_plural": "Voor {{count}} afgelopen wedstrijden moeten de uitslagen en spelersstatistieken nog worden ingevuld."
+        },
+        "add_training_attendance": {
+          "title": "Trainingsaanwezigheid toevoegen",
+          "title_plural": "Trainingsaanwezigheden toevoegen",
+          "description": "Voor een afgelopen training moet de aanwezigheid nog worden ingevuld.",
+          "description_plural": "Voor {{count}} afgelopen trainingen moet de aanwezigheid nog worden ingevuld."
+        },
+        "shortcuts": {
+          "training": "Trainingen",
+          "match_day": "Match day",
+          "team_stats": "Teamstatistieken"
         }
       },
       "setup": {
+        "header": {
+          "step_progress": "Stap {{step}} van {{total}}"
+        },
         "team_details": {
           "title": "Teamgegevens",
           "team_name": "Teamnaam",
@@ -951,7 +1431,9 @@ export const translations = {
           "club_location_placeholder": "Sportpark, clubhuis of adres"
         },
         "kit": {
-          "title": "Tenueontwerp"
+          "title": "Tenueontwerp",
+          "third_colour": "Derde kleur",
+          "number_colour": "Kleur rugnummer"
         },
         "preferences": {
           "match_minutes": "Wedstrijdduur",
@@ -960,20 +1442,85 @@ export const translations = {
           "first_names": "Voornamen",
           "fine_jar_on": "Boetepot gebruiken",
           "fine_jar_off": "Voorlopig overslaan",
-          "match_duties_on": "Wedstrijdtaken gebruiken",
-          "match_duties_off": "Geen wedstrijdtaken"
+          "match_duties_on": "Corvee gebruiken",
+          "match_duties_off": "Geen corvee"
         },
         "actions": {
           "continue_team_settings": "Doorgaan met teaminstellingen",
           "back_to_kit": "Terug naar tenue-instellingen",
-          "save": "Teaminstellingen opslaan"
+          "save": "Instellingen opslaan",
+          "saving": "Opslaan..."
+        },
+        "errors": {
+          "team_name_required": "Teamnaam is verplicht.",
+          "invalid_match_minutes": "De wedstrijdduur moet tussen 1 en 120 minuten liggen.",
+          "invalid_values": "Controleer je teamnaam en kleurwaarden."
         }
+      }
+    },
+    "fine_jar": {
+      "header": {
+        "title": "Boetepot",
+        "subtitle": "Maak de boetes van je team en houd bij wat er is betaald."
+      },
+      "actions": {
+        "add_fine": "Boete toevoegen",
+        "add_fine_type": "Boetetype toevoegen"
+      },
+      "fine_types": {
+        "title": "Boetetypes",
+        "description": "Maak de boetes die je team gebruikt. Bijvoorbeeld: “Te laat voor training – €2”.",
+        "empty": "Nog geen boetetypes. Voeg je eerste boetetype toe om te beginnen.",
+        "expand": "Boetetypes tonen",
+        "collapse": "Boetetypes verbergen"
+      },
+      "overview": {
+        "title": "Boeteoverzicht",
+        "unpaid": "Onbetaalde boetes",
+        "paid": "Betaalde boetes",
+        "empty_unpaid": "Er zijn geen onbetaalde boetes.",
+        "empty_paid": "Er zijn nog geen betaalde boetes.",
+        "total": "Totaal: {{amount}}",
+        "paid_value": "Totaal betaald",
+        "unpaid_value": "Totaal onbetaald"
+      },
+      "fine": {
+        "mark_paid": "Markeren als betaald",
+        "mark_unpaid": "Markeren als onbetaald",
+        "paid": "Betaald",
+        "unpaid": "Onbetaald"
+      },
+      "type_modal": {
+        "title": "Boetetype toevoegen",
+        "name": "Naam van de boete",
+        "name_placeholder": "Te laat voor training",
+        "price": "Bedrag",
+        "price_placeholder": "2,00",
+        "submit": "Boetetype toevoegen"
+      },
+      "add_modal": {
+        "title": "Boete toevoegen",
+        "player": "Kies een speler",
+        "fine_type": "Kies een boetetype",
+        "payment_status": "Betaalstatus",
+        "submit": "Boete toevoegen"
+      },
+      "validation": {
+        "fine_name": "Vul een naam voor de boete in.",
+        "price": "Vul een geldig bedrag in.",
+        "duplicate": "Er bestaat al een boetetype met deze naam.",
+        "player": "Kies een speler.",
+        "fine_type": "Kies een boetetype."
+      },
+      "errors": {
+        "load": "De boetepot kon niet worden geladen.",
+        "save": "De boete kon niet worden opgeslagen."
       }
     },
     "matchday": {
       "overview": {
         "title": "Match day",
-        "subtitle": "Bereid het wedstrijdformulier en de opstelling voor en leg wedstrijdmomenten vast.",
+        "subtitle": "Bereid de wedstrijd en de opstelling voor en leg wedstrijdmomenten vast.",
         "add_match": "Nieuwe wedstrijd",
         "sections": {
           "unfinished": "Onafgemaakte wedstrijden",
@@ -993,10 +1540,25 @@ export const translations = {
         "result": {
           "title": "Uitslag",
           "stats_logged": "{{count}} spelersstatistieken geregistreerd"
+        },
+        "card": {
+          "date_time": "{{date}} om {{time}}",
+          "location": {
+            "home": "Thuis",
+            "away": "Uit"
+          },
+          "category": {
+            "league": "Competitiewedstrijd",
+            "cup": "Bekerwedstrijd",
+            "friendly": "Oefenwedstrijd"
+          }
         }
       },
       "add_match": {
         "title": "Wedstrijd toevoegen",
+        "edit_title": "Wedstrijd bewerken",
+        "close": "Wedstrijdinstellingen sluiten",
+        "progress": "Stap {{step}} van {{total}}: {{label}}",
         "steps": {
           "match_details": "Wedstrijdgegevens",
           "player_availability": "Spelersbeschikbaarheid",
@@ -1024,14 +1586,26 @@ export const translations = {
           "description": "Alleen beschikbare spelers verschijnen in de opstellingsbouwer.",
           "empty": "Voeg eerst spelers toe om wedstrijdbeschikbaarheid te kiezen.",
           "available": "Beschikbaar",
-          "out": "Afwezig"
+          "out": "Afwezig",
+          "injured": "Geblesseerd",
+          "guest": "Gastspeler",
+          "no_kit_number": "Geen rugnummer",
+          "injury_override": {
+            "title": "Geblesseerde speler",
+            "message": "{{name}} staat op deze wedstrijddatum als geblesseerd geregistreerd. Wil je deze speler toch beschikbaar maken?",
+            "action": "Beschikbaar maken"
+          }
         },
         "roles": {
           "title": "Wedstrijdrollen",
           "captain": "Aanvoerder",
           "captain_required": "Aanvoerder *",
-          "match_duty": "Wedstrijddienst",
-          "no_available_players": "Markeer eerst spelers als beschikbaar."
+          "match_duty": "Corvee",
+          "no_available_players": "Markeer eerst spelers als beschikbaar.",
+          "instructions": {
+            "captain": "Kies één aanvoerder voor deze wedstrijd.",
+            "captain_and_duty": "Kies één aanvoerder en maximaal twee spelers voor corvee."
+          }
         },
         "guest_players": {
           "title": "Gastspeler toevoegen",
@@ -1056,7 +1630,23 @@ export const translations = {
           "substitutes": "Wisselspelers",
           "no_substitutes": "Geen wisselspelers geselecteerd.",
           "add_players_first": "Voeg eerst spelers toe om een opstelling te maken.",
-          "remove_player": "Uit positie verwijderen"
+          "remove_player": "Uit positie verwijderen",
+          "choose_player": "Speler kiezen",
+          "change_player": "Speler wijzigen",
+          "position": "Positie",
+          "close_picker": "Spelerselectie sluiten",
+          "add_substitute": "Wisselspeler {{label}} toevoegen",
+          "substitute_prefix": "RES"
+        },
+        "review": {
+          "date_time": "{{date}} om {{time}}",
+          "location": "{{location}}wedstrijd"
+        },
+        "actions": {
+          "go_back": "Teruggaan",
+          "continue_anyway": "Toch doorgaan",
+          "review": "Controleren",
+          "update": "Opslaan"
         },
         "validation": {
           "opponent": {
@@ -1070,6 +1660,10 @@ export const translations = {
           "time": {
             "title": "Ongeldige tijd",
             "message": "Gebruik een geldige tijd in UU:MM-formaat."
+          },
+          "result_date": {
+            "title": "Ongeldige datum voor uitslag",
+            "message": "Een wedstrijd met een opgeslagen uitslag kan niet naar een toekomstige datum worden verplaatst."
           },
           "availability": {
             "title": "Kies beschikbare spelers",
@@ -1088,16 +1682,26 @@ export const translations = {
             "message": "Kies een aanvoerder voordat je doorgaat met de wedstrijdinstellingen."
           },
           "match_duty": {
-            "title": "Wedstrijddienst vol",
-            "message": "Je kunt maximaal twee spelers voor wedstrijddienst selecteren."
+            "title": "Corvee vol",
+            "message": "Je kunt maximaal twee spelers voor corvee selecteren."
           }
         }
       },
       "result": {
         "title": "Wedstrijduitslag",
+        "actions": {
+          "save_and_share": "Opslaan en delen",
+          "saving": "Opslaan..."
+        },
         "score": {
           "your_team": "Score van jouw team",
-          "opponent": "Score tegenstander"
+          "opponent": "Score tegenstander",
+          "unknown_opponent": "Tegenstander"
+        },
+        "outcome": {
+          "won": "Gewonnen",
+          "drawn": "Gelijkspel",
+          "lost": "Verloren"
         },
         "steps": {
           "result": "Uitslag",
@@ -1105,9 +1709,10 @@ export const translations = {
           "review": "Controleren"
         },
         "player_performance": {
-          "description": "Basisspelers starten met {{minutes}} minuten en wisselspelers met 0. Het aantal spelersdoelpunten mag de teamscore van {{score}} niet overschrijden.",
+          "description": "Tik op een speler in de opstelling om statistieken toe te voegen.",
+          "edit_player": "Statistieken toevoegen voor {{player}}",
           "empty": "Voeg spelers toe aan de opstelling voordat je prestaties registreert.",
-          "goals": "Doelpunten",
+          "goals": "Goals",
           "assists": "Assists",
           "rating": "Beoordeling",
           "minutes_played": "Gespeelde minuten",
@@ -1125,17 +1730,28 @@ export const translations = {
           "yellow": "Geel",
           "red": "Rood",
           "notes": "Notities",
-          "match_duty_fulfilled": "Wedstrijddienst uitgevoerd",
-          "match_duty_help": "Deze speler was ingedeeld voor wedstrijddienst."
+          "match_duty_fulfilled": "Corvee uitgevoerd",
+          "match_duty_help": "Deze speler was ingedeeld voor corvee.",
+          "role": {
+            "starter": "Basisspeler",
+            "substitute": "Wisselspeler"
+          },
+          "summary": "{{minutes}} min · {{goals}}D · {{assists}}A · {{rating}} · {{attendance}}{{card}}"
         },
         "review": {
           "no_match": "Selecteer een wedstrijd voordat je de uitslag controleert."
         },
         "validation": {
+          "limit_reached": "Limiet bereikt",
+          "scoring_limit": "Je hebt al {{score}} doelpunten aan spelers toegekend!",
           "goals_mismatch": {
             "title": "Doelpunten komen niet overeen",
             "message": "Het aantal doelpunten komt niet overeen met de uitslag! Waren de overige doelpunten eigen doelpunten?"
           }
+        },
+        "controls": {
+          "decrease": "{{label}} verlagen",
+          "increase": "{{label}} verhogen"
         }
       },
       "share": {
@@ -1154,8 +1770,15 @@ export const translations = {
           "broadcast": "Uitzending"
         },
         "close_preview": "Deelvoorbeeld sluiten",
-        "export": "Exporteren",
-        "exporting": "Exporteren...",
+        "export": "Downloaden",
+        "exporting": "Downloaden...",
+        "poster": {
+          "opponent": "TEGENSTANDER",
+          "home_match": "Thuiswedstrijd",
+          "away_match": "Uitwedstrijd",
+          "subs": "BANK",
+          "substitutes": "WISSELS:"
+        },
         "colors": {
           "title": "Kleuren",
           "description": "Pas de paneel- en tekstkleuren voor deze afbeelding aan.",
@@ -1172,7 +1795,7 @@ export const translations = {
             "message": "Open eerst een wedstrijdvoorbeeld voordat je exporteert."
           },
           "export": {
-            "title": "Exporteren mislukt",
+            "title": "Download mislukt",
             "message": "Er ging iets mis bij het maken van de wedstrijdafbeelding."
           }
         },
@@ -1186,7 +1809,7 @@ export const translations = {
         "no_ratings": "Nog geen beoordelingen",
         "training": "Training",
         "recent_period": "afgelopen 5 weken",
-        "average_minutes": "Gem. min"
+        "average_minutes": "Min/wed"
       },
       "errors": {
         "load": {
@@ -1201,7 +1824,8 @@ export const translations = {
         "delete": "Wedstrijd kon niet worden verwijderd"
       },
       "confirm": {
-        "delete_title": "Wedstrijd verwijderen?"
+        "delete_title": "Wedstrijd verwijderen?",
+        "delete_message": "Hiermee verwijder je de opgeslagen wedstrijd tegen {{opponent}} definitief."
       }
     },
     "navigation": {
@@ -1209,6 +1833,7 @@ export const translations = {
       "players": "Spelers",
       "training": "Trainingen",
       "matchDay": "Match day",
+      "fineJar": "Boetepot",
       "seasons": "Seizoenen",
       "settings": "Instellingen",
       "openMenu": "Navigatiemenu openen",
@@ -1218,6 +1843,10 @@ export const translations = {
       "match_result": {
         "title": "Hoe ging je wedstrijd?",
         "body": "Vul je uitslag in!"
+      },
+      "training_attendance": {
+        "title": "Hoe was de training?",
+        "body": "Is iedereen op komen dagen?"
       }
     },
     "onboarding": {
@@ -1261,7 +1890,7 @@ export const translations = {
         "settings": {
           "eyebrow": "Instellingen",
           "title": "Maak het jouw team",
-          "description": "Kies je tenue, wedstrijdduur en voorkeuren. Je kunt ook op ieder moment een volledige back-up exporteren."
+          "description": "Kies je tenue, wedstrijdduur en voorkeuren. Je kunt ook op ieder moment een volledige back-up downloaden."
         }
       },
       "actions": {
@@ -1272,7 +1901,7 @@ export const translations = {
     "players": {
       "overview": {
         "title": "Spelers",
-        "subtitle": "Beheer je selectie en verzamel spelersstatistieken.",
+        "subtitle": "Beheer je spelers, blessures, en begin met het verzamelen van statistieken.",
         "add_player": "Nieuwe speler",
         "open_team_stats": "Teamstatistieken openen",
         "empty": {
@@ -1298,6 +1927,28 @@ export const translations = {
         "birth_date": "Geboortedatum",
         "position": "Positie",
         "kit_number": "Rugnummer",
+        "injury": {
+          "title": "Blessurestatus",
+          "toggle_label": "Geblesseerd",
+          "injured": "Speler is geblesseerd",
+          "healthy": "Speler is beschikbaar",
+          "start_date": "Geblesseerd sinds",
+          "recovery_date": "Hersteldatum",
+          "note": "Blessurenotitie (optioneel)",
+          "note_placeholder": "Bijvoorbeeld hamstringblessure",
+          "help": "Wedstrijden en trainingen tijdens een blessureperiode tellen niet mee voor de statistieken van deze speler.",
+          "badge": "Geblesseerd",
+          "history_title": "Huidige en eerdere blessures",
+          "history_empty": "Nog geen blessures geregistreerd.",
+          "present": "Heden",
+          "active": "Actief",
+          "edit": "Blessure bewerken",
+          "delete": "Blessure verwijderen",
+          "save_changes": "Wijzigingen opslaan",
+          "delete_title": "Blessure verwijderen?",
+          "delete_message": "Activiteiten tijdens deze periode tellen daarna weer mee voor de statistieken van de speler.",
+          "overlap_error": "Blessureperiodes mogen elkaar niet overlappen."
+        },
         "validation": {
           "required_names": {
             "title": "Verplichte velden ontbreken",
@@ -1320,6 +1971,10 @@ export const translations = {
           "invalid_kit_number": {
             "title": "Ongeldig rugnummer",
             "message": "Gebruik een heel getal of laat het veld leeg."
+          },
+          "invalid_injury_date": {
+            "title": "Ongeldige blessuredatum",
+            "message": "Kies een geldige datum. De hersteldatum kan niet vóór de begindatum van de blessure liggen."
           }
         },
         "duplicate": {
@@ -1339,9 +1994,74 @@ export const translations = {
         "attendance": "Aanwezigheid",
         "match_data": "Wedstrijdgegevens",
         "recent_form": "Recente vorm",
+        "columns": {
+          "player": "Speler",
+          "training_percentage": "Training aanw %",
+          "match_percentage": "Wedstrijd aanw %",
+          "late_percentage": "Te laat %",
+          "starts": "Basis",
+          "starter_percentage": "Basis %",
+          "average_minutes": "Gem. min",
+          "goals": "Goals",
+          "assists": "Assists",
+          "yellow_cards": "Geel",
+          "red_cards": "Rood",
+          "clean_sheets": "Clean sheet",
+          "average_rating": "Gem. cijfer",
+          "goals_per_90": "Goals/90",
+          "assists_per_90": "Assists/90",
+          "duties": "Corvee",
+          "fulfilled": "Uitgevoerd",
+          "duty_percentage": "Corvee %",
+          "fines": "Boetes",
+          "fine_amount": "Boete bedrag",
+          "last_five": "Vorm (Laatste 5)"
+        },
+        "close_team_statistics": "Teamstatistieken sluiten",
         "no_attendance": "Nog geen aanwezigheid geregistreerd",
         "no_attendance_help": "Deze statistieken worden bijgewerkt nadat aanwezigheid voor een activiteit is opgeslagen.",
-        "no_ratings": "Nog geen wedstrijdbeoordelingen."
+        "no_ratings": "Nog geen wedstrijdbeoordelingen.",
+        "sort_by": "Sorteren op {{column}}",
+        "detail": {
+          "training": "Trainingen",
+          "matches": "Wedstrijden",
+          "late": "Te laat",
+          "attended": "{{attended}}/{{total}} aanwezig",
+          "late_count": "{{count}} keer",
+          "late_count_plural": "{{count}} keer",
+          "available_but_absent": "No show",
+          "available_but_absent_help": "aangemeld als beschikbaar, maar niet aanwezig",
+          "out_but_attended": "Toch gekomen",
+          "out_but_attended_help": "afgemeld, maar toch aanwezig",
+          "appearances": "Wedstrijden gespeeld",
+          "completed_matches": "{{count}} afgeronde wedstrijden",
+          "starts": "Basisplaatsen",
+          "starts_help": "opgenomen in de basisopstelling",
+          "starter": "Basisspeler",
+          "starter_help": "basisplaatsen per gespeelde wedstrijd",
+          "average_minutes": "Gem. minuten",
+          "total_minutes": "{{count}} minuten totaal",
+          "goals": "Doelpunten",
+          "goals_help": "doelpunten dit seizoen",
+          "assists": "Assists",
+          "assists_help": "assists dit seizoen",
+          "yellow_cards": "Gele kaarten",
+          "yellow_cards_help": "gele kaarten dit seizoen",
+          "red_cards": "Rode kaarten",
+          "red_cards_help": "rode kaarten dit seizoen",
+          "clean_sheets": "Clean sheet",
+          "clean_sheets_help": "0 tegendoelpunten en minimaal 60 minuten gespeeld",
+          "average_rating": "Gemiddeld cijfer",
+          "average_rating_help": "per beoordeelde wedstrijd",
+          "goals_per_90": "Doelpunten/90",
+          "goals_per_90_help": "doelpunten per 90 minuten",
+          "assists_per_90": "Assists/90",
+          "assists_per_90_help": "assists per 90 minuten",
+          "match_duties": "Corveebeurten",
+          "duties_fulfilled": "{{count}} uitgevoerd",
+          "duty_fulfillment": "Corvee uitgevoerd",
+          "duty_fulfillment_help": "uitgevoerd per toegewezen beurt"
+        }
       },
       "errors": {
         "load": {
@@ -1376,7 +2096,10 @@ export const translations = {
           "empty": {
             "title": "Nog geen afgeronde seizoenen",
             "description": "Nadat je je eerste seizoen via Instellingen afsluit, verschijnen de samenvatting en top drieën hier."
-          }
+          },
+          "count": "{{count}} afgerond seizoen",
+          "count_plural": "{{count}} afgeronde seizoenen",
+          "view_accessibility": "Seizoenssamenvatting van {{season}} bekijken"
         },
         "end_season": {
           "title": "Seizoen afsluiten",
@@ -1386,11 +2109,45 @@ export const translations = {
       },
       "summary": {
         "title": "Seizoenssamenvatting",
+        "season_title": "Seizoen {{season}}",
+        "current_season": "Huidig seizoen",
         "team_overview": "Teamoverzicht",
         "player_highlights": "Spelershoogtepunten",
         "player_overview": "Spelersoverzicht",
         "no_data": "Nog geen gegevens",
         "no_match": "Geen wedstrijd",
+        "card_points_help": "Geel = 1, rood = 3",
+        "minimum_appearances": "Minimaal 3 gespeelde wedstrijden",
+        "minutes_short": "{{count}} min",
+        "match_location": {
+          "home": "tegen",
+          "away": "bij"
+        },
+        "team_stats": {
+          "matches": "Wedstrijden",
+          "wins": "Overwinningen",
+          "draws": "Gelijke spelen",
+          "losses": "Nederlagen",
+          "goals_for": "Doelpunten voor",
+          "goals_against": "Doelpunten tegen",
+          "trainings": "Trainingen",
+          "fine_amount": "Eindbedrag boetepot"
+        },
+        "player_columns": {
+          "player": "Speler",
+          "training": "Training",
+          "match": "Wedstrijd",
+          "late": "Te laat",
+          "starts": "Basis",
+          "average_minutes": "Min/wed",
+          "goals": "Goals",
+          "assists": "Assists",
+          "yellow_cards": "Geel",
+          "red_cards": "Rood",
+          "clean_sheets": "Schoon doel",
+          "rating": "Cijfer",
+          "duties": "Corvee"
+        },
         "highlights": {
           "most_goals": "Meeste doelpunten",
           "most_assists": "Meeste assists",
@@ -1398,9 +2155,13 @@ export const translations = {
           "highest_average_minutes": "Hoogste gemiddelde minuten",
           "best_training_attendance": "Beste trainingsopkomst",
           "highest_lateness_percentage": "Hoogste percentage te laat",
+          "minutes_per_training": "Wedstrijdminuten per bijgewoonde training",
+          "most_fines": "Meeste boetes",
           "biggest_win": "Grootste overwinning",
           "biggest_loss": "Grootste nederlaag"
-        }
+        },
+        "fine_count": "{{count}} boete",
+        "fine_count_plural": "{{count}} boetes"
       },
       "errors": {
         "load": {
@@ -1412,6 +2173,23 @@ export const translations = {
           "message": "Je gegevens zijn niet gewijzigd. Probeer het opnieuw."
         },
         "summary_not_found": "De seizoenssamenvatting kon niet worden gevonden."
+      },
+      "confirm_end": {
+        "title": "Seizoen {{season}} afsluiten?",
+        "unfinished_matches": "{{count}} wedstrijduitslag",
+        "unfinished_matches_plural": "{{count}} wedstrijduitslagen",
+        "unfinished_trainings": "{{count}} trainingsregistratie",
+        "unfinished_trainings_plural": "{{count}} trainingsregistraties",
+        "unfinished_warning": "Er zijn nog {{items}} niet afgerond. Deze worden in de huidige staat gearchiveerd.\n\n",
+        "message": "Hiermee maak je een definitieve seizoenssamenvatting en start je een nieuw seizoen. Je spelers en instellingen blijven behouden.",
+        "action": "Seizoen afsluiten",
+        "join": " en ",
+        "unpaid_fines": {
+          "title": "Openstaande boetes",
+          "message": "Er zijn {{count}} openstaande boetes ter waarde van {{amount}}. Betaalde boetes worden gearchiveerd. Wil je de openstaande boetes meenemen naar het nieuwe seizoen of kwijtschelden?",
+          "carry": "Meenemen naar nieuw seizoen",
+          "write_off": "Kwijtschelden"
+        }
       }
     },
     "settings": {
@@ -1445,12 +2223,14 @@ export const translations = {
         "player_secondary": "Secundaire spelerskleur",
         "goalkeeper_primary": "Primaire keeperskleur",
         "goalkeeper_secondary": "Secundaire keeperskleur",
+        "third": "Derde kleur",
+        "number": "Kleur rugnummer",
         "patterns": {
           "regular": "Effen",
           "stripes": "Strepen",
           "three_color_stripes": "Driekleurige strepen",
           "hoops": "Horizontale strepen",
-          "two_color_sash": "Tweekleurige sjerp",
+          "two_color_sash": "Dubbele diagonaal",
           "halves": "Helften",
           "sides": "Zijkanten"
         }
@@ -1459,20 +2239,31 @@ export const translations = {
         "title": "Wedstrijdvoorkeuren",
         "match_minutes": "Wedstrijdduur",
         "match_minutes_help": "Gebruik dit voor jeugdteams of competities met kortere wedstrijden.",
+        "decrease_match_minutes": "Wedstrijdduur verkorten",
+        "increase_match_minutes": "Wedstrijdduur verlengen",
         "player_names": {
+          "title": "Namen in de opstelling",
           "nicknames": "Bijnamen",
           "first_names": "Voornamen"
         },
         "fine_jar": {
-          "title": "Gebruikt je team een boetepot?",
+          "title": "Boetepot",
+          "description": "Je kunt dit later gebruiken voor boetes, herinneringen en teamregels.",
           "enabled": "Boetepot gebruiken",
-          "disabled": "Voorlopig overslaan"
+          "disabled": "Voorlopig overslaan",
+          "currency": {
+            "title": "Valuta van de boetepot",
+            "description": "Kies de valuta voor boetetypes en totalen.",
+            "euro": "Euro (€)",
+            "pound": "Pond (£)",
+            "dollar": "Dollar ($)"
+          }
         },
         "match_duties": {
-          "title": "Heeft je team wedstrijdtaken?",
+          "title": "Heeft je team corvee?",
           "description": "Zorgen je spelers voor de tenues, warming-upmaterialen of andere taken op wedstrijddagen?",
-          "enabled": "Wedstrijdtaken gebruiken",
-          "disabled": "Geen wedstrijdtaken"
+          "enabled": "Corvee gebruiken",
+          "disabled": "Geen corvee"
         }
       },
       "statistics": {
@@ -1493,6 +2284,15 @@ export const translations = {
         "default_time": {
           "title": "Standaard trainingstijd",
           "description": "Nieuwe trainingen gebruiken deze starttijd automatisch."
+        },
+        "day_labels": {
+          "monday": "Ma",
+          "tuesday": "Di",
+          "wednesday": "Wo",
+          "thursday": "Do",
+          "friday": "Vr",
+          "saturday": "Za",
+          "sunday": "Zo"
         }
       },
       "season": {
@@ -1503,22 +2303,49 @@ export const translations = {
         "save_help": "Wordt opgeslagen met de hoofdknop Instellingen opslaan.",
         "history": "Seizoenshistorie",
         "view_summary": "Samenvatting bekijken ›",
-        "end": "Huidig seizoen afsluiten"
+        "end": "Huidig seizoen afsluiten",
+        "ending": "Seizoen afsluiten...",
+        "confirm": {
+          "title": "Seizoen {{name}} afsluiten?",
+          "message": "Hiermee maak je een permanent seizoensoverzicht en start je een nieuw seizoen. Je spelers en instellingen blijven behouden.",
+          "unfinished": "Er zijn nog {{items}} niet afgerond. Deze worden in de huidige staat gearchiveerd.\n\n",
+          "join": "{{first}} en {{second}}",
+          "match_result": "{{count}} wedstrijduitslag",
+          "match_results": "{{count}} wedstrijduitslagen",
+          "training_record": "{{count}} trainingsregistratie",
+          "training_records": "{{count}} trainingsregistraties"
+        }
       },
       "actions": {
-        "save": "Instellingen opslaan"
+        "save": "Instellingen opslaan",
+        "saving": "Opslaan...",
+        "saved": "Instellingen opgeslagen."
       },
       "errors": {
+        "load": "Je teaminstellingen konden niet worden geladen.",
+        "team_name_required": "Teamnaam is verplicht.",
+        "season_name_required": "Seizoensnaam is verplicht.",
+        "match_minutes": "De wedstrijdduur moet tussen 1 en 120 minuten liggen.",
+        "training_time": "De trainingstijd moet het formaat UU:MM gebruiken, bijvoorbeeld 19:30.",
+        "save": "Controleer je teamnaam en kleurwaarden.",
         "tutorial": {
           "title": "Introductie kon niet worden geopend",
           "message": "Probeer het opnieuw."
+        },
+        "season_check": {
+          "title": "Seizoen kon niet worden gecontroleerd",
+          "message": "Probeer het opnieuw."
+        },
+        "season_end": {
+          "title": "Seizoen niet afgesloten",
+          "message": "Je gegevens zijn niet gewijzigd. Probeer het opnieuw."
         }
       }
     },
     "training": {
       "overview": {
-        "title": "Trainingen",
-        "subtitle": "Plan trainingen en houd aanwezigheid bij voor de spelersstatistieken.",
+        "title": "Training",
+        "subtitle": "Plan je training en hou de statistieken van je spelers bij.",
         "add_training": "Nieuwe training",
         "create_match": "Wedstrijd maken in Wedstrijddag"
       },
@@ -1535,10 +2362,21 @@ export const translations = {
           "title": "Afgerond",
           "description": "Trainingen met geregistreerde aanwezigheid verschijnen hier."
         },
-        "empty": "Nog geen trainingen gepland."
+        "empty": "Nog geen trainingen gepland.",
+        "count": "{{count}} training",
+        "count_plural": "{{count}} trainingen"
+      },
+      "card": {
+        "title": "Training",
+        "signup_summary": "{{available}} beschikbaar · {{unavailable}} afwezig · {{unknown}} onbekend",
+        "action_for": "{{action}} voor {{title}}",
+        "edit_attendance_for": "Aanwezigheid bewerken voor {{title}}",
+        "edit_for": "{{title}} bewerken",
+        "cancel_for": "{{title}} annuleren"
       },
       "add_training": {
         "title": "Training toevoegen",
+        "progress": "Stap {{current}} van {{total}}: {{step}}",
         "steps": {
           "type": "Activiteitstype",
           "details": "Trainingsgegevens",
@@ -1550,13 +2388,52 @@ export const translations = {
           "title_placeholder": "Training",
           "date": "Datum",
           "start_time": "Starttijd",
-          "location": "Locatie"
+          "location": "Locatie",
+          "opponent": "Tegenstander",
+          "notes": "Notities",
+          "open_date_picker": "Open de datumkiezer voor de training",
+          "open_time_picker": "Open de tijdkiezer voor de training",
+          "confirm_picker": "Bevestig de gekozen waarde",
+          "locations": {
+            "home": "Thuis",
+            "away": "Uit"
+          }
+        },
+        "types": {
+          "training": {
+            "label": "Training",
+            "description": "Training of oefensessie."
+          },
+          "match": {
+            "label": "Wedstrijd",
+            "description": "Competitie-, oefen- of toernooiwedstrijd."
+          },
+          "other": {
+            "label": "Overig",
+            "description": "Teamavond, vergadering of andere activiteit."
+          }
         },
         "players": {
           "title": "Spelersbeschikbaarheid",
-          "empty": "Voeg eerst spelers toe om beschikbaarheid te plannen."
+          "empty": "Voeg eerst spelers toe om beschikbaarheid te plannen.",
+          "available": "Beschikbaar",
+          "out": "Afwezig",
+          "unknown": "Onbekend",
+          "injured": "Geblesseerd",
+          "injury_override": {
+            "title": "Geblesseerde speler",
+            "message": "Deze speler is geblesseerd. Wil je deze speler toch aan de training toevoegen?",
+            "action": "Toch toevoegen"
+          }
         },
         "review": {
+          "type": "Type",
+          "title": "Titel",
+          "date": "Datum",
+          "start_time": "Starttijd",
+          "location": "Locatie",
+          "opponent": "Tegenstander",
+          "players_tracked": "Aantal spelers",
           "available_players": "Beschikbare spelers",
           "no_available_players": "Nog geen spelers als beschikbaar gemarkeerd."
         },
@@ -1580,6 +2457,8 @@ export const translations = {
         "edit": "Aanwezigheid bewerken",
         "not_marked": "De aanwezigheid voor deze training is nog niet geregistreerd.",
         "loading": "Aanwezigheid laden...",
+        "attended": "Aanwezig",
+        "none": "Geen",
         "empty": "Voeg eerst spelers toe om aanwezigheid te registreren.",
         "columns": {
           "name": "Naam",
@@ -1605,7 +2484,16 @@ export const translations = {
       "actions": {
         "edit": "Training bewerken",
         "cancel": "Training annuleren",
-        "keep": "Training behouden"
+        "keep": "Training behouden",
+        "save": "Training opslaan",
+        "save_changes": "Wijzigingen opslaan",
+        "saving": "Opslaan..."
+      },
+      "confirm": {
+        "cancel": {
+          "title": "Training annuleren",
+          "message": "‘{{title}}’ annuleren? Hiermee verwijder je de training en de bijbehorende aanwezigheidsgegevens."
+        }
       },
       "errors": {
         "load": {
@@ -1631,6 +2519,7 @@ export const translations = {
 
 export type TranslationKey =
   | "backup.delete.action"
+  | "backup.delete.confirm.action"
   | "backup.delete.confirm.message"
   | "backup.delete.confirm.title"
   | "backup.delete.description"
@@ -1640,13 +2529,18 @@ export type TranslationKey =
   | "backup.export.action"
   | "backup.export.error.message"
   | "backup.export.error.title"
+  | "backup.export.preparing"
   | "backup.restore.action"
+  | "backup.restore.confirm.action"
+  | "backup.restore.confirm.file_message"
   | "backup.restore.confirm.message"
   | "backup.restore.confirm.title"
   | "backup.restore.error.message"
   | "backup.restore.error.title"
   | "backup.restore.file_picker_error.message"
   | "backup.restore.file_picker_error.title"
+  | "backup.restore.restoring"
+  | "backup.restore.success.continue"
   | "backup.restore.success.message"
   | "backup.restore.success.title"
   | "backup.section.description"
@@ -1692,18 +2586,44 @@ export type TranslationKey =
   | "dashboard.actions.add_match.title"
   | "dashboard.actions.add_match_result.description"
   | "dashboard.actions.add_match_result.title"
+  | "dashboard.actions.add_match_result.title_plural"
+  | "dashboard.actions.add_match_result.waiting_description"
+  | "dashboard.actions.add_match_result.waiting_description_plural"
   | "dashboard.actions.add_training.description"
   | "dashboard.actions.add_training.title"
+  | "dashboard.actions.add_training_attendance.description"
+  | "dashboard.actions.add_training_attendance.description_plural"
+  | "dashboard.actions.add_training_attendance.title"
+  | "dashboard.actions.add_training_attendance.title_plural"
   | "dashboard.actions.players.description"
   | "dashboard.actions.players.title"
   | "dashboard.actions.setup_team.description"
   | "dashboard.actions.setup_team.title"
+  | "dashboard.actions.shortcuts.match_day"
+  | "dashboard.actions.shortcuts.team_stats"
+  | "dashboard.actions.shortcuts.training"
   | "dashboard.actions.title"
+  | "dashboard.header.injuries"
+  | "dashboard.header.injuries_plural"
   | "dashboard.header.subtitle"
   | "dashboard.header.title"
+  | "dashboard.next_match.good_luck"
+  | "dashboard.next_match.open_training"
+  | "dashboard.next_match.preparation"
+  | "dashboard.recent_win.message"
+  | "dashboard.recent_win.result"
+  | "dashboard.recent_win.share"
+  | "dashboard.recent_win.share_accessibility"
   | "dashboard.setup.actions.back_to_kit"
   | "dashboard.setup.actions.continue_team_settings"
   | "dashboard.setup.actions.save"
+  | "dashboard.setup.actions.saving"
+  | "dashboard.setup.errors.invalid_match_minutes"
+  | "dashboard.setup.errors.invalid_values"
+  | "dashboard.setup.errors.team_name_required"
+  | "dashboard.setup.header.step_progress"
+  | "dashboard.setup.kit.number_colour"
+  | "dashboard.setup.kit.third_colour"
   | "dashboard.setup.kit.title"
   | "dashboard.setup.preferences.fine_jar_off"
   | "dashboard.setup.preferences.fine_jar_on"
@@ -1719,11 +2639,62 @@ export type TranslationKey =
   | "dashboard.setup.team_details.team_name"
   | "dashboard.setup.team_details.team_name_placeholder"
   | "dashboard.setup.team_details.title"
+  | "fine_jar.actions.add_fine"
+  | "fine_jar.actions.add_fine_type"
+  | "fine_jar.add_modal.fine_type"
+  | "fine_jar.add_modal.payment_status"
+  | "fine_jar.add_modal.player"
+  | "fine_jar.add_modal.submit"
+  | "fine_jar.add_modal.title"
+  | "fine_jar.errors.load"
+  | "fine_jar.errors.save"
+  | "fine_jar.fine.mark_paid"
+  | "fine_jar.fine.mark_unpaid"
+  | "fine_jar.fine.paid"
+  | "fine_jar.fine.unpaid"
+  | "fine_jar.fine_types.collapse"
+  | "fine_jar.fine_types.description"
+  | "fine_jar.fine_types.empty"
+  | "fine_jar.fine_types.expand"
+  | "fine_jar.fine_types.title"
+  | "fine_jar.header.subtitle"
+  | "fine_jar.header.title"
+  | "fine_jar.overview.empty_paid"
+  | "fine_jar.overview.empty_unpaid"
+  | "fine_jar.overview.paid"
+  | "fine_jar.overview.paid_value"
+  | "fine_jar.overview.title"
+  | "fine_jar.overview.total"
+  | "fine_jar.overview.unpaid"
+  | "fine_jar.overview.unpaid_value"
+  | "fine_jar.type_modal.name"
+  | "fine_jar.type_modal.name_placeholder"
+  | "fine_jar.type_modal.price"
+  | "fine_jar.type_modal.price_placeholder"
+  | "fine_jar.type_modal.submit"
+  | "fine_jar.type_modal.title"
+  | "fine_jar.validation.duplicate"
+  | "fine_jar.validation.fine_name"
+  | "fine_jar.validation.fine_type"
+  | "fine_jar.validation.player"
+  | "fine_jar.validation.price"
+  | "matchday.add_match.actions.continue_anyway"
+  | "matchday.add_match.actions.go_back"
+  | "matchday.add_match.actions.review"
+  | "matchday.add_match.actions.update"
   | "matchday.add_match.availability.available"
   | "matchday.add_match.availability.description"
   | "matchday.add_match.availability.empty"
+  | "matchday.add_match.availability.guest"
+  | "matchday.add_match.availability.injured"
+  | "matchday.add_match.availability.injury_override.action"
+  | "matchday.add_match.availability.injury_override.message"
+  | "matchday.add_match.availability.injury_override.title"
+  | "matchday.add_match.availability.no_kit_number"
   | "matchday.add_match.availability.out"
   | "matchday.add_match.availability.title"
+  | "matchday.add_match.close"
+  | "matchday.add_match.edit_title"
   | "matchday.add_match.guest_players.added"
   | "matchday.add_match.guest_players.description"
   | "matchday.add_match.guest_players.empty"
@@ -1736,10 +2707,16 @@ export type TranslationKey =
   | "matchday.add_match.guest_players.previous"
   | "matchday.add_match.guest_players.title"
   | "matchday.add_match.lineup.add_players_first"
+  | "matchday.add_match.lineup.add_substitute"
+  | "matchday.add_match.lineup.change_player"
+  | "matchday.add_match.lineup.choose_player"
+  | "matchday.add_match.lineup.close_picker"
   | "matchday.add_match.lineup.formation"
   | "matchday.add_match.lineup.no_substitutes"
+  | "matchday.add_match.lineup.position"
   | "matchday.add_match.lineup.remove_player"
   | "matchday.add_match.lineup.select_formation"
+  | "matchday.add_match.lineup.substitute_prefix"
   | "matchday.add_match.lineup.substitutes"
   | "matchday.add_match.match_details.date"
   | "matchday.add_match.match_details.location.away"
@@ -1751,8 +2728,13 @@ export type TranslationKey =
   | "matchday.add_match.match_details.type.friendly"
   | "matchday.add_match.match_details.type.label"
   | "matchday.add_match.match_details.type.league"
+  | "matchday.add_match.progress"
+  | "matchday.add_match.review.date_time"
+  | "matchday.add_match.review.location"
   | "matchday.add_match.roles.captain"
   | "matchday.add_match.roles.captain_required"
+  | "matchday.add_match.roles.instructions.captain"
+  | "matchday.add_match.roles.instructions.captain_and_duty"
   | "matchday.add_match.roles.match_duty"
   | "matchday.add_match.roles.no_available_players"
   | "matchday.add_match.roles.title"
@@ -1775,8 +2757,11 @@ export type TranslationKey =
   | "matchday.add_match.validation.match_duty.title"
   | "matchday.add_match.validation.opponent.message"
   | "matchday.add_match.validation.opponent.title"
+  | "matchday.add_match.validation.result_date.message"
+  | "matchday.add_match.validation.result_date.title"
   | "matchday.add_match.validation.time.message"
   | "matchday.add_match.validation.time.title"
+  | "matchday.confirm.delete_message"
   | "matchday.confirm.delete_title"
   | "matchday.errors.delete"
   | "matchday.errors.load.message"
@@ -1790,6 +2775,12 @@ export type TranslationKey =
   | "matchday.overview.actions.edit_result"
   | "matchday.overview.actions.share"
   | "matchday.overview.add_match"
+  | "matchday.overview.card.category.cup"
+  | "matchday.overview.card.category.friendly"
+  | "matchday.overview.card.category.league"
+  | "matchday.overview.card.date_time"
+  | "matchday.overview.card.location.away"
+  | "matchday.overview.card.location.home"
   | "matchday.overview.empty.description"
   | "matchday.overview.empty.title"
   | "matchday.overview.result.stats_logged"
@@ -1803,6 +2794,13 @@ export type TranslationKey =
   | "matchday.player_stats.no_ratings"
   | "matchday.player_stats.recent_period"
   | "matchday.player_stats.training"
+  | "matchday.result.actions.save_and_share"
+  | "matchday.result.actions.saving"
+  | "matchday.result.controls.decrease"
+  | "matchday.result.controls.increase"
+  | "matchday.result.outcome.drawn"
+  | "matchday.result.outcome.lost"
+  | "matchday.result.outcome.won"
   | "matchday.result.player_performance.assists"
   | "matchday.result.player_performance.attendance.label"
   | "matchday.result.player_performance.attendance.late"
@@ -1812,6 +2810,7 @@ export type TranslationKey =
   | "matchday.result.player_performance.card.none"
   | "matchday.result.player_performance.cards"
   | "matchday.result.player_performance.description"
+  | "matchday.result.player_performance.edit_player"
   | "matchday.result.player_performance.empty"
   | "matchday.result.player_performance.goals"
   | "matchday.result.player_performance.match_duty_fulfilled"
@@ -1820,9 +2819,13 @@ export type TranslationKey =
   | "matchday.result.player_performance.notes"
   | "matchday.result.player_performance.rating"
   | "matchday.result.player_performance.red"
+  | "matchday.result.player_performance.role.starter"
+  | "matchday.result.player_performance.role.substitute"
+  | "matchday.result.player_performance.summary"
   | "matchday.result.player_performance.yellow"
   | "matchday.result.review.no_match"
   | "matchday.result.score.opponent"
+  | "matchday.result.score.unknown_opponent"
   | "matchday.result.score.your_team"
   | "matchday.result.steps.performance"
   | "matchday.result.steps.result"
@@ -1830,6 +2833,8 @@ export type TranslationKey =
   | "matchday.result.title"
   | "matchday.result.validation.goals_mismatch.message"
   | "matchday.result.validation.goals_mismatch.title"
+  | "matchday.result.validation.limit_reached"
+  | "matchday.result.validation.scoring_limit"
   | "matchday.share.background"
   | "matchday.share.backgrounds.day"
   | "matchday.share.backgrounds.night"
@@ -1854,10 +2859,16 @@ export type TranslationKey =
   | "matchday.share.overlay"
   | "matchday.share.overlays.broadcast"
   | "matchday.share.overlays.classic"
+  | "matchday.share.poster.away_match"
+  | "matchday.share.poster.home_match"
+  | "matchday.share.poster.opponent"
+  | "matchday.share.poster.subs"
+  | "matchday.share.poster.substitutes"
   | "matchday.share.success.message"
   | "matchday.share.success.title"
   | "matchday.share.title"
   | "navigation.closeMenu"
+  | "navigation.fineJar"
   | "navigation.home"
   | "navigation.matchDay"
   | "navigation.openMenu"
@@ -1867,6 +2878,8 @@ export type TranslationKey =
   | "navigation.training"
   | "notifications.match_result.body"
   | "notifications.match_result.title"
+  | "notifications.training_attendance.body"
+  | "notifications.training_attendance.title"
   | "onboarding.actions.finish"
   | "onboarding.actions.skip"
   | "onboarding.language_selection.dutch_code"
@@ -1910,6 +2923,26 @@ export type TranslationKey =
   | "players.form.duplicate.player_title"
   | "players.form.edit_title"
   | "players.form.first_name"
+  | "players.form.injury.active"
+  | "players.form.injury.badge"
+  | "players.form.injury.delete"
+  | "players.form.injury.delete_message"
+  | "players.form.injury.delete_title"
+  | "players.form.injury.edit"
+  | "players.form.injury.healthy"
+  | "players.form.injury.help"
+  | "players.form.injury.history_empty"
+  | "players.form.injury.history_title"
+  | "players.form.injury.injured"
+  | "players.form.injury.note"
+  | "players.form.injury.note_placeholder"
+  | "players.form.injury.overlap_error"
+  | "players.form.injury.present"
+  | "players.form.injury.recovery_date"
+  | "players.form.injury.save_changes"
+  | "players.form.injury.start_date"
+  | "players.form.injury.title"
+  | "players.form.injury.toggle_label"
   | "players.form.kit_number"
   | "players.form.last_name"
   | "players.form.nickname"
@@ -1921,6 +2954,8 @@ export type TranslationKey =
   | "players.form.validation.invalid_birth_date.title"
   | "players.form.validation.invalid_first_name.message"
   | "players.form.validation.invalid_first_name.title"
+  | "players.form.validation.invalid_injury_date.message"
+  | "players.form.validation.invalid_injury_date.title"
   | "players.form.validation.invalid_kit_number.message"
   | "players.form.validation.invalid_kit_number.title"
   | "players.form.validation.invalid_last_name.message"
@@ -1940,6 +2975,66 @@ export type TranslationKey =
   | "players.overview.subtitle"
   | "players.overview.title"
   | "players.stats.attendance"
+  | "players.stats.close_team_statistics"
+  | "players.stats.columns.assists"
+  | "players.stats.columns.assists_per_90"
+  | "players.stats.columns.average_minutes"
+  | "players.stats.columns.average_rating"
+  | "players.stats.columns.clean_sheets"
+  | "players.stats.columns.duties"
+  | "players.stats.columns.duty_percentage"
+  | "players.stats.columns.fine_amount"
+  | "players.stats.columns.fines"
+  | "players.stats.columns.fulfilled"
+  | "players.stats.columns.goals"
+  | "players.stats.columns.goals_per_90"
+  | "players.stats.columns.last_five"
+  | "players.stats.columns.late_percentage"
+  | "players.stats.columns.match_percentage"
+  | "players.stats.columns.player"
+  | "players.stats.columns.red_cards"
+  | "players.stats.columns.starter_percentage"
+  | "players.stats.columns.starts"
+  | "players.stats.columns.training_percentage"
+  | "players.stats.columns.yellow_cards"
+  | "players.stats.detail.appearances"
+  | "players.stats.detail.assists"
+  | "players.stats.detail.assists_help"
+  | "players.stats.detail.assists_per_90"
+  | "players.stats.detail.assists_per_90_help"
+  | "players.stats.detail.attended"
+  | "players.stats.detail.available_but_absent"
+  | "players.stats.detail.available_but_absent_help"
+  | "players.stats.detail.average_minutes"
+  | "players.stats.detail.average_rating"
+  | "players.stats.detail.average_rating_help"
+  | "players.stats.detail.clean_sheets"
+  | "players.stats.detail.clean_sheets_help"
+  | "players.stats.detail.completed_matches"
+  | "players.stats.detail.duties_fulfilled"
+  | "players.stats.detail.duty_fulfillment"
+  | "players.stats.detail.duty_fulfillment_help"
+  | "players.stats.detail.goals"
+  | "players.stats.detail.goals_help"
+  | "players.stats.detail.goals_per_90"
+  | "players.stats.detail.goals_per_90_help"
+  | "players.stats.detail.late"
+  | "players.stats.detail.late_count"
+  | "players.stats.detail.late_count_plural"
+  | "players.stats.detail.match_duties"
+  | "players.stats.detail.matches"
+  | "players.stats.detail.out_but_attended"
+  | "players.stats.detail.out_but_attended_help"
+  | "players.stats.detail.red_cards"
+  | "players.stats.detail.red_cards_help"
+  | "players.stats.detail.starter"
+  | "players.stats.detail.starter_help"
+  | "players.stats.detail.starts"
+  | "players.stats.detail.starts_help"
+  | "players.stats.detail.total_minutes"
+  | "players.stats.detail.training"
+  | "players.stats.detail.yellow_cards"
+  | "players.stats.detail.yellow_cards_help"
   | "players.stats.empty.description"
   | "players.stats.empty.title"
   | "players.stats.match_data"
@@ -1949,7 +3044,21 @@ export type TranslationKey =
   | "players.stats.player_subtitle"
   | "players.stats.player_title"
   | "players.stats.recent_form"
+  | "players.stats.sort_by"
   | "players.stats.team_title"
+  | "seasons.confirm_end.action"
+  | "seasons.confirm_end.join"
+  | "seasons.confirm_end.message"
+  | "seasons.confirm_end.title"
+  | "seasons.confirm_end.unfinished_matches"
+  | "seasons.confirm_end.unfinished_matches_plural"
+  | "seasons.confirm_end.unfinished_trainings"
+  | "seasons.confirm_end.unfinished_trainings_plural"
+  | "seasons.confirm_end.unfinished_warning"
+  | "seasons.confirm_end.unpaid_fines.carry"
+  | "seasons.confirm_end.unpaid_fines.message"
+  | "seasons.confirm_end.unpaid_fines.title"
+  | "seasons.confirm_end.unpaid_fines.write_off"
   | "seasons.errors.load.message"
   | "seasons.errors.load.title"
   | "seasons.errors.not_ended.message"
@@ -1961,27 +3070,74 @@ export type TranslationKey =
   | "seasons.overview.end_season.description"
   | "seasons.overview.end_season.title"
   | "seasons.overview.history.completed"
+  | "seasons.overview.history.count"
+  | "seasons.overview.history.count_plural"
   | "seasons.overview.history.empty.description"
   | "seasons.overview.history.empty.title"
   | "seasons.overview.history.title"
+  | "seasons.overview.history.view_accessibility"
   | "seasons.overview.history.view_summary"
   | "seasons.overview.subtitle"
   | "seasons.overview.title"
+  | "seasons.summary.card_points_help"
+  | "seasons.summary.current_season"
+  | "seasons.summary.fine_count"
+  | "seasons.summary.fine_count_plural"
   | "seasons.summary.highlights.best_training_attendance"
   | "seasons.summary.highlights.biggest_loss"
   | "seasons.summary.highlights.biggest_win"
   | "seasons.summary.highlights.highest_average_minutes"
   | "seasons.summary.highlights.highest_lateness_percentage"
+  | "seasons.summary.highlights.minutes_per_training"
   | "seasons.summary.highlights.most_assists"
   | "seasons.summary.highlights.most_card_points"
+  | "seasons.summary.highlights.most_fines"
   | "seasons.summary.highlights.most_goals"
+  | "seasons.summary.match_location.away"
+  | "seasons.summary.match_location.home"
+  | "seasons.summary.minimum_appearances"
+  | "seasons.summary.minutes_short"
   | "seasons.summary.no_data"
   | "seasons.summary.no_match"
+  | "seasons.summary.player_columns.assists"
+  | "seasons.summary.player_columns.average_minutes"
+  | "seasons.summary.player_columns.clean_sheets"
+  | "seasons.summary.player_columns.duties"
+  | "seasons.summary.player_columns.goals"
+  | "seasons.summary.player_columns.late"
+  | "seasons.summary.player_columns.match"
+  | "seasons.summary.player_columns.player"
+  | "seasons.summary.player_columns.rating"
+  | "seasons.summary.player_columns.red_cards"
+  | "seasons.summary.player_columns.starts"
+  | "seasons.summary.player_columns.training"
+  | "seasons.summary.player_columns.yellow_cards"
   | "seasons.summary.player_highlights"
   | "seasons.summary.player_overview"
+  | "seasons.summary.season_title"
   | "seasons.summary.team_overview"
+  | "seasons.summary.team_stats.draws"
+  | "seasons.summary.team_stats.fine_amount"
+  | "seasons.summary.team_stats.goals_against"
+  | "seasons.summary.team_stats.goals_for"
+  | "seasons.summary.team_stats.losses"
+  | "seasons.summary.team_stats.matches"
+  | "seasons.summary.team_stats.trainings"
+  | "seasons.summary.team_stats.wins"
   | "seasons.summary.title"
   | "settings.actions.save"
+  | "settings.actions.saved"
+  | "settings.actions.saving"
+  | "settings.errors.load"
+  | "settings.errors.match_minutes"
+  | "settings.errors.save"
+  | "settings.errors.season_check.message"
+  | "settings.errors.season_check.title"
+  | "settings.errors.season_end.message"
+  | "settings.errors.season_end.title"
+  | "settings.errors.season_name_required"
+  | "settings.errors.team_name_required"
+  | "settings.errors.training_time"
   | "settings.errors.tutorial.message"
   | "settings.errors.tutorial.title"
   | "settings.header.subtitle"
@@ -1991,6 +3147,7 @@ export type TranslationKey =
   | "settings.introduction.title"
   | "settings.kit.goalkeeper_primary"
   | "settings.kit.goalkeeper_secondary"
+  | "settings.kit.number"
   | "settings.kit.patterns.halves"
   | "settings.kit.patterns.hoops"
   | "settings.kit.patterns.regular"
@@ -2000,15 +3157,24 @@ export type TranslationKey =
   | "settings.kit.patterns.two_color_sash"
   | "settings.kit.player_primary"
   | "settings.kit.player_secondary"
+  | "settings.kit.third"
   | "settings.kit.title"
   | "settings.language.changed"
   | "settings.language.description"
   | "settings.language.dutch"
   | "settings.language.english"
   | "settings.language.title"
+  | "settings.match_preferences.decrease_match_minutes"
+  | "settings.match_preferences.fine_jar.currency.description"
+  | "settings.match_preferences.fine_jar.currency.dollar"
+  | "settings.match_preferences.fine_jar.currency.euro"
+  | "settings.match_preferences.fine_jar.currency.pound"
+  | "settings.match_preferences.fine_jar.currency.title"
+  | "settings.match_preferences.fine_jar.description"
   | "settings.match_preferences.fine_jar.disabled"
   | "settings.match_preferences.fine_jar.enabled"
   | "settings.match_preferences.fine_jar.title"
+  | "settings.match_preferences.increase_match_minutes"
   | "settings.match_preferences.match_duties.description"
   | "settings.match_preferences.match_duties.disabled"
   | "settings.match_preferences.match_duties.enabled"
@@ -2017,9 +3183,19 @@ export type TranslationKey =
   | "settings.match_preferences.match_minutes_help"
   | "settings.match_preferences.player_names.first_names"
   | "settings.match_preferences.player_names.nicknames"
+  | "settings.match_preferences.player_names.title"
   | "settings.match_preferences.title"
+  | "settings.season.confirm.join"
+  | "settings.season.confirm.match_result"
+  | "settings.season.confirm.match_results"
+  | "settings.season.confirm.message"
+  | "settings.season.confirm.title"
+  | "settings.season.confirm.training_record"
+  | "settings.season.confirm.training_records"
+  | "settings.season.confirm.unfinished"
   | "settings.season.current"
   | "settings.season.end"
+  | "settings.season.ending"
   | "settings.season.history"
   | "settings.season.name"
   | "settings.season.name_placeholder"
@@ -2037,6 +3213,13 @@ export type TranslationKey =
   | "settings.team.name"
   | "settings.team.name_placeholder"
   | "settings.team.title"
+  | "settings.training_preferences.day_labels.friday"
+  | "settings.training_preferences.day_labels.monday"
+  | "settings.training_preferences.day_labels.saturday"
+  | "settings.training_preferences.day_labels.sunday"
+  | "settings.training_preferences.day_labels.thursday"
+  | "settings.training_preferences.day_labels.tuesday"
+  | "settings.training_preferences.day_labels.wednesday"
   | "settings.training_preferences.days.description"
   | "settings.training_preferences.days.title"
   | "settings.training_preferences.default_time.description"
@@ -2045,20 +3228,51 @@ export type TranslationKey =
   | "training.actions.cancel"
   | "training.actions.edit"
   | "training.actions.keep"
+  | "training.actions.save"
+  | "training.actions.save_changes"
+  | "training.actions.saving"
+  | "training.add_training.details.confirm_picker"
   | "training.add_training.details.date"
   | "training.add_training.details.location"
+  | "training.add_training.details.locations.away"
+  | "training.add_training.details.locations.home"
+  | "training.add_training.details.notes"
+  | "training.add_training.details.open_date_picker"
+  | "training.add_training.details.open_time_picker"
+  | "training.add_training.details.opponent"
   | "training.add_training.details.start_time"
   | "training.add_training.details.title"
   | "training.add_training.details.title_placeholder"
+  | "training.add_training.players.available"
   | "training.add_training.players.empty"
+  | "training.add_training.players.injured"
+  | "training.add_training.players.injury_override.action"
+  | "training.add_training.players.injury_override.message"
+  | "training.add_training.players.injury_override.title"
+  | "training.add_training.players.out"
   | "training.add_training.players.title"
+  | "training.add_training.players.unknown"
+  | "training.add_training.progress"
   | "training.add_training.review.available_players"
+  | "training.add_training.review.date"
+  | "training.add_training.review.location"
   | "training.add_training.review.no_available_players"
+  | "training.add_training.review.opponent"
+  | "training.add_training.review.players_tracked"
+  | "training.add_training.review.start_time"
+  | "training.add_training.review.title"
+  | "training.add_training.review.type"
   | "training.add_training.steps.details"
   | "training.add_training.steps.players"
   | "training.add_training.steps.review"
   | "training.add_training.steps.type"
   | "training.add_training.title"
+  | "training.add_training.types.match.description"
+  | "training.add_training.types.match.label"
+  | "training.add_training.types.other.description"
+  | "training.add_training.types.other.label"
+  | "training.add_training.types.training.description"
+  | "training.add_training.types.training.label"
   | "training.add_training.validation.invalid_date.message"
   | "training.add_training.validation.invalid_date.title"
   | "training.add_training.validation.invalid_start_time.message"
@@ -2066,6 +3280,7 @@ export type TranslationKey =
   | "training.add_training.validation.missing_title.message"
   | "training.add_training.validation.missing_title.title"
   | "training.attendance.add"
+  | "training.attendance.attended"
   | "training.attendance.columns.minutes"
   | "training.attendance.columns.name"
   | "training.attendance.columns.rating"
@@ -2075,11 +3290,20 @@ export type TranslationKey =
   | "training.attendance.fields.match_rating"
   | "training.attendance.fields.minutes_played"
   | "training.attendance.loading"
+  | "training.attendance.none"
   | "training.attendance.not_marked"
   | "training.attendance.validation.invalid_minutes.message"
   | "training.attendance.validation.invalid_minutes.title"
   | "training.attendance.validation.invalid_rating.message"
   | "training.attendance.validation.invalid_rating.title"
+  | "training.card.action_for"
+  | "training.card.cancel_for"
+  | "training.card.edit_attendance_for"
+  | "training.card.edit_for"
+  | "training.card.signup_summary"
+  | "training.card.title"
+  | "training.confirm.cancel.message"
+  | "training.confirm.cancel.title"
   | "training.errors.cancel"
   | "training.errors.edit"
   | "training.errors.load.message"
@@ -2096,6 +3320,8 @@ export type TranslationKey =
   | "training.overview.title"
   | "training.sections.completed.description"
   | "training.sections.completed.title"
+  | "training.sections.count"
+  | "training.sections.count_plural"
   | "training.sections.empty"
   | "training.sections.needs_attendance.description"
   | "training.sections.needs_attendance.title"

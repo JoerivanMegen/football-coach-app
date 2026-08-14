@@ -1,5 +1,5 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import {
   type Dispatch,
@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -22,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
+  ActionColors,
   BottomTabInset,
   PageTopPadding,
   Spacing,
@@ -39,8 +41,6 @@ import {
 import {
   formatIsoDateForDisplay,
   getMatchCategoryIcon,
-  getMatchLocationLabel,
-  getResultLabel,
   hasMatchResult,
   parseDisplayDateToDate,
   parseDisplayDateToIsoDate,
@@ -107,12 +107,12 @@ import type {
 } from "@/features/match-day/match-day-types";
 import { listPlayerAttendanceStatsAsync } from "@/features/player-stats/player-stats-repository";
 import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
-import { listPlayersAsync } from "@/features/players/player-repository";
-import { type Player } from "@/features/players/player-types";
+import { isPlayerInjuredOnDate } from "@/features/players/player-injury-utils";
+import { listAllPlayerInjuriesAsync, listPlayersAsync } from "@/features/players/player-repository";
+import { type Player, type PlayerInjury } from "@/features/players/player-types";
 import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
 import { useTheme } from "@/hooks/use-theme";
 import { useI18n } from "@/i18n/i18n-provider";
-import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 import {
   cancelMatchResultReminderAsync,
   scheduleMatchResultReminderAsync,
@@ -156,9 +156,32 @@ function createMatchSetupFormStateFromMatch(
   };
 }
 
+function createSavedMatchSharePreview(
+  match: MatchDayMatch,
+  players: Player[],
+): SharePreviewState {
+  const matchPlayers = applyGuestKitNumbers(players, match.guestPlayerIds);
+  const squadEntries = getMatchResultSquadEntries(match, matchPlayers);
+  const playerRoleById = new Map(
+    squadEntries.map((entry) => [entry.player.id, entry.role]),
+  );
+
+  return {
+    form: createMatchSetupFormStateFromMatch(match),
+    opponentScore: match.opponentScore ?? undefined,
+    ownScore: match.ownScore ?? undefined,
+    playerResultStats: hasMatchResult(match)
+      ? match.playerResultStats
+      : undefined,
+    playerRoleById,
+    players: matchPlayers,
+  };
+}
+
 export default function MatchDayScreen() {
   const { t } = useI18n();
-  const scrollViewRef = useScrollToTopOnFocus();
+  const router = useRouter();
+  const { shareMatchId } = useLocalSearchParams<{ shareMatchId?: string }>();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const [isMatchSetupOpen, setIsMatchSetupOpen] = useState(false);
@@ -169,7 +192,7 @@ export default function MatchDayScreen() {
   );
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [clubLocation, setClubLocation] = useState("");
-  const [preferNicknames, setPreferNicknames] = useState(true);
+  const [preferNicknames, setPreferNicknames] = useState(false);
   const [matchDutyEnabled, setMatchDutyEnabled] = useState(true);
   const [matchDurationMinutes, setMatchDurationMinutes] = useState(
     defaultMatchDurationMinutes,
@@ -190,6 +213,11 @@ export default function MatchDayScreen() {
     playerResultStats: {},
     fulfilledMatchDutyPlayerIds: [],
   });
+  const editingMatchHasResult =
+    editingMatchId !== null &&
+    matches.some(
+      (match) => match.id === editingMatchId && hasMatchResult(match),
+    );
   const insets = useMemo(
     () => ({
       ...safeAreaInsets,
@@ -225,7 +253,7 @@ export default function MatchDayScreen() {
       setKitSettings(nextSettings ?? defaultLineupKitSettings);
       setTeamName(nextSettings?.teamName.trim() || defaultTeamName);
       setClubLocation(nextSettings?.clubLocation ?? "");
-      setPreferNicknames(nextSettings?.preferNicknames ?? true);
+      setPreferNicknames(nextSettings?.preferNicknames ?? false);
       setMatchDutyEnabled(nextSettings?.matchDutyEnabled ?? true);
       setMatchDurationMinutes(
         nextSettings?.matchDurationMinutes ?? defaultMatchDurationMinutes,
@@ -252,11 +280,22 @@ export default function MatchDayScreen() {
           setKitSettings(nextSettings ?? defaultLineupKitSettings);
           setTeamName(nextSettings?.teamName.trim() || defaultTeamName);
           setClubLocation(nextSettings?.clubLocation ?? "");
-          setPreferNicknames(nextSettings?.preferNicknames ?? true);
+          setPreferNicknames(nextSettings?.preferNicknames ?? false);
           setMatchDutyEnabled(nextSettings?.matchDutyEnabled ?? true);
           setMatchDurationMinutes(
             nextSettings?.matchDurationMinutes ?? defaultMatchDurationMinutes,
           );
+          const requestedShareMatch = shareMatchId
+            ? nextMatches.find((match) => match.id === Number(shareMatchId))
+            : undefined;
+          if (requestedShareMatch) {
+            setSharePreview(
+              createSavedMatchSharePreview(requestedShareMatch, [
+                ...nextPlayers,
+                ...nextGuests,
+              ]),
+            );
+          }
         }
       })
       .catch((error: unknown) => {
@@ -267,7 +306,7 @@ export default function MatchDayScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [shareMatchId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -279,7 +318,7 @@ export default function MatchDayScreen() {
             setKitSettings(nextSettings ?? defaultLineupKitSettings);
             setTeamName(nextSettings?.teamName.trim() || defaultTeamName);
             setClubLocation(nextSettings?.clubLocation ?? "");
-            setPreferNicknames(nextSettings?.preferNicknames ?? true);
+            setPreferNicknames(nextSettings?.preferNicknames ?? false);
             setMatchDutyEnabled(nextSettings?.matchDutyEnabled ?? true);
             setMatchDurationMinutes(
               nextSettings?.matchDurationMinutes ?? defaultMatchDurationMinutes,
@@ -367,30 +406,19 @@ export default function MatchDayScreen() {
   }
 
   function openSavedMatchSharePreview(match: MatchDayMatch) {
-    const matchPlayers = applyGuestKitNumbers(
-      overviewPlayers,
-      match.guestPlayerIds,
-    );
-    const squadEntries = getMatchResultSquadEntries(match, matchPlayers);
-    const playerRoleById = new Map(
-      squadEntries.map((entry) => [entry.player.id, entry.role]),
-    );
+    setSharePreview(createSavedMatchSharePreview(match, overviewPlayers));
+  }
 
-    setSharePreview({
-      form: createMatchSetupFormStateFromMatch(match),
-      opponentScore: match.opponentScore ?? undefined,
-      ownScore: match.ownScore ?? undefined,
-      playerResultStats: hasMatchResult(match)
-        ? match.playerResultStats
-        : undefined,
-      playerRoleById,
-      players: matchPlayers,
-    });
+  function closeSharePreview() {
+    setSharePreview(null);
+    if (shareMatchId) {
+      router.setParams({ shareMatchId: "" });
+    }
   }
 
   async function handleSaveResult() {
     if (!resultMatchId) {
-      return;
+      return false;
     }
 
     const resultMatch =
@@ -416,14 +444,22 @@ export default function MatchDayScreen() {
       setExpandedMatchId(resultMatchId);
       setResultMatchId(null);
       await loadMatches();
+      return true;
     } catch (error) {
       console.warn("Failed to save match result", error);
-      Alert.alert("Could not save result", "Please try again.");
+      Alert.alert(
+        t("matchday.errors.save_result"),
+        t("common.errors.generic_message"),
+      );
+      return false;
     }
   }
 
   async function handleSaveMatch() {
-    if (!validateMatchSetupForm(matchSetupForm) || !validateMatchCaptain(matchSetupForm)) {
+    if (
+      !validateMatchSetupForm(matchSetupForm, t, editingMatchHasResult) ||
+      !validateMatchCaptain(matchSetupForm, t)
+    ) {
       return;
     }
 
@@ -482,20 +518,20 @@ export default function MatchDayScreen() {
     } catch (error) {
       console.warn("Failed to save match", error);
       Alert.alert(
-        "Could not save match",
-        "Please check the match details and try again.",
+        t("matchday.errors.save_match.title"),
+        t("matchday.errors.save_match.message"),
       );
     }
   }
 
   function confirmDeleteMatch(match: MatchDayMatch) {
     Alert.alert(
-      "Delete match?",
-      `This will permanently delete the saved match against ${match.opponent}.`,
+      t("matchday.confirm.delete_title"),
+      t("matchday.confirm.delete_message", { opponent: match.opponent }),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("common.delete"),
           style: "destructive",
           onPress: () => {
             void handleDeleteMatch(match);
@@ -522,7 +558,6 @@ export default function MatchDayScreen() {
   return (
     <>
       <ScrollView
-        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -584,6 +619,7 @@ export default function MatchDayScreen() {
         form={matchSetupForm}
         kitSettings={kitSettings}
         matchDutyEnabled={matchDutyEnabled}
+        hasExistingResult={editingMatchHasResult}
         mode={editingMatchId ? "edit" : "create"}
         preferNicknames={preferNicknames}
         visible={isMatchSetupOpen && sharePreview === null}
@@ -624,7 +660,7 @@ export default function MatchDayScreen() {
         preview={sharePreview}
         teamName={teamName}
         visible={sharePreview !== null}
-        onClose={() => setSharePreview(null)}
+        onClose={closeSharePreview}
       />
     </>
   );
@@ -650,7 +686,7 @@ export function MatchResultModal({
   match: MatchDayMatch | null;
   onChangeForm: Dispatch<SetStateAction<MatchResultFormState>>;
   onClose: () => void;
-  onSave: () => Promise<void> | void;
+  onSave: () => Promise<boolean>;
   onShare: (
     match: MatchDayMatch,
     form: MatchResultFormState,
@@ -664,12 +700,12 @@ export function MatchResultModal({
   const { t } = useI18n();
   const theme = useTheme();
   const [wizardStep, setWizardStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const resultStepKeys = [
     "matchday.result.steps.result",
     "matchday.result.steps.performance",
     "matchday.result.steps.review",
   ] as const;
-  const resultLabel = getResultLabel(form.ownScore, form.opponentScore);
 
   function handleClose() {
     setWizardStep(0);
@@ -707,8 +743,28 @@ export function MatchResultModal({
   }
 
   async function handleSave() {
-    setWizardStep(0);
-    await onSave();
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      if (await onSave()) {
+        setWizardStep(0);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleSaveAndShare() {
+    if (isSaving || !match) return;
+    setIsSaving(true);
+    try {
+      if (await onSave()) {
+        setWizardStep(0);
+        onShare(match, form, squadEntries);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -759,19 +815,21 @@ export function MatchResultModal({
             {wizardStep === 0 ? (
               <MatchResultScoreStep
                 form={form}
-                opponent={match?.opponent ?? "Opponent"}
-                resultLabel={resultLabel}
+                opponent={
+                  match?.opponent ?? t("matchday.result.score.unknown_opponent")
+                }
                 teamName={teamName}
                 onChangeForm={onChangeForm}
               />
             ) : wizardStep === 1 ? (
               <MatchResultPlayerStep
                 form={form}
+                kitSettings={kitSettings}
                 matchDurationMinutes={matchDurationMinutes}
                 matchDutyPlayerIds={match?.matchDutyPlayerIds ?? []}
+                match={match}
                 preferNicknames={preferNicknames}
                 squadEntries={squadEntries}
-                teamName={teamName}
                 onChangeForm={onChangeForm}
               />
             ) : (
@@ -802,40 +860,44 @@ export function MatchResultModal({
                   type="smallBold"
                   style={styles.reviewBackButtonText}
                 >
-                  Back
+                  {t("common.back")}
                 </ThemedText>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => {
-                  if (match) {
-                    onShare(match, form, squadEntries);
-                  }
-                }}
+                disabled={isSaving || !match}
+                onPress={handleSaveAndShare}
                 style={({ pressed }) => [
                   styles.reviewActionButton,
                   styles.reviewShareButton,
                   pressed && styles.pressed,
+                  (isSaving || !match) && styles.disabledButton,
                 ]}
               >
                 <ThemedText type="smallBold" style={styles.reviewActionText}>
-                  {t("common.share")}
+                  {isSaving
+                    ? t("matchday.result.actions.saving")
+                    : t("matchday.result.actions.save_and_share")}
                 </ThemedText>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
+                disabled={isSaving}
                 onPress={handleSave}
                 style={({ pressed }) => [
                   styles.reviewActionButton,
                   styles.reviewSaveButton,
                   pressed && styles.pressed,
+                  isSaving && styles.disabledButton,
                 ]}
               >
                 <ThemedText
                   type="smallBold"
                   style={[styles.reviewActionText, styles.reviewSaveButtonText]}
                 >
-                  {t("common.save")}
+                  {isSaving
+                    ? t("matchday.result.actions.saving")
+                    : t("common.save")}
                 </ThemedText>
               </Pressable>
             </ThemedView>
@@ -880,6 +942,7 @@ export function MatchResultModal({
 function MatchSetupModal({
   clubLocation,
   form,
+  hasExistingResult,
   kitSettings,
   matchDutyEnabled,
   mode,
@@ -892,6 +955,7 @@ function MatchSetupModal({
 }: {
   clubLocation: string;
   form: MatchSetupFormState;
+  hasExistingResult: boolean;
   kitSettings: LineupKitSettings;
   matchDutyEnabled: boolean;
   mode: "create" | "edit";
@@ -903,12 +967,16 @@ function MatchSetupModal({
   visible: boolean;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [players, setPlayers] = useState<Player[]>([]);
+  const [playerInjuries, setPlayerInjuries] = useState<PlayerInjury[]>([]);
   const [guestPlayers, setGuestPlayers] = useState<Player[]>([]);
   const [isGuestPlayerModalOpen, setIsGuestPlayerModalOpen] = useState(false);
   const [playerStats, setPlayerStats] = useState<PlayerAttendanceStats[]>([]);
   const [wizardStep, setWizardStep] = useState(0);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState(false);
+  const [isMatchDataLoaded, setIsMatchDataLoaded] = useState(false);
+  const hasInitializedCreateAvailability = useRef(false);
   const matchGuestPlayers = form.guestPlayerIds.flatMap(
     (guestPlayerId, index) => {
       const player = guestPlayers.find(
@@ -921,9 +989,19 @@ function MatchSetupModal({
   const availablePlayers = matchPlayers.filter(
     (player) => form.playerStatuses[player.id] === "available",
   );
+  const injuriesByPlayerId = useMemo(() => {
+    const grouped = new Map<number, PlayerInjury[]>();
+    for (const injury of playerInjuries) {
+      const injuries = grouped.get(injury.playerId) ?? [];
+      injuries.push(injury);
+      grouped.set(injury.playerId, injuries);
+    }
+    return grouped;
+  }, [playerInjuries]);
 
   useEffect(() => {
     if (!visible) {
+      hasInitializedCreateAvailability.current = false;
       return;
     }
 
@@ -931,17 +1009,20 @@ function MatchSetupModal({
 
     async function loadMatchData() {
       try {
-        const [loadedPlayers, loadedGuests, loadedPlayerStats] =
+        const [loadedPlayers, loadedGuests, loadedPlayerStats, loadedInjuries] =
           await Promise.all([
             listPlayersAsync(),
             listGuestPlayersAsync(),
             listPlayerAttendanceStatsAsync(),
+            listAllPlayerInjuriesAsync(),
           ]);
 
         if (isMounted) {
           setPlayers(loadedPlayers);
           setGuestPlayers(loadedGuests);
           setPlayerStats(loadedPlayerStats);
+          setPlayerInjuries(loadedInjuries);
+          setIsMatchDataLoaded(true);
           onChangeForm((currentForm) => ({
             ...currentForm,
             playerStatuses: initializeMatchPlayerStatuses(
@@ -967,7 +1048,36 @@ function MatchSetupModal({
     };
   }, [onChangeForm, visible]);
 
+  useEffect(() => {
+    if (
+      !visible ||
+      !isMatchDataLoaded ||
+      mode !== "create" ||
+      wizardStep !== 1 ||
+      hasInitializedCreateAvailability.current
+    ) {
+      return;
+    }
+
+    hasInitializedCreateAvailability.current = true;
+    onChangeForm((currentForm) => ({
+      ...currentForm,
+      playerStatuses: initializeMatchPlayerStatusesForCreate(
+        currentForm.playerStatuses,
+        [
+          ...players,
+          ...guestPlayers.filter((player) =>
+            currentForm.guestPlayerIds.includes(player.id),
+          ),
+        ],
+        currentForm.date,
+        injuriesByPlayerId,
+      ),
+    }));
+  }, [guestPlayers, injuriesByPlayerId, isMatchDataLoaded, mode, onChangeForm, players, visible, wizardStep]);
+
   function handleClose() {
+    setIsMatchDataLoaded(false);
     setWizardStep(0);
     setIsDraggingPlayer(false);
     setIsGuestPlayerModalOpen(false);
@@ -980,8 +1090,8 @@ function MatchSetupModal({
       form.guestPlayerIds.length >= 10
     ) {
       Alert.alert(
-        "Guest player limit reached",
-        "You can add up to 10 guest players, using kit numbers 70 to 79.",
+        t("matchday.add_match.guest_players.limit.title"),
+        t("matchday.add_match.guest_players.limit.message"),
       );
       return;
     }
@@ -1005,7 +1115,7 @@ function MatchSetupModal({
 
   async function handleNext() {
     if (wizardStep === 0) {
-      if (!validateMatchSetupForm(form)) {
+      if (!validateMatchSetupForm(form, t, hasExistingResult)) {
         return;
       }
 
@@ -1014,25 +1124,31 @@ function MatchSetupModal({
     }
 
     if (wizardStep === 1) {
-      if (!validateMatchCaptain(form)) {
+      if (!validateMatchCaptain(form, t)) {
         return;
       }
 
       if (availablePlayers.length === 0) {
         Alert.alert(
-          "Choose available players",
-          "Mark at least one player as available before building the lineup.",
+          t("matchday.add_match.validation.availability.title"),
+          t("matchday.add_match.validation.availability.message"),
         );
         return;
       }
 
       if (availablePlayers.length < 11) {
         Alert.alert(
-          "Less than 11 available players",
-          "You have selected less than 11 available players!",
+          t("matchday.add_match.validation.low_availability.title"),
+          t("matchday.add_match.validation.low_availability.message"),
           [
-            { text: "Go back", style: "cancel" },
-            { text: "Continue anyway", onPress: () => setWizardStep(2) },
+            {
+              text: t("matchday.add_match.actions.go_back"),
+              style: "cancel",
+            },
+            {
+              text: t("matchday.add_match.actions.continue_anyway"),
+              onPress: () => setWizardStep(2),
+            },
           ],
         );
         return;
@@ -1045,8 +1161,8 @@ function MatchSetupModal({
     if (wizardStep === 2) {
       if (getSelectedPitchPlayerCount(form, availablePlayers) < 11) {
         Alert.alert(
-          "Complete lineup",
-          "Add 11 players to the pitch before continuing.",
+          t("matchday.add_match.validation.lineup.title"),
+          t("matchday.add_match.validation.lineup.message"),
         );
         return;
       }
@@ -1075,16 +1191,22 @@ function MatchSetupModal({
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">
-                {mode === "edit" ? "Edit match" : "Add match"}
+                {mode === "edit"
+                  ? t("matchday.add_match.edit_title")
+                  : t("matchday.add_match.title")}
               </ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                Step {wizardStep + 1} of 4: {getMatchSetupStepLabel(wizardStep)}
+                {t("matchday.add_match.progress", {
+                  step: wizardStep + 1,
+                  total: 4,
+                  label: getMatchSetupStepLabel(wizardStep, t),
+                })}
               </ThemedText>
             </ThemedView>
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close match setup"
+              accessibilityLabel={t("matchday.add_match.close")}
               onPress={handleClose}
               style={({ pressed }) => [
                 styles.iconButton,
@@ -1108,11 +1230,13 @@ function MatchSetupModal({
               <MatchDetailsStep
                 clubLocation={clubLocation}
                 form={form}
+                maximumDate={hasExistingResult ? getEndOfToday() : undefined}
                 onChangeForm={onChangeForm}
               />
             ) : wizardStep === 1 ? (
               <MatchAvailabilityStep
                 form={form}
+                injuriesByPlayerId={injuriesByPlayerId}
                 matchDutyEnabled={matchDutyEnabled}
                 players={matchPlayers}
                 onChangeForm={onChangeForm}
@@ -1154,7 +1278,7 @@ function MatchSetupModal({
                   type="smallBold"
                   style={styles.reviewBackButtonText}
                 >
-                  Back
+                  {t("common.back")}
                 </ThemedText>
               </Pressable>
               <Pressable
@@ -1167,7 +1291,7 @@ function MatchSetupModal({
                 ]}
               >
                 <ThemedText type="smallBold" style={styles.reviewActionText}>
-                  Share
+                  {t("common.share")}
                 </ThemedText>
               </Pressable>
               <Pressable
@@ -1183,7 +1307,9 @@ function MatchSetupModal({
                   type="smallBold"
                   style={[styles.reviewActionText, styles.reviewSaveButtonText]}
                 >
-                  {mode === "edit" ? "Update" : "Save"}
+                  {mode === "edit"
+                    ? t("matchday.add_match.actions.update")
+                    : t("common.save")}
                 </ThemedText>
               </Pressable>
             </ThemedView>
@@ -1202,7 +1328,7 @@ function MatchSetupModal({
                 ]}
               >
                 <ThemedText type="smallBold">
-                  {wizardStep === 0 ? "Cancel" : "Back"}
+                  {wizardStep === 0 ? t("common.cancel") : t("common.back")}
                 </ThemedText>
               </Pressable>
               <Pressable
@@ -1214,7 +1340,9 @@ function MatchSetupModal({
                 ]}
               >
                 <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                  {wizardStep === 2 ? "Review" : "Next"}
+                  {wizardStep === 2
+                    ? t("matchday.add_match.actions.review")
+                    : t("common.next")}
                 </ThemedText>
               </Pressable>
             </ThemedView>
@@ -1549,10 +1677,17 @@ function MatchReviewStep({
           <MatchCategoryIcon category={form.category} size={26} />
         </ThemedView>
         <ThemedText type="default">
-          {form.date} at {form.startTime}
+          {t("matchday.add_match.review.date_time", {
+            date: form.date,
+            time: form.startTime,
+          })}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {getMatchLocationLabel(form.location)} match
+          {t("matchday.add_match.review.location", {
+            location: t(
+              `matchday.add_match.match_details.location.${form.location}`,
+            ),
+          })}
         </ThemedText>
       </ThemedView>
 
@@ -1573,7 +1708,7 @@ function MatchReviewStep({
           </ThemedText>
           <ThemedView style={styles.reviewRoleGrid}>
             <ThemedView type="backgroundElement" style={styles.reviewRoleCard}>
-              <ThemedText type="code" themeColor="textSecondary">
+              <ThemedText type="small" themeColor="textSecondary">
                 {t("matchday.add_match.roles.captain")}
               </ThemedText>
               <ThemedText type="smallBold" numberOfLines={1}>
@@ -1582,7 +1717,7 @@ function MatchReviewStep({
             </ThemedView>
             {matchDutyEnabled ? (
               <ThemedView type="backgroundElement" style={styles.reviewRoleCard}>
-                <ThemedText type="code" themeColor="textSecondary">
+                <ThemedText type="small" themeColor="textSecondary">
                   {t("matchday.add_match.roles.match_duty")}
                 </ThemedText>
                 <ThemedText type="smallBold" numberOfLines={2}>
@@ -1634,11 +1769,11 @@ function MatchReviewStep({
                 {substitutes.map(({ player, slot }) => (
                   <ThemedView key={slot.id} style={styles.reviewPlayerRow}>
                     <ThemedText
-                      type="code"
+                      type="small"
                       themeColor="textSecondary"
                       style={styles.reviewPlayerSlotLabel}
                     >
-                      SUB
+                      {t("matchday.add_match.lineup.substitute_prefix")}
                     </ThemedText>
                     <ThemedText
                       type="smallBold"
@@ -1653,7 +1788,7 @@ function MatchReviewStep({
             )
           ) : (
             <ThemedText type="small" themeColor="textSecondary">
-              No substitutes selected.
+              {t("matchday.add_match.lineup.no_substitutes")}
             </ThemedText>
           )}
         </ThemedView>
@@ -1669,18 +1804,21 @@ function MatchCategoryIcon({
   category: MatchCategory;
   size: number;
 }) {
-  const theme = useTheme();
-
   if (category === "friendly") {
     return (
-      <FontAwesome6 name="handshake" solid color={theme.text} size={size} />
+      <FontAwesome6
+        name="handshake"
+        solid
+        color={ActionColors.primary}
+        size={size}
+      />
     );
   }
 
   return (
     <SymbolView
       name={getMatchCategoryIcon(category)}
-      tintColor={theme.text}
+      tintColor={ActionColors.primary}
       size={size}
     />
   );
@@ -1692,16 +1830,19 @@ function normalizeMatchFormation(value: unknown): MatchFormation {
     : "4-3-3";
 }
 
-function getMatchSetupStepLabel(step: number) {
+function getMatchSetupStepLabel(
+  step: number,
+  t: ReturnType<typeof useI18n>["t"],
+) {
   switch (step) {
     case 0:
-      return "Match details";
+      return t("matchday.add_match.steps.match_details");
     case 1:
-      return "Availability";
+      return t("matchday.add_match.steps.player_availability");
     case 2:
-      return "Formation";
+      return t("matchday.add_match.steps.lineup");
     default:
-      return "Review";
+      return t("matchday.add_match.steps.review");
   }
 }
 
@@ -1713,6 +1854,23 @@ function initializeMatchPlayerStatuses(
     players.map((player) => [
       player.id,
       currentStatuses[player.id] ?? "available",
+    ]),
+  );
+}
+
+function initializeMatchPlayerStatusesForCreate(
+  currentStatuses: Record<number, SignupStatus>,
+  players: Player[],
+  matchDate: string,
+  injuriesByPlayerId: Map<number, PlayerInjury[]>,
+) {
+  return Object.fromEntries(
+    players.map((player) => [
+      player.id,
+      !player.isGuest &&
+      isPlayerInjuredOnDate(player, matchDate, injuriesByPlayerId)
+        ? "unavailable"
+        : (currentStatuses[player.id] ?? "available"),
     ]),
   );
 }
@@ -1820,33 +1978,63 @@ function getSubDirection(
   return null;
 }
 
-function validateMatchSetupForm(form: MatchSetupFormState) {
+function validateMatchSetupForm(
+  form: MatchSetupFormState,
+  t: ReturnType<typeof useI18n>["t"],
+  disallowFutureDate = false,
+) {
   if (!form.opponent.trim()) {
     Alert.alert(
-      "Opponent required",
-      "Add the opponent name before continuing.",
+      t("matchday.add_match.validation.opponent.title"),
+      t("matchday.add_match.validation.opponent.message"),
     );
     return false;
   }
 
   if (!parseDisplayDateToDate(form.date)) {
-    Alert.alert("Invalid date", "Use a valid date in DD-MM-YYYY format.");
+    Alert.alert(
+      t("matchday.add_match.validation.date.title"),
+      t("matchday.add_match.validation.date.message"),
+    );
+    return false;
+  }
+
+  if (
+    disallowFutureDate &&
+    parseDisplayDateToDate(form.date)!.getTime() > getEndOfToday().getTime()
+  ) {
+    Alert.alert(
+      t("matchday.add_match.validation.result_date.title"),
+      t("matchday.add_match.validation.result_date.message"),
+    );
     return false;
   }
 
   if (!parseDisplayTimeToDate(form.startTime)) {
-    Alert.alert("Invalid time", "Use a valid time in HH:MM format.");
+    Alert.alert(
+      t("matchday.add_match.validation.time.title"),
+      t("matchday.add_match.validation.time.message"),
+    );
     return false;
   }
 
   return true;
 }
 
-function validateMatchCaptain(form: MatchSetupFormState) {
+function getEndOfToday() {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  return today;
+}
+
+function validateMatchCaptain(
+  form: MatchSetupFormState,
+  t: ReturnType<typeof useI18n>["t"],
+) {
   if (form.captainPlayerId === null) {
     Alert.alert(
-      "Captain required",
-      "Choose a captain before continuing with the match setup.",
+      t("matchday.add_match.validation.captain.title"),
+      t("matchday.add_match.validation.captain.message"),
     );
     return false;
   }

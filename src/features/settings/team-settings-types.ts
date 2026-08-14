@@ -22,6 +22,9 @@ export const TRAINING_DAYS = [
 
 export type TrainingDay = (typeof TRAINING_DAYS)[number];
 
+export const FINE_JAR_CURRENCIES = ["EUR", "GBP", "USD"] as const;
+export type FineJarCurrency = (typeof FINE_JAR_CURRENCIES)[number];
+
 export type TeamSettings = {
   id: 1;
   teamName: string;
@@ -37,6 +40,7 @@ export type TeamSettings = {
   trainingStartTime: string;
   preferNicknames: boolean;
   fineJarEnabled: boolean;
+  fineJarCurrency: FineJarCurrency;
   matchDutyEnabled: boolean;
   includeFriendlyMatchesInStats: boolean;
   createdAt: string;
@@ -57,6 +61,7 @@ export type SaveTeamSettingsInput = {
   trainingStartTime: string;
   preferNicknames: boolean;
   fineJarEnabled: boolean;
+  fineJarCurrency: FineJarCurrency;
   matchDutyEnabled: boolean;
   includeFriendlyMatchesInStats: boolean;
 };

@@ -10,13 +10,14 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
+import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import {
   AppHeaderHeight,
   BottomTabInset,
@@ -26,10 +27,28 @@ import {
 } from "@/constants/theme";
 import {
   exportDatabaseBackupAsync,
-  InvalidBackupError,
   restoreDatabaseBackupAsync,
 } from "@/features/backup/backup-service";
 import { clearAllUserDataAsync } from "@/features/backup/data-reset-service";
+import { listEventsAsync } from "@/features/events/event-repository";
+import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-repository";
+import {
+  cancelAllAssistantCoachNotificationsAsync,
+  scheduleMatchResultReminderAsync,
+  scheduleTrainingAttendanceReminderAsync,
+} from "@/features/notifications/match-result-notifications";
+import {
+  endActiveSeasonAsync,
+  getActiveSeasonAsync,
+  getSeasonCompletionStatusAsync,
+  listEndedSeasonsAsync,
+  updateSeasonNameAsync,
+} from "@/features/seasons/season-repository";
+import type {
+  Season,
+  SeasonCompletionStatus,
+  UnpaidFineResolution,
+} from "@/features/seasons/season-types";
 import { setOnboardingCompletedAsync } from "@/features/settings/app-preferences-repository";
 import {
   getTeamSettingsAsync,
@@ -41,22 +60,8 @@ import type {
   TrainingDay,
 } from "@/features/settings/team-settings-types";
 import { TRAINING_DAYS } from "@/features/settings/team-settings-types";
-import {
-  endActiveSeasonAsync,
-  getActiveSeasonAsync,
-  getSeasonCompletionStatusAsync,
-  listEndedSeasonsAsync,
-  updateSeasonNameAsync,
-} from "@/features/seasons/season-repository";
-import type { Season } from "@/features/seasons/season-types";
 import { useTheme } from "@/hooks/use-theme";
-import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 import { useI18n } from "@/i18n/i18n-provider";
-import {
-  cancelAllAssistantCoachNotificationsAsync,
-  scheduleMatchResultReminderAsync,
-} from "@/features/notifications/match-result-notifications";
-import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-repository";
 
 const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   teamName: "",
@@ -70,8 +75,9 @@ const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   matchDurationMinutes: 90,
   trainingDays: [],
   trainingStartTime: "",
-  preferNicknames: true,
+  preferNicknames: false,
   fineJarEnabled: false,
+  fineJarCurrency: "EUR",
   matchDutyEnabled: true,
   includeFriendlyMatchesInStats: true,
 };
@@ -80,14 +86,17 @@ const kitShirtPath =
   "M34 7 C38 11 62 11 66 7 L76 7 L95 25 Q98 27 96 31 L87 47 Q85 51 81 49 L73 44 L73 83 Q73 87 69 87 L31 87 Q27 87 27 83 L27 44 L19 49 Q15 51 13 47 L4 31 Q2 27 5 25 L24 7 Z";
 
 const kitDesignOptions = [
-  { value: "solid", label: "Regular" },
-  { value: "stripes", label: "Stripes" },
-  { value: "twoColorStripes", label: "Three colour stripes" },
-  { value: "hoops", label: "Hoops" },
-  { value: "sash", label: "Two colour sash" },
-  { value: "halves", label: "Halves" },
-  { value: "sides", label: "Sides" },
-] satisfies { value: KitDesign; label: string }[];
+  { value: "solid", translationKey: "settings.kit.patterns.regular" },
+  { value: "stripes", translationKey: "settings.kit.patterns.stripes" },
+  {
+    value: "twoColorStripes",
+    translationKey: "settings.kit.patterns.three_color_stripes",
+  },
+  { value: "hoops", translationKey: "settings.kit.patterns.hoops" },
+  { value: "sash", translationKey: "settings.kit.patterns.two_color_sash" },
+  { value: "halves", translationKey: "settings.kit.patterns.halves" },
+  { value: "sides", translationKey: "settings.kit.patterns.sides" },
+] as const satisfies { value: KitDesign; translationKey: string }[];
 
 const colorOptions = [
   "#FFFFFF",
@@ -102,19 +111,8 @@ const colorOptions = [
   "#FACC15",
 ] as const;
 
-const trainingDayLabels = {
-  monday: "Mon",
-  tuesday: "Tue",
-  wednesday: "Wed",
-  thursday: "Thu",
-  friday: "Fri",
-  saturday: "Sat",
-  sunday: "Sun",
-} satisfies Record<TrainingDay, string>;
-
 export default function SettingsScreen() {
-  const scrollViewRef = useScrollToTopOnFocus();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
@@ -143,11 +141,12 @@ export default function SettingsScreen() {
 
     async function loadSettings() {
       try {
-        const [settings, loadedActiveSeason, loadedEndedSeasons] = await Promise.all([
-          getTeamSettingsAsync(),
-          getActiveSeasonAsync(),
-          listEndedSeasonsAsync(),
-        ]);
+        const [settings, loadedActiveSeason, loadedEndedSeasons] =
+          await Promise.all([
+            getTeamSettingsAsync(),
+            getActiveSeasonAsync(),
+            listEndedSeasonsAsync(),
+          ]);
 
         if (isMounted) {
           setActiveSeason(loadedActiveSeason);
@@ -173,13 +172,13 @@ export default function SettingsScreen() {
           trainingStartTime: settings.trainingStartTime,
           preferNicknames: settings.preferNicknames,
           fineJarEnabled: settings.fineJarEnabled,
+          fineJarCurrency: settings.fineJarCurrency,
           matchDutyEnabled: settings.matchDutyEnabled,
-          includeFriendlyMatchesInStats:
-            settings.includeFriendlyMatchesInStats,
+          includeFriendlyMatchesInStats: settings.includeFriendlyMatchesInStats,
         });
       } catch (loadError) {
         console.warn("Failed to load team settings", loadError);
-        setError("Could not load your team settings.");
+        setError(t("settings.errors.load"));
       }
     }
 
@@ -188,7 +187,7 @@ export default function SettingsScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   function updateFormValue<Key extends keyof SaveTeamSettingsInput>(
     key: Key,
@@ -203,12 +202,12 @@ export default function SettingsScreen() {
     setSaveMessage(null);
 
     if (!form.teamName.trim()) {
-      setError("Team name is required.");
+      setError(t("settings.errors.team_name_required"));
       return;
     }
 
     if (activeSeason && !seasonName.trim()) {
-      setError("Season name is required.");
+      setError(t("settings.errors.season_name_required"));
       return;
     }
 
@@ -217,12 +216,12 @@ export default function SettingsScreen() {
       form.matchDurationMinutes < 1 ||
       form.matchDurationMinutes > 120
     ) {
-      setError("Match minutes must be between 1 and 120.");
+      setError(t("settings.errors.match_minutes"));
       return;
     }
 
     if (form.trainingStartTime.trim() && !isValidTime(form.trainingStartTime)) {
-      setError("Training time must use HH:MM, for example 19:30.");
+      setError(t("settings.errors.training_time"));
       return;
     }
 
@@ -250,16 +249,17 @@ export default function SettingsScreen() {
           trainingStartTime: savedSettings.trainingStartTime,
           preferNicknames: savedSettings.preferNicknames,
           fineJarEnabled: savedSettings.fineJarEnabled,
+          fineJarCurrency: savedSettings.fineJarCurrency,
           matchDutyEnabled: savedSettings.matchDutyEnabled,
           includeFriendlyMatchesInStats:
             savedSettings.includeFriendlyMatchesInStats,
         });
       }
 
-      setSaveMessage("Settings saved.");
+      setSaveMessage(t("settings.actions.saved"));
     } catch (saveError) {
       console.warn("Failed to save team settings", saveError);
-      setError("Please check your team name and color values.");
+      setError(t("settings.errors.save"));
     } finally {
       setIsSaving(false);
     }
@@ -273,8 +273,8 @@ export default function SettingsScreen() {
     } catch (exportError) {
       console.warn("Failed to export data backup", exportError);
       Alert.alert(
-        "Backup failed",
-        "The backup file could not be created. Please try again.",
+        t("backup.export.error.title"),
+        t("backup.export.error.message"),
       );
     } finally {
       setIsExportingBackup(false);
@@ -303,16 +303,16 @@ export default function SettingsScreen() {
       const backup = result.assets[0];
 
       Alert.alert(
-        "Restore this backup?",
-        `Restoring “${backup.name}” will replace all players, trainings, matches, statistics, guest players, and settings currently in the app. This cannot be undone.`,
+        t("backup.restore.confirm.title"),
+        t("backup.restore.confirm.file_message", { name: backup.name }),
         [
           {
-            text: "Cancel",
+            text: t("common.cancel"),
             style: "cancel",
             onPress: () => setIsRestoringBackup(false),
           },
           {
-            text: "Restore backup",
+            text: t("backup.restore.confirm.action"),
             style: "destructive",
             onPress: () => void handleRestoreBackup(backup.uri),
           },
@@ -323,8 +323,8 @@ export default function SettingsScreen() {
       console.warn("Failed to choose data backup", pickerError);
       setIsRestoringBackup(false);
       Alert.alert(
-        "Could not open files",
-        "The file picker could not be opened. Please try again.",
+        t("backup.restore.file_picker_error.title"),
+        t("backup.restore.file_picker_error.message"),
       );
     }
   }
@@ -333,21 +333,43 @@ export default function SettingsScreen() {
     try {
       await restoreDatabaseBackupAsync(fileUri);
       await cancelAllAssistantCoachNotificationsAsync();
-      const restoredMatches = await listMatchDayMatchesAsync();
-      await Promise.all(
-        restoredMatches
-          .filter((match) => match.ownScore === null || match.opponentScore === null)
+      const [restoredMatches, restoredEvents] = await Promise.all([
+        listMatchDayMatchesAsync(),
+        listEventsAsync(),
+      ]);
+      await Promise.all([
+        ...restoredMatches
+          .filter(
+            (match) => match.ownScore === null || match.opponentScore === null,
+          )
           .map((match) =>
-            scheduleMatchResultReminderAsync(match.id, match.matchDate, match.startTime),
+            scheduleMatchResultReminderAsync(
+              match.id,
+              match.matchDate,
+              match.startTime,
+            ),
           ),
-      );
+        ...restoredEvents
+          .filter(
+            (event) =>
+              event.type === "training" && event.attendanceStatus !== "marked",
+          )
+          .map((event) =>
+            scheduleTrainingAttendanceReminderAsync(
+              event.id,
+              event.eventDate,
+              event.startTime,
+              locale,
+            ),
+          ),
+      ]);
       setIsRestoringBackup(false);
       Alert.alert(
-        "Backup restored",
-        "Your Assistant Coach data has been restored successfully. The app will now reload.",
+        t("backup.restore.success.title"),
+        t("backup.restore.success.message"),
         [
           {
-            text: "Continue",
+            text: t("backup.restore.success.continue"),
             onPress: () => void reloadAppAsync(),
           },
         ],
@@ -357,22 +379,20 @@ export default function SettingsScreen() {
       console.warn("Failed to restore data backup", restoreError);
       setIsRestoringBackup(false);
       Alert.alert(
-        "Backup could not be restored",
-        restoreError instanceof InvalidBackupError
-          ? restoreError.message
-          : "Your existing data has not been changed. Please try again with a valid Assistant Coach backup.",
+        t("backup.restore.error.title"),
+        t("backup.restore.error.message"),
       );
     }
   }
 
   function confirmDeleteAllData() {
     Alert.alert(
-      "Delete all app data?",
-      "This permanently deletes your players, trainings, matches, statistics, guest players, and team settings. Export a backup first if you may need this data again.",
+      t("backup.delete.confirm.title"),
+      t("backup.delete.confirm.message"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Delete everything",
+          text: t("backup.delete.confirm.action"),
           style: "destructive",
           onPress: () => {
             void handleDeleteAllData();
@@ -392,8 +412,8 @@ export default function SettingsScreen() {
     } catch (deleteError) {
       console.warn("Failed to delete app data", deleteError);
       Alert.alert(
-        "Delete failed",
-        "Your data could not be deleted. Please try again.",
+        t("backup.delete.error.title"),
+        t("backup.delete.error.message"),
       );
     } finally {
       setIsDeletingData(false);
@@ -407,7 +427,10 @@ export default function SettingsScreen() {
       router.replace("/");
     } catch (tutorialError) {
       console.warn("Failed to reopen tutorial", tutorialError);
-      Alert.alert("Could not open tutorial", "Please try again.");
+      Alert.alert(
+        t("settings.errors.tutorial.title"),
+        t("settings.errors.tutorial.message"),
+      );
     } finally {
       setIsOpeningTutorial(false);
     }
@@ -419,30 +442,96 @@ export default function SettingsScreen() {
     try {
       const status = await getSeasonCompletionStatusAsync(activeSeason.id);
       const unfinished: string[] = [];
-      if (status.matchesWithoutResults) unfinished.push(`${status.matchesWithoutResults} match result${status.matchesWithoutResults === 1 ? "" : "s"}`);
-      if (status.trainingsWithoutAttendance) unfinished.push(`${status.trainingsWithoutAttendance} training attendance record${status.trainingsWithoutAttendance === 1 ? "" : "s"}`);
+      if (status.matchesWithoutResults) {
+        unfinished.push(
+          t(
+            status.matchesWithoutResults === 1
+              ? "settings.season.confirm.match_result"
+              : "settings.season.confirm.match_results",
+            { count: status.matchesWithoutResults },
+          ),
+        );
+      }
+      if (status.trainingsWithoutAttendance) {
+        unfinished.push(
+          t(
+            status.trainingsWithoutAttendance === 1
+              ? "settings.season.confirm.training_record"
+              : "settings.season.confirm.training_records",
+            { count: status.trainingsWithoutAttendance },
+          ),
+        );
+      }
+      const unfinishedItems =
+        unfinished.length === 2
+          ? t("settings.season.confirm.join", {
+              first: unfinished[0],
+              second: unfinished[1],
+            })
+          : unfinished[0];
       const warning = unfinished.length
-        ? `There are still ${unfinished.join(" and ")} unfinished. They will be archived as they are.\n\n`
+        ? t("settings.season.confirm.unfinished", { items: unfinishedItems })
         : "";
 
       Alert.alert(
-        `End season ${activeSeason.name}?`,
-        `${warning}This creates a permanent season summary and starts a new season. Your players and settings will carry over.`,
+        t("settings.season.confirm.title", { name: activeSeason.name }),
+        `${warning}${t("settings.season.confirm.message")}`,
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "End season", style: "destructive", onPress: () => void handleEndSeason() },
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("settings.season.end"),
+            style: "destructive",
+            onPress: () => {
+              if (status.unpaidFineCount > 0) {
+                confirmUnpaidFineResolution(status);
+              } else {
+                void handleEndSeason("write_off");
+              }
+            },
+          },
         ],
       );
     } catch (seasonError) {
       console.warn("Failed to check season", seasonError);
-      Alert.alert("Could not check season", "Please try again.");
+      Alert.alert(
+        t("settings.errors.season_check.title"),
+        t("settings.errors.season_check.message"),
+      );
     }
   }
 
-  async function handleEndSeason() {
+  function confirmUnpaidFineResolution(status: SeasonCompletionStatus) {
+    const amount = new Intl.NumberFormat(locale === "nl" ? "nl-NL" : "en-GB", {
+      style: "currency",
+      currency: form.fineJarCurrency,
+      currencyDisplay: "narrowSymbol",
+    }).format(status.unpaidFineAmountCents / 100);
+
+    Alert.alert(
+      t("seasons.confirm_end.unpaid_fines.title"),
+      t("seasons.confirm_end.unpaid_fines.message", {
+        count: status.unpaidFineCount,
+        amount,
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("seasons.confirm_end.unpaid_fines.write_off"),
+          style: "destructive",
+          onPress: () => void handleEndSeason("write_off"),
+        },
+        {
+          text: t("seasons.confirm_end.unpaid_fines.carry"),
+          onPress: () => void handleEndSeason("carry"),
+        },
+      ],
+    );
+  }
+
+  async function handleEndSeason(unpaidFineResolution: UnpaidFineResolution) {
     setIsEndingSeason(true);
     try {
-      const endedSeason = await endActiveSeasonAsync();
+      const endedSeason = await endActiveSeasonAsync(unpaidFineResolution);
       const [nextSeason, history] = await Promise.all([
         getActiveSeasonAsync(),
         listEndedSeasonsAsync(),
@@ -450,10 +539,16 @@ export default function SettingsScreen() {
       setActiveSeason(nextSeason);
       setSeasonName(nextSeason?.name ?? "");
       setEndedSeasons(history);
-      router.push({ pathname: "/season-summary", params: { seasonId: String(endedSeason.id) } });
+      router.push({
+        pathname: "/season-summary",
+        params: { seasonId: String(endedSeason.id) },
+      });
     } catch (seasonError) {
       console.warn("Failed to end season", seasonError);
-      Alert.alert("Season not ended", "Your data has not been changed. Please try again.");
+      Alert.alert(
+        t("settings.errors.season_end.title"),
+        t("settings.errors.season_end.message"),
+      );
     } finally {
       setIsEndingSeason(false);
     }
@@ -474,20 +569,17 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      ref={scrollViewRef}
-      style={[styles.scrollView, { backgroundColor: theme.background }]}
+      style={{ backgroundColor: theme.background }}
       contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      contentContainerStyle={[styles.screen, contentPlatformStyle]}
     >
       <ThemedView style={styles.container}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title}>
-            {t("navigation.settings")}
-          </ThemedText>
+        <View style={styles.heading}>
+          <ThemedText type="subtitle">{t("navigation.settings")}</ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.intro}>
             {t("settings.header.subtitle")}
           </ThemedText>
-        </ThemedView>
+        </View>
 
         <ThemedView type="backgroundElement" style={styles.panel}>
           <ThemedView style={styles.sectionHeader}>
@@ -500,7 +592,9 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">{t("settings.introduction.title")}</ThemedText>
+            <ThemedText type="default">
+              {t("settings.introduction.title")}
+            </ThemedText>
           </ThemedView>
           <ThemedText type="small" themeColor="textSecondary">
             {t("settings.introduction.description")}
@@ -557,7 +651,9 @@ export default function SettingsScreen() {
           </ThemedView>
 
           <ThemedView style={styles.fieldGroup}>
-            <ThemedText type="smallBold">{t("settings.team.club_location")}</ThemedText>
+            <ThemedText type="smallBold">
+              {t("settings.team.club_location")}
+            </ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               {t("settings.team.club_location_help")}
             </ThemedText>
@@ -585,29 +681,29 @@ export default function SettingsScreen() {
           />
 
           <SettingsColorField
-            label="Primary kit colour"
+            label={t("settings.kit.player_primary")}
             value={form.outfieldKitColor}
             onChange={(value) => updateFormValue("outfieldKitColor", value)}
           />
           <SettingsColorField
-            label="Secondary kit colour"
+            label={t("settings.kit.player_secondary")}
             value={form.secondaryKitColor}
             onChange={(value) => updateFormValue("secondaryKitColor", value)}
           />
           {form.kitDesign === "sash" || form.kitDesign === "twoColorStripes" ? (
             <SettingsColorField
-              label="Third colour"
+              label={t("settings.kit.third")}
               value={form.thirdKitColor}
               onChange={(value) => updateFormValue("thirdKitColor", value)}
             />
           ) : null}
           <SettingsColorField
-            label="Kit number colour"
+            label={t("settings.kit.number")}
             value={form.kitNumberColor}
             onChange={(value) => updateFormValue("kitNumberColor", value)}
           />
           <SettingsColorField
-            label="Goalkeeper kit colour"
+            label={t("settings.kit.goalkeeper_primary")}
             value={form.goalkeeperKitColor}
             onChange={(value) => updateFormValue("goalkeeperKitColor", value)}
           />
@@ -624,7 +720,9 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">{t("settings.match_preferences.title")}</ThemedText>
+            <ThemedText type="default">
+              {t("settings.match_preferences.title")}
+            </ThemedText>
           </ThemedView>
 
           <SettingsPreferencesFields form={form} onChange={updateFormValue} />
@@ -641,15 +739,23 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">{t("settings.statistics.title")}</ThemedText>
+            <ThemedText type="default">
+              {t("settings.statistics.title")}
+            </ThemedText>
           </ThemedView>
 
           <SettingsSegmentedField
             label={t("settings.statistics.friendlies.title")}
             helperText={t("settings.statistics.friendlies.description")}
             options={[
-              { label: t("settings.statistics.friendlies.include"), value: true },
-              { label: t("settings.statistics.friendlies.exclude"), value: false },
+              {
+                label: t("settings.statistics.friendlies.include"),
+                value: true,
+              },
+              {
+                label: t("settings.statistics.friendlies.exclude"),
+                value: false,
+              },
             ]}
             value={form.includeFriendlyMatchesInStats}
             onChange={(value) =>
@@ -669,7 +775,9 @@ export default function SettingsScreen() {
               size={22}
               tintColor={theme.text}
             />
-            <ThemedText type="default">{t("settings.training_preferences.title")}</ThemedText>
+            <ThemedText type="default">
+              {t("settings.training_preferences.title")}
+            </ThemedText>
           </ThemedView>
 
           <SettingsTrainingFields form={form} onChange={updateFormValue} />
@@ -678,39 +786,71 @@ export default function SettingsScreen() {
         <ThemedView type="backgroundElement" style={styles.panel}>
           <ThemedView style={styles.sectionHeader}>
             <SymbolView
-              name={{ ios: "calendar.badge.checkmark", android: "event_available", web: "event_available" }}
+              name={{
+                ios: "calendar.badge.checkmark",
+                android: "event_available",
+                web: "event_available",
+              }}
               size={22}
               tintColor={theme.text}
             />
             <ThemedText type="default">{t("settings.season.title")}</ThemedText>
           </ThemedView>
           <ThemedText type="small" themeColor="textSecondary">
-            {t("settings.season.current")} {activeSeason?.name ?? t("common.loading")}
+            {t("settings.season.current")}{" "}
+            {activeSeason?.name ?? t("common.loading")}
           </ThemedText>
           {activeSeason ? (
             <ThemedView style={styles.fieldGroup}>
-              <ThemedText type="smallBold">{t("settings.season.name")}</ThemedText>
+              <ThemedText type="smallBold">
+                {t("settings.season.name")}
+              </ThemedText>
               <TextInput
                 value={seasonName}
-                onChangeText={(value) => { setSeasonName(value); setSaveMessage(null); }}
+                onChangeText={(value) => {
+                  setSeasonName(value);
+                  setSaveMessage(null);
+                }}
                 placeholder={t("settings.season.name_placeholder")}
                 placeholderTextColor={theme.textSecondary}
-                style={[styles.textInput, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected, color: theme.text }]}
+                style={[
+                  styles.textInput,
+                  {
+                    backgroundColor: theme.backgroundElement,
+                    borderColor: theme.backgroundSelected,
+                    color: theme.text,
+                  },
+                ]}
               />
-              <ThemedText type="small" themeColor="textSecondary">{t("settings.season.save_help")}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {t("settings.season.save_help")}
+              </ThemedText>
             </ThemedView>
           ) : null}
           {endedSeasons.length ? (
             <ThemedView style={styles.seasonHistory}>
-              <ThemedText type="smallBold">{t("settings.season.history")}</ThemedText>
+              <ThemedText type="smallBold">
+                {t("settings.season.history")}
+              </ThemedText>
               {endedSeasons.map((season) => (
                 <Pressable
                   key={season.id}
-                  onPress={() => router.push({ pathname: "/season-summary", params: { seasonId: String(season.id) } })}
-                  style={({ pressed }) => [styles.seasonHistoryButton, { borderColor: theme.backgroundSelected }, pressed && styles.pressed]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/season-summary",
+                      params: { seasonId: String(season.id) },
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.seasonHistoryButton,
+                    { borderColor: theme.backgroundSelected },
+                    pressed && styles.pressed,
+                  ]}
                 >
                   <ThemedText type="smallBold">{season.name}</ThemedText>
-                  <ThemedText type="small" style={styles.greenText}>{t("settings.season.view_summary")}</ThemedText>
+                  <ThemedText type="small" style={styles.greenText}>
+                    {t("settings.season.view_summary")}
+                  </ThemedText>
                 </Pressable>
               ))}
             </ThemedView>
@@ -720,10 +860,16 @@ export default function SettingsScreen() {
             accessibilityLabel={t("settings.season.end")}
             disabled={!activeSeason || isEndingSeason}
             onPress={() => void confirmEndSeason()}
-            style={({ pressed }) => [styles.endSeasonButton, pressed && styles.pressed, isEndingSeason && styles.disabledButton]}
+            style={({ pressed }) => [
+              styles.endSeasonButton,
+              pressed && styles.pressed,
+              isEndingSeason && styles.disabledButton,
+            ]}
           >
             <ThemedText type="smallBold" style={styles.dangerText}>
-              {isEndingSeason ? "Ending season..." : "End season"}
+              {isEndingSeason
+                ? t("settings.season.ending")
+                : t("settings.season.end")}
             </ThemedText>
           </Pressable>
         </ThemedView>
@@ -769,7 +915,9 @@ export default function SettingsScreen() {
                 tintColor="#ffffff"
               />
               <ThemedText type="smallBold" style={styles.saveButtonText}>
-                {isExportingBackup ? "Preparing backup..." : "Export backup"}
+                {isExportingBackup
+                  ? t("backup.export.preparing")
+                  : t("backup.export.action")}
               </ThemedText>
             </Pressable>
 
@@ -795,7 +943,9 @@ export default function SettingsScreen() {
                 tintColor="#2563EB"
               />
               <ThemedText type="smallBold" style={styles.restoreButtonText}>
-                {isRestoringBackup ? "Restoring..." : "Restore backup"}
+                {isRestoringBackup
+                  ? t("backup.restore.restoring")
+                  : t("backup.restore.action")}
               </ThemedText>
             </Pressable>
           </ThemedView>
@@ -849,7 +999,7 @@ export default function SettingsScreen() {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Save settings"
+          accessibilityLabel={t("settings.actions.save")}
           disabled={isSaving}
           onPress={handleSave}
           style={({ pressed }) => [
@@ -859,7 +1009,9 @@ export default function SettingsScreen() {
           ]}
         >
           <ThemedText type="smallBold" style={styles.saveButtonText}>
-            {isSaving ? "Saving..." : "Save settings"}
+            {isSaving
+              ? t("settings.actions.saving")
+              : t("settings.actions.save")}
           </ThemedText>
         </Pressable>
       </ThemedView>
@@ -875,20 +1027,22 @@ function SettingsKitDesignField({
   onChange: (value: KitDesign) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   return (
     <ThemedView style={styles.fieldGroup}>
-      <ThemedText type="smallBold">Kit design</ThemedText>
+      <ThemedText type="smallBold">{t("settings.kit.title")}</ThemedText>
       <ThemedView style={styles.kitDesignLayout}>
         <ThemedView style={styles.kitDesignOptions}>
           {kitDesignOptions.map((option) => {
             const isSelected = form.kitDesign === option.value;
+            const label = t(option.translationKey);
 
             return (
               <Pressable
                 key={option.value}
                 accessibilityRole="button"
-                accessibilityLabel={option.label}
+                accessibilityLabel={label}
                 accessibilityState={{ selected: isSelected }}
                 onPress={() => onChange(option.value)}
                 style={({ pressed }) => [
@@ -906,7 +1060,7 @@ function SettingsKitDesignField({
                   type="smallBold"
                   style={isSelected && styles.kitDesignOptionTextSelected}
                 >
-                  {option.label}
+                  {label}
                 </ThemedText>
               </Pressable>
             );
@@ -929,6 +1083,7 @@ function SettingsPreferencesFields({
   ) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   function updateMatchMinutes(value: number) {
     onChange("matchDurationMinutes", Math.min(Math.max(value, 1), 120));
@@ -945,13 +1100,17 @@ function SettingsPreferencesFields({
   return (
     <>
       <ThemedView style={styles.fieldGroup}>
-        <ThemedText type="smallBold">Match minutes</ThemedText>
+        <ThemedText type="smallBold">
+          {t("settings.match_preferences.match_minutes")}
+        </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Use this for youth teams or competitions with shorter matches.
+          {t("settings.match_preferences.match_minutes_help")}
         </ThemedText>
         <ThemedView style={styles.numberRow}>
           <StepperArrowButton
-            accessibilityLabel="Decrease match minutes"
+            accessibilityLabel={t(
+              "settings.match_preferences.decrease_match_minutes",
+            )}
             direction="left"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes - 5)}
           />
@@ -974,7 +1133,9 @@ function SettingsPreferencesFields({
             ]}
           />
           <StepperArrowButton
-            accessibilityLabel="Increase match minutes"
+            accessibilityLabel={t(
+              "settings.match_preferences.increase_match_minutes",
+            )}
             direction="right"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes + 5)}
           />
@@ -982,32 +1143,75 @@ function SettingsPreferencesFields({
       </ThemedView>
 
       <SettingsSegmentedField
-        label="Lineup names"
+        label={t("settings.match_preferences.player_names.title")}
         options={[
-          { label: "Nicknames", value: true },
-          { label: "First names", value: false },
+          {
+            label: t("settings.match_preferences.player_names.nicknames"),
+            value: true,
+          },
+          {
+            label: t("settings.match_preferences.player_names.first_names"),
+            value: false,
+          },
         ]}
         value={form.preferNicknames}
         onChange={(value) => onChange("preferNicknames", value)}
       />
 
       <SettingsSegmentedField
-        label="Fine jar"
-        helperText="You can turn this into fines, reminders, and team rules later."
+        label={t("settings.match_preferences.fine_jar.title")}
+        helperText={t("settings.match_preferences.fine_jar.description")}
         options={[
-          { label: "Use fine jar", value: true },
-          { label: "Skip for now", value: false },
+          {
+            label: t("settings.match_preferences.fine_jar.enabled"),
+            value: true,
+          },
+          {
+            label: t("settings.match_preferences.fine_jar.disabled"),
+            value: false,
+          },
         ]}
         value={form.fineJarEnabled}
         onChange={(value) => onChange("fineJarEnabled", value)}
       />
 
+      {form.fineJarEnabled ? (
+        <SettingsSegmentedField
+          label={t("settings.match_preferences.fine_jar.currency.title")}
+          helperText={t(
+            "settings.match_preferences.fine_jar.currency.description",
+          )}
+          options={[
+            {
+              label: t("settings.match_preferences.fine_jar.currency.euro"),
+              value: "EUR" as const,
+            },
+            {
+              label: t("settings.match_preferences.fine_jar.currency.pound"),
+              value: "GBP" as const,
+            },
+            {
+              label: t("settings.match_preferences.fine_jar.currency.dollar"),
+              value: "USD" as const,
+            },
+          ]}
+          value={form.fineJarCurrency}
+          onChange={(value) => onChange("fineJarCurrency", value)}
+        />
+      ) : null}
+
       <SettingsSegmentedField
-        label="Does your team have match duties?"
-        helperText="Do your players take care of bringing the jerseys, warm-up equipment, or other match-day materials?"
+        label={t("settings.match_preferences.match_duties.title")}
+        helperText={t("settings.match_preferences.match_duties.description")}
         options={[
-          { label: "Use match duties", value: true },
-          { label: "No match duties", value: false },
+          {
+            label: t("settings.match_preferences.match_duties.enabled"),
+            value: true,
+          },
+          {
+            label: t("settings.match_preferences.match_duties.disabled"),
+            value: false,
+          },
         ]}
         value={form.matchDutyEnabled}
         onChange={(value) => onChange("matchDutyEnabled", value)}
@@ -1016,7 +1220,7 @@ function SettingsPreferencesFields({
   );
 }
 
-function SettingsSegmentedField({
+function SettingsSegmentedField<Value extends string | boolean>({
   helperText,
   label,
   onChange,
@@ -1025,9 +1229,9 @@ function SettingsSegmentedField({
 }: {
   helperText?: string;
   label: string;
-  onChange: (value: boolean) => void;
-  options: { label: string; value: boolean }[];
-  value: boolean;
+  onChange: (value: Value) => void;
+  options: { label: string; value: Value }[];
+  value: Value;
 }) {
   const theme = useTheme();
 
@@ -1086,6 +1290,7 @@ function SettingsTrainingFields({
   ) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   function toggleTrainingDay(day: TrainingDay) {
     const nextTrainingDays = form.trainingDays.includes(day)
@@ -1098,20 +1303,24 @@ function SettingsTrainingFields({
   return (
     <>
       <ThemedView style={styles.fieldGroup}>
-        <ThemedText type="smallBold">Training days</ThemedText>
+        <ThemedText type="smallBold">
+          {t("settings.training_preferences.days.title")}
+        </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Useful for reminders later. Leave empty if training changes every
-          week.
+          {t("settings.training_preferences.days.description")}
         </ThemedText>
         <ThemedView style={styles.trainingDayGrid}>
           {TRAINING_DAYS.map((day) => {
             const isSelected = form.trainingDays.includes(day);
+            const dayLabel = t(
+              `settings.training_preferences.day_labels.${day}`,
+            );
 
             return (
               <Pressable
                 key={day}
                 accessibilityRole="button"
-                accessibilityLabel={trainingDayLabels[day]}
+                accessibilityLabel={dayLabel}
                 accessibilityState={{ selected: isSelected }}
                 onPress={() => toggleTrainingDay(day)}
                 style={({ pressed }) => [
@@ -1128,7 +1337,7 @@ function SettingsTrainingFields({
                     isSelected && styles.trainingDayOptionTextSelected,
                   ]}
                 >
-                  {trainingDayLabels[day]}
+                  {dayLabel}
                 </ThemedText>
               </Pressable>
             );
@@ -1137,9 +1346,11 @@ function SettingsTrainingFields({
       </ThemedView>
 
       <ThemedView style={styles.fieldGroup}>
-        <ThemedText type="smallBold">Default training time</ThemedText>
+        <ThemedText type="smallBold">
+          {t("settings.training_preferences.default_time.title")}
+        </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          New trainings will use this start time automatically.
+          {t("settings.training_preferences.default_time.description")}
         </ThemedText>
         <TextInput
           keyboardType="number-pad"
@@ -1165,7 +1376,7 @@ function SettingsTrainingFields({
 }
 
 function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
-  const kitOutlineColor = getKitOutlineColor(form.outfieldKitColor);
+  const kitOutlineColor = "#111827";
 
   return (
     <ThemedView style={styles.kitPreviewFrame}>
@@ -1376,13 +1587,6 @@ function getKitNumberOutlineColor(color: string) {
     : "#111827";
 }
 
-function getKitOutlineColor(color: string) {
-  const normalizedColor = color.trim().toUpperCase();
-  return normalizedColor === "#000000" || normalizedColor === "#111827"
-    ? "#FFFFFF"
-    : "#111827";
-}
-
 function sortTrainingDays(days: TrainingDay[]) {
   return [...days].sort(
     (firstDay, secondDay) =>
@@ -1405,29 +1609,23 @@ function isValidTime(value: string) {
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+  screen: {
+    alignItems: "center",
+    paddingHorizontal: Spacing.four,
+    marginTop: Spacing.six,
   },
   container: {
-    flexGrow: 1,
     gap: Spacing.three,
     maxWidth: MaxContentWidth,
-    paddingHorizontal: Spacing.four,
     paddingTop:
       Platform.select({
         web: AppHeaderHeight + PageTopPadding,
         default: AppHeaderHeight + Spacing.two,
       }) ?? AppHeaderHeight + Spacing.two,
+    width: "100%",
   },
-  header: {
-    gap: Spacing.two,
-  },
-  title: {
-    lineHeight: 38,
+  heading: {
+    gap: Spacing.one,
   },
   intro: {
     maxWidth: 560,

@@ -88,7 +88,7 @@ export function ShareMatchPreviewModal({
   const [background, setBackground] =
     useState<ShareBackgroundTemplateId>("stadium-day");
   const [overlayStyle, setOverlayStyle] =
-    useState<SharePosterOverlayStyle>("broadcast");
+    useState<SharePosterOverlayStyle>("classic");
   const basePosterColors = useMemo(
     () => createSharePosterColorsFromKitSettings(kitSettings),
     [kitSettings],
@@ -105,6 +105,11 @@ export function ShareMatchPreviewModal({
   const selectedBackground =
     shareBackgroundTemplates.find((option) => option.id === background) ??
     shareBackgroundTemplates[0];
+
+  function handleClose() {
+    setOverlayStyle("classic");
+    onClose();
+  }
 
   function updatePosterColor(key: keyof PosterColorSettings, value: string) {
     setPosterColorOverrides((currentColors) => ({
@@ -160,10 +165,10 @@ export function ShareMatchPreviewModal({
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <ThemedView style={styles.modalOverlay}>
-        <Pressable style={styles.modalBackdrop} onPress={onClose} />
+        <Pressable style={styles.modalBackdrop} onPress={handleClose} />
         <ThemedView type="modalBackground" style={styles.shareModalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
@@ -178,7 +183,7 @@ export function ShareMatchPreviewModal({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("matchday.share.close_preview")}
-              onPress={onClose}
+              onPress={handleClose}
               style={({ pressed }) => [
                 styles.iconButton,
                 pressed && styles.pressed,
@@ -194,7 +199,7 @@ export function ShareMatchPreviewModal({
 
           <ScrollView contentContainerStyle={styles.shareModalContent}>
             <ThemedView style={styles.shareOptionGroup}>
-              <ThemedText type="code" themeColor="textSecondary">
+              <ThemedText type="small" themeColor="textSecondary">
                 {t("matchday.share.background")}
               </ThemedText>
               <ThemedView style={styles.shareOptionRow}>
@@ -228,7 +233,7 @@ export function ShareMatchPreviewModal({
             </ThemedView>
 
             <ThemedView style={styles.shareOptionGroup}>
-              <ThemedText type="code" themeColor="textSecondary">
+              <ThemedText type="small" themeColor="textSecondary">
                 {t("matchday.share.overlay")}
               </ThemedText>
               <ThemedView style={styles.shareOptionRow}>
@@ -273,7 +278,7 @@ export function ShareMatchPreviewModal({
                   pressed && styles.pressed,
                 ]}
               >
-                <ThemedView>
+                <ThemedView style={styles.shareColorHeaderText}>
                   <ThemedText type="default">
                     {t("matchday.share.colors.title")}
                   </ThemedText>
@@ -293,6 +298,7 @@ export function ShareMatchPreviewModal({
                   }}
                   tintColor={theme.text}
                   size={18}
+                  style={styles.shareColorHeaderChevron}
                 />
               </Pressable>
 
@@ -360,7 +366,7 @@ export function ShareMatchPreviewModal({
           <ThemedView style={styles.formActions}>
             <Pressable
               accessibilityRole="button"
-              onPress={onClose}
+              onPress={handleClose}
               style={({ pressed }) => [
                 styles.secondaryButton,
                 pressed && styles.pressed,
@@ -569,7 +575,7 @@ function SharePosterColorField({
   return (
     <ThemedView style={styles.shareColorField}>
       <ThemedView style={styles.shareColorFieldHeader}>
-        <ThemedText type="code" themeColor="textSecondary">
+        <ThemedText type="small" themeColor="textSecondary">
           {label}
         </ThemedText>
       </ThemedView>
@@ -620,6 +626,8 @@ function SharePosterTextLayer({
   substitutes: Player[];
   teamName: string;
 }) {
+  const { t } = useI18n();
+
   return (
     <Svg
       pointerEvents="none"
@@ -673,6 +681,13 @@ function SharePosterTextLayer({
           preferNicknames,
           substitutes,
           teamName,
+          {
+            opponent: t("matchday.share.poster.opponent"),
+            homeMatch: t("matchday.share.poster.home_match"),
+            awayMatch: t("matchday.share.poster.away_match"),
+            subs: t("matchday.share.poster.subs"),
+            substitutes: t("matchday.share.poster.substitutes"),
+          },
         );
         const showSubstituteIcon =
           getSharePosterSubstituteMinutesPlayed(

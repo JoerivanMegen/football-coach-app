@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -30,6 +30,7 @@ import {
   findDuplicatePlayer,
   findNextAvailableKitNumber,
   formatIsoDateForDisplay,
+  formatDateForDisplay,
   isValidNameInput,
   normalizeNameInput,
   parseDisplayDateToIsoDate,
@@ -37,17 +38,21 @@ import {
 import {
   archivePlayerAsync,
   createPlayerAsync,
+  deletePlayerInjuryAsync,
+  listPlayerInjuriesAsync,
   listPlayersAsync,
   savePlayerWithKitReassignmentAsync,
+  savePlayerInjuryStatusAsync,
   updatePlayerAsync,
+  updatePlayerInjuryAsync,
 } from "@/features/players/player-repository";
 import {
   type CreatePlayerInput,
   type Player,
+  type PlayerInjury,
   type PlayerPosition,
 } from "@/features/players/player-types";
 import { useTheme } from "@/hooks/use-theme";
-import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 import { useI18n } from "@/i18n/i18n-provider";
 import type { TranslationKey } from "@/i18n/generated/translations";
 
@@ -59,6 +64,8 @@ const playerPositionSections: { position: PlayerPosition; labelKey: TranslationK
 ];
 
 export default function PlayersScreen() {
+  const router = useRouter();
+  const { openTeamStats } = useLocalSearchParams<{ openTeamStats?: string }>();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const { t } = useI18n();
@@ -68,25 +75,25 @@ export default function PlayersScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isBirthDatePickerOpen, setIsBirthDatePickerOpen] = useState(false);
+  const [isInjuryDatePickerOpen, setIsInjuryDatePickerOpen] = useState(false);
+  const [originalInjuryDate, setOriginalInjuryDate] = useState<string | null>(null);
+  const [playerInjuries, setPlayerInjuries] = useState<PlayerInjury[]>([]);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [selectedStatsPlayerId, setSelectedStatsPlayerId] = useState<
     number | null
   >(null);
   const [isTeamStatsOpen, setIsTeamStatsOpen] = useState(false);
+
+  function closeTeamStats() {
+    setIsTeamStatsOpen(false);
+    if (openTeamStats) {
+      router.setParams({ openTeamStats: "" });
+    }
+  }
   const [expandedPositionSections, setExpandedPositionSections] = useState<
     Record<PlayerPosition, boolean>
   >({ goalkeeper: true, defender: true, midfielder: true, forward: true });
   const [form, setForm] = useState<PlayerFormState>(emptyPlayerFormState);
-  const expandAllPositionSections = useCallback(() => {
-    setExpandedPositionSections({
-      goalkeeper: true,
-      defender: true,
-      midfielder: true,
-      forward: true,
-    });
-  }, []);
-  const scrollViewRef = useScrollToTopOnFocus(expandAllPositionSections);
-
   const insets = useMemo(
     () => ({
       ...safeAreaInsets,
@@ -133,6 +140,9 @@ export default function PlayersScreen() {
     setEditingPlayerId(null);
     setForm(emptyPlayerFormState);
     setIsBirthDatePickerOpen(false);
+    setIsInjuryDatePickerOpen(false);
+    setOriginalInjuryDate(null);
+    setPlayerInjuries([]);
     setIsFormOpen(true);
   }
 
@@ -145,14 +155,33 @@ export default function PlayersScreen() {
       birthDate: formatIsoDateForDisplay(player.birthDate),
       position: player.position,
       kitNumber: player.kitNumber === null ? "" : String(player.kitNumber),
+      isInjured: player.activeInjuryStartDate !== null,
+      injuryDate: player.activeInjuryStartDate
+        ? formatIsoDateForDisplay(player.activeInjuryStartDate)
+        : formatDateForDisplay(new Date()),
+      injuryNote: "",
     });
     setIsBirthDatePickerOpen(false);
+    setIsInjuryDatePickerOpen(false);
+    setOriginalInjuryDate(
+      player.activeInjuryStartDate
+        ? formatIsoDateForDisplay(player.activeInjuryStartDate)
+        : null,
+    );
     setIsFormOpen(true);
+    void listPlayerInjuriesAsync(player.id).then((injuries) => {
+      setPlayerInjuries(injuries);
+      const activeInjury = injuries.find((injury) => injury.endDate === null);
+      if (activeInjury) {
+        setForm((current) => ({ ...current, injuryNote: activeInjury.note }));
+      }
+    });
   }
 
   function closeForm() {
     if (!isSaving) {
       setIsBirthDatePickerOpen(false);
+      setIsInjuryDatePickerOpen(false);
       setEditingPlayerId(null);
       setIsFormOpen(false);
     }
@@ -166,6 +195,7 @@ export default function PlayersScreen() {
       ? Number(form.kitNumber.trim())
       : null;
     const birthDate = parseDisplayDateToIsoDate(form.birthDate);
+    const injuryDate = parseDisplayDateToIsoDate(form.injuryDate);
 
     if (!firstName || !lastName) {
       Alert.alert(
@@ -203,6 +233,28 @@ export default function PlayersScreen() {
       Alert.alert(
         t("players.form.validation.invalid_birth_date.title"),
         t("players.form.validation.invalid_birth_date.message"),
+      );
+      return;
+    }
+
+    if (editingPlayerId !== null && !injuryDate) {
+      Alert.alert(
+        t("players.form.validation.invalid_injury_date.title"),
+        t("players.form.validation.invalid_injury_date.message"),
+      );
+      return;
+    }
+
+    const editingPlayer = players.find((player) => player.id === editingPlayerId);
+    if (
+      editingPlayer?.activeInjuryStartDate &&
+      !form.isInjured &&
+      injuryDate &&
+      injuryDate < editingPlayer.activeInjuryStartDate
+    ) {
+      Alert.alert(
+        t("players.form.validation.invalid_injury_date.title"),
+        t("players.form.validation.invalid_injury_date.message"),
       );
       return;
     }
@@ -304,6 +356,18 @@ export default function PlayersScreen() {
       } else {
         await updatePlayerAsync(editingPlayerId, playerInput);
       }
+      if (editingPlayerId !== null) {
+        const injuryDate = parseDisplayDateToIsoDate(form.injuryDate);
+        if (!injuryDate) {
+          throw new Error("Invalid injury date.");
+        }
+        await savePlayerInjuryStatusAsync(
+          editingPlayerId,
+          form.isInjured,
+          injuryDate,
+          form.injuryNote,
+        );
+      }
       setIsFormOpen(false);
       setForm(emptyPlayerFormState);
       setEditingPlayerId(null);
@@ -317,6 +381,78 @@ export default function PlayersScreen() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function updateInjury(
+    injuryId: number,
+    input: { startDate: string; endDate: string | null; note: string },
+  ) {
+    if (editingPlayerId === null) return false;
+    try {
+      await updatePlayerInjuryAsync(injuryId, input);
+      const injuries = await listPlayerInjuriesAsync(editingPlayerId);
+      setPlayerInjuries(injuries);
+      const activeInjury = injuries.find((injury) => injury.endDate === null);
+      setOriginalInjuryDate(
+        activeInjury ? formatIsoDateForDisplay(activeInjury.startDate) : null,
+      );
+      setForm((current) => ({
+        ...current,
+        isInjured: Boolean(activeInjury),
+        injuryDate: activeInjury
+          ? formatIsoDateForDisplay(activeInjury.startDate)
+          : current.injuryDate,
+        injuryNote: activeInjury?.note ?? "",
+      }));
+      await loadPlayers();
+      return true;
+    } catch (error) {
+      console.warn("Failed to update injury", error);
+      Alert.alert(
+        t("players.form.validation.invalid_injury_date.title"),
+        error instanceof Error && error.message.includes("overlap")
+          ? t("players.form.injury.overlap_error")
+          : t("players.form.validation.invalid_injury_date.message"),
+      );
+      return false;
+    }
+  }
+
+  function deleteInjury(injury: PlayerInjury) {
+    const confirmDelete = async () => {
+      await deletePlayerInjuryAsync(injury.id);
+      if (injury.endDate === null) {
+        setForm((current) => ({
+          ...current,
+          isInjured: false,
+          injuryDate: formatDateForDisplay(new Date()),
+          injuryNote: "",
+        }));
+        setOriginalInjuryDate(null);
+      }
+      if (editingPlayerId !== null) {
+        setPlayerInjuries(await listPlayerInjuriesAsync(editingPlayerId));
+      }
+      await loadPlayers();
+    };
+    if (Platform.OS === "web") {
+      if (globalThis.confirm(t("players.form.injury.delete_message"))) {
+        void confirmDelete();
+      }
+      return;
+    }
+    Alert.alert(
+      t("players.form.injury.delete_title"),
+      t("players.form.injury.delete_message"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: () => void confirmDelete(),
+        },
+      ],
+    );
   }
 
   function handleArchivePlayer(player: Player) {
@@ -365,7 +501,6 @@ export default function PlayersScreen() {
   return (
     <>
       <ScrollView
-        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -501,11 +636,17 @@ export default function PlayersScreen() {
         editing={editingPlayerId !== null}
         form={form}
         isBirthDatePickerOpen={isBirthDatePickerOpen}
+        isInjuryDatePickerOpen={isInjuryDatePickerOpen}
         isSaving={isSaving}
         onChange={setForm}
         onClose={closeForm}
         onSave={() => void handleSavePlayer()}
         onSetBirthDatePickerOpen={setIsBirthDatePickerOpen}
+        onSetInjuryDatePickerOpen={setIsInjuryDatePickerOpen}
+        injuries={playerInjuries}
+        onDeleteInjury={deleteInjury}
+        onUpdateInjury={updateInjury}
+        originalInjuryDate={originalInjuryDate}
         visible={isFormOpen}
       />
 
@@ -523,8 +664,8 @@ export default function PlayersScreen() {
 
       <TeamStatsModal
         stats={playerStats}
-        visible={isTeamStatsOpen}
-        onClose={() => setIsTeamStatsOpen(false)}
+        visible={isTeamStatsOpen || openTeamStats === "true"}
+        onClose={closeTeamStats}
       />
     </>
   );

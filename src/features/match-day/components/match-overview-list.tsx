@@ -5,6 +5,7 @@ import { SymbolView } from "expo-symbols";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ActionColors } from "@/constants/theme";
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
 import type { MatchDayMatch } from "@/features/match-day/match-day-types";
 import { hasMatchResult } from "@/features/match-day/match-day-utils";
@@ -26,7 +27,11 @@ export function MatchOverviewList({ matches, renderMatchCard }: {
     );
   }
 
-  const unfinishedMatches = matches.filter((match) => !hasMatchResult(match));
+  const unfinishedMatches = matches
+    .filter((match) => !hasMatchResult(match))
+    .sort((firstMatch, secondMatch) =>
+      compareMatchesByDateTimeDescending(firstMatch, secondMatch),
+    );
   const completedMatches = matches.filter(hasMatchResult);
 
   return (
@@ -46,6 +51,7 @@ export function MatchOverviewList({ matches, renderMatchCard }: {
                 android: isUnfinishedSectionOpen ? "keyboard_arrow_up" : "keyboard_arrow_down",
                 web: isUnfinishedSectionOpen ? "keyboard_arrow_up" : "keyboard_arrow_down",
               }}
+              tintColor={ActionColors.primary}
               size={18}
             />
           </Pressable>
@@ -61,4 +67,13 @@ export function MatchOverviewList({ matches, renderMatchCard }: {
       ) : null}
     </ThemedView>
   );
+}
+
+function compareMatchesByDateTimeDescending(
+  firstMatch: MatchDayMatch,
+  secondMatch: MatchDayMatch,
+) {
+  const firstDateTime = `${firstMatch.matchDate}T${firstMatch.startTime}`;
+  const secondDateTime = `${secondMatch.matchDate}T${secondMatch.startTime}`;
+  return secondDateTime.localeCompare(firstDateTime);
 }

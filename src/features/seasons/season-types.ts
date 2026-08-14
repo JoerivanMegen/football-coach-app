@@ -13,4 +13,8 @@ export type Season = {
 export type SeasonCompletionStatus = {
   matchesWithoutResults: number;
   trainingsWithoutAttendance: number;
+  unpaidFineCount: number;
+  unpaidFineAmountCents: number;
 };
+
+export type UnpaidFineResolution = "carry" | "write_off";

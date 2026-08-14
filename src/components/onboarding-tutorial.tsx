@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
+import { ActionColors, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useI18n } from "@/i18n/i18n-provider";
 import type { TranslationKey } from "@/i18n/generated/translations";
@@ -141,7 +141,13 @@ export function OnboardingTutorial({
                 style={styles.welcomeLogo}
               />
             ) : (
-              <SymbolView name={slide.icon} tintColor="#1C7C54" size={72} />
+              <SymbolView
+                name={slide.icon}
+                type="monochrome"
+                colors={ActionColors.onAccent}
+                tintColor={ActionColors.onAccent}
+                size={72}
+              />
             )}
           </ThemedView>
 

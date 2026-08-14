@@ -75,6 +75,7 @@ export async function createEventAsync(input: CreateEventInput) {
   await ensureEventStorageAsync(db);
   const seasonId = await getActiveSeasonIdAsync(db);
 
+  let createdEventId = 0;
   await db.withTransactionAsync(async () => {
     const result = await db.runAsync(
       `
@@ -103,6 +104,7 @@ export async function createEventAsync(input: CreateEventInput) {
     );
 
     const eventId = result.lastInsertRowId;
+    createdEventId = eventId;
 
     for (const signup of input.playerSignups ?? []) {
       await db.runAsync(
@@ -119,6 +121,8 @@ export async function createEventAsync(input: CreateEventInput) {
     }
 
   });
+
+  return createdEventId;
 }
 
 export async function updateEventAsync(input: UpdateEventInput) {

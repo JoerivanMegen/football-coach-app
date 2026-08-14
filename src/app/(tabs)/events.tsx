@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { AppHeaderHeight, BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import { AppHeaderHeight, BottomTabInset, CompactScreenTopMargin, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
 import { EventAttendanceModal } from "@/features/events/components/event-attendance-modal";
 import { EventSection } from "@/features/events/components/event-section";
 import { formatDateForDisplay } from "@/features/events/components/event-wizard/event-details-step";
@@ -31,16 +31,18 @@ import {
 import type { CoachEvent, EventAttendancePlayer } from "@/features/events/event-types";
 import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
 import type { TrainingDay } from "@/features/settings/team-settings-types";
+import {
+  cancelTrainingAttendanceReminderAsync,
+  scheduleTrainingAttendanceReminderAsync,
+} from "@/features/notifications/match-result-notifications";
 import { useTheme } from "@/hooks/use-theme";
-import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 import { useI18n } from "@/i18n/i18n-provider";
 
 export default function EventsScreen() {
-  const scrollViewRef = useScrollToTopOnFocus();
   const router = useRouter();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [events, setEvents] = useState<CoachEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -82,11 +84,16 @@ export default function EventsScreen() {
           location: settings?.clubLocation ?? "",
           startTime: settings?.trainingStartTime ?? "",
           trainingDays: settings?.trainingDays ?? [],
+          title: t("training.add_training.details.title_placeholder"),
         }),
       );
     } catch (error) {
       console.warn("Failed to load training defaults", error);
-      setWizardInitialForm(createEmptyTrainingWizardFormState());
+      setWizardInitialForm(
+        createEmptyTrainingWizardFormState({
+          title: t("training.add_training.details.title_placeholder"),
+        }),
+      );
     }
 
     setIsWizardOpen(true);
@@ -154,13 +161,28 @@ export default function EventsScreen() {
         ),
       };
 
+      let savedEventId: number;
       if (wizardEditingEvent) {
         await updateEventAsync({
           id: wizardEditingEvent.id,
           ...eventInput,
         });
+        savedEventId = wizardEditingEvent.id;
       } else {
-        await createEventAsync(eventInput);
+        savedEventId = await createEventAsync(eventInput);
+      }
+
+      await cancelTrainingAttendanceReminderAsync(savedEventId);
+      if (
+        eventInput.type === "training" &&
+        wizardEditingEvent?.attendanceStatus !== "marked"
+      ) {
+        await scheduleTrainingAttendanceReminderAsync(
+          savedEventId,
+          eventInput.eventDate,
+          eventInput.startTime,
+          locale,
+        );
       }
 
       await loadEvents();
@@ -193,7 +215,9 @@ export default function EventsScreen() {
   }
 
   function handleCancelEvent(event: CoachEvent) {
-    const message = `Cancel "${event.title}"? This will remove the training and its attendance data.`;
+    const message = t("training.confirm.cancel.message", {
+      title: event.title,
+    });
 
     if (Platform.OS === "web") {
       if (globalThis.confirm(message)) {
@@ -202,7 +226,7 @@ export default function EventsScreen() {
       return;
     }
 
-    Alert.alert("Cancel training", message, [
+    Alert.alert(t("training.confirm.cancel.title"), message, [
       {
         text: t("training.actions.keep"),
         style: "cancel",
@@ -220,6 +244,7 @@ export default function EventsScreen() {
   async function cancelEventAsync(event: CoachEvent) {
     try {
       await deleteEventAsync(event.id);
+      await cancelTrainingAttendanceReminderAsync(event.id);
       await loadEvents();
     } catch (error) {
       console.warn("Failed to cancel event", error);
@@ -229,6 +254,13 @@ export default function EventsScreen() {
 
   function closeAttendanceModal() {
     setSelectedAttendanceEvent(null);
+  }
+
+  async function handleAttendanceSaved() {
+    if (selectedAttendanceEvent) {
+      await cancelTrainingAttendanceReminderAsync(selectedAttendanceEvent.id);
+    }
+    await loadEvents();
   }
 
   const filteredEvents = useMemo(
@@ -243,7 +275,6 @@ export default function EventsScreen() {
   return (
     <>
       <ScrollView
-        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -338,8 +369,17 @@ export default function EventsScreen() {
       {isWizardOpen ? (
         <EventWizard
           initialForm={wizardInitialForm}
-          saveButtonLabel={wizardEditingEvent ? "Save changes" : "Save training"}
-          title={wizardEditingEvent ? "Edit training" : "Add training"}
+          isEditing={wizardEditingEvent !== null}
+          saveButtonLabel={
+            wizardEditingEvent
+              ? t("training.actions.save_changes")
+              : t("training.actions.save")
+          }
+          title={
+            wizardEditingEvent
+              ? t("training.actions.edit")
+              : t("training.add_training.title")
+          }
           visible={isWizardOpen}
           onClose={closeWizard}
           onSave={handleSaveEvent}
@@ -349,7 +389,7 @@ export default function EventsScreen() {
         event={selectedAttendanceEvent}
         visible={selectedAttendanceEvent !== null}
         onClose={closeAttendanceModal}
-        onSaved={loadEvents}
+        onSaved={handleAttendanceSaved}
       />
     </>
   );
@@ -376,12 +416,14 @@ function createEventWizardFormStateFromEvent(
 function createEmptyTrainingWizardFormState({
   location = "",
   startTime = "",
+  title,
   trainingDays = [],
 }: {
   location?: string;
   startTime?: string;
+  title: string;
   trainingDays?: TrainingDay[];
-} = {}): EventWizardFormState {
+}): EventWizardFormState {
   const nextTrainingDate = getNextTrainingDate(
     new Date(),
     trainingDays,
@@ -390,7 +432,7 @@ function createEmptyTrainingWizardFormState({
 
   return {
     type: "training",
-    title: "Training",
+    title,
     date: formatDateForDisplay(nextTrainingDate),
     startTime,
     location,
@@ -526,6 +568,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: Spacing.four,
     maxWidth: MaxContentWidth,
+    marginTop: CompactScreenTopMargin,
     paddingHorizontal: Spacing.four,
     paddingTop: AppHeaderHeight + PageTopPadding,
   },

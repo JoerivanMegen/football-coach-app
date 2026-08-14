@@ -1,0 +1,48 @@
+header:
+  title: Fine Jar
+  subtitle: Create your team's fines and keep track of what has been paid.
+actions:
+  add_fine: Add fine
+  add_fine_type: Add fine type
+fine_types:
+  title: Fine types
+  description: 'Create the fines your team uses. For example, “Late for training – €2”.'
+  empty: No fine types yet. Add your first fine type to get started.
+  expand: Show fine types
+  collapse: Hide fine types
+overview:
+  title: Fine overview
+  unpaid: Unpaid fines
+  paid: Paid fines
+  empty_unpaid: There are no unpaid fines.
+  empty_paid: There are no paid fines yet.
+  total: "Total: {{amount}}"
+  paid_value: Total paid
+  unpaid_value: Total unpaid
+fine:
+  mark_paid: Mark as paid
+  mark_unpaid: Mark as unpaid
+  paid: Paid
+  unpaid: Unpaid
+type_modal:
+  title: Add fine type
+  name: Fine name
+  name_placeholder: Late for training
+  price: Price
+  price_placeholder: "2.00"
+  submit: Add fine type
+add_modal:
+  title: Add fine
+  player: Choose a player
+  fine_type: Choose a fine type
+  payment_status: Payment status
+  submit: Add fine
+validation:
+  fine_name: Enter a name for the fine.
+  price: Enter a valid price.
+  duplicate: A fine type with this name already exists.
+  player: Choose a player.
+  fine_type: Choose a fine type.
+errors:
+  load: Fine Jar could not be loaded.
+  save: The fine could not be saved.

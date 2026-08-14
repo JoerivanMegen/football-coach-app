@@ -5,16 +5,25 @@
 
 import "@/global.css";
 
-import { Platform } from "react-native";
+import { Dimensions, Platform } from "react-native";
 
 export const Colors = {
   light: {
     text: "#1b1b1b",
-    background: "#ededed",
-    backgroundElement: "#d4d4d4",
-    backgroundSelected: "#c0c0c0",
-    textSecondary: "#60646C",
-    modalBackground: "#F5F5F5",
+    background: "rgb(252, 252, 252)",
+    backgroundElement: "rgb(231, 236, 231)",
+    backgroundSelected: "#1C7C54",
+    textSecondary: "#797979",
+    modalBackground: "#ffffff",
+    headerBackground: "#1C7C54",
+    headerBorder: "#1C7C54",
+    headerLogo: "#FFFFFF",
+    headerMenu: "#FFFFFF",
+    sideMenuBackground: "#1C7C54",
+    sideMenuSelected: "rgb(205, 203, 203)",
+    sideMenuSelectedText: "#1C7C54",
+    sideMenuControlBorder: "#FFFFFF",
+    dashboardIcon: "#fff9ed",
   },
   dark: {
     text: "#f4f4f4",
@@ -23,6 +32,15 @@ export const Colors = {
     backgroundSelected: "#2E3135",
     textSecondary: "#B0B4BA",
     modalBackground: "#1d1f1e",
+    headerBackground: "#1b1b1b",
+    headerBorder: "#1C7C54",
+    headerLogo: "#1C7C54",
+    headerMenu: "#FFFFFF",
+    sideMenuBackground: "#1b1b1b",
+    sideMenuSelected: "#2E3135",
+    sideMenuSelectedText: "#1C7C54",
+    sideMenuControlBorder: "#1C7C54",
+    dashboardIcon: "#f4f4f4",
   },
 } as const;
 
@@ -73,7 +91,11 @@ export const Spacing = {
   six: 64,
 } as const;
 
-export const PageTopPadding = 16;
+const isCompactIPhone =
+  Platform.OS === "ios" && Dimensions.get("window").height <= 667;
+
+export const PageTopPadding = -40;
+export const CompactScreenTopMargin = isCompactIPhone ? Spacing.five : 0;
 export const AppHeaderHeight = 56;
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;

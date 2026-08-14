@@ -1,6 +1,7 @@
 import { getDatabaseAsync } from "@/db/database";
 import type {
   KitDesign,
+  FineJarCurrency,
   SaveTeamSettingsInput,
   TeamSettings,
   TrainingDay,
@@ -25,6 +26,7 @@ type TeamSettingsRow = {
   training_start_time: string;
   prefer_nicknames: number;
   fine_jar_enabled: number;
+  fine_jar_currency: string;
   match_duty_enabled: number;
   include_friendly_matches_in_stats: number;
   created_at: string;
@@ -32,6 +34,24 @@ type TeamSettingsRow = {
 };
 
 const HEX_COLOR_PATTERN = /^#[0-9A-F]{6}$/i;
+
+type TeamSettingsChangeListener = (settings: TeamSettings) => void;
+
+const teamSettingsChangeListeners = new Set<TeamSettingsChangeListener>();
+
+export function subscribeToTeamSettingsChanges(
+  listener: TeamSettingsChangeListener,
+) {
+  teamSettingsChangeListeners.add(listener);
+
+  return () => {
+    teamSettingsChangeListeners.delete(listener);
+  };
+}
+
+function notifyTeamSettingsChanged(settings: TeamSettings) {
+  teamSettingsChangeListeners.forEach((listener) => listener(settings));
+}
 
 export async function getTeamSettingsAsync() {
   const db = await getDatabaseAsync();
@@ -63,10 +83,11 @@ export async function saveTeamSettingsAsync(input: SaveTeamSettingsInput) {
         training_start_time,
         prefer_nicknames,
         fine_jar_enabled,
+        fine_jar_currency,
         match_duty_enabled,
         include_friendly_matches_in_stats
       )
-      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         team_name = excluded.team_name,
         club_location = excluded.club_location,
@@ -81,6 +102,7 @@ export async function saveTeamSettingsAsync(input: SaveTeamSettingsInput) {
         training_start_time = excluded.training_start_time,
         prefer_nicknames = excluded.prefer_nicknames,
         fine_jar_enabled = excluded.fine_jar_enabled,
+        fine_jar_currency = excluded.fine_jar_currency,
         match_duty_enabled = excluded.match_duty_enabled,
         include_friendly_matches_in_stats = excluded.include_friendly_matches_in_stats
     `,
@@ -98,12 +120,19 @@ export async function saveTeamSettingsAsync(input: SaveTeamSettingsInput) {
       normalizedInput.trainingStartTime,
       normalizedInput.preferNicknames ? 1 : 0,
       normalizedInput.fineJarEnabled ? 1 : 0,
+      normalizedInput.fineJarCurrency,
       normalizedInput.matchDutyEnabled ? 1 : 0,
       normalizedInput.includeFriendlyMatchesInStats ? 1 : 0,
     ],
   );
 
-  return getTeamSettingsAsync();
+  const savedSettings = await getTeamSettingsAsync();
+
+  if (savedSettings) {
+    notifyTeamSettingsChanged(savedSettings);
+  }
+
+  return savedSettings;
 }
 
 function normalizeTeamSettingsInput(
@@ -134,6 +163,7 @@ function normalizeTeamSettingsInput(
     trainingStartTime: normalizeTrainingStartTime(input.trainingStartTime),
     preferNicknames: Boolean(input.preferNicknames),
     fineJarEnabled: Boolean(input.fineJarEnabled),
+    fineJarCurrency: normalizeFineJarCurrency(input.fineJarCurrency),
     matchDutyEnabled: Boolean(input.matchDutyEnabled),
     includeFriendlyMatchesInStats: Boolean(
       input.includeFriendlyMatchesInStats,
@@ -147,6 +177,11 @@ function normalizeKitDesign(value: string): KitDesign {
   }
 
   return "solid";
+}
+
+function normalizeFineJarCurrency(value: string): FineJarCurrency {
+  if (value === "GBP" || value === "USD") return value;
+  return "EUR";
 }
 
 function normalizeRequiredText(value: string, fieldName: string) {
@@ -239,6 +274,7 @@ function mapTeamSettingsRow(row: TeamSettingsRow): TeamSettings {
     ),
     preferNicknames: row.prefer_nicknames === 1,
     fineJarEnabled: row.fine_jar_enabled === 1,
+    fineJarCurrency: normalizeFineJarCurrency(row.fine_jar_currency),
     matchDutyEnabled: row.match_duty_enabled === 1,
     includeFriendlyMatchesInStats:
       row.include_friendly_matches_in_stats === 1,

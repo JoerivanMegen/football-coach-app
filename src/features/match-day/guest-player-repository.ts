@@ -105,6 +105,7 @@ function mapGuestPlayerRow(row: GuestPlayerRow): Player {
     isActive: true,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    activeInjuryStartDate: null,
     isGuest: true,
   };
 }

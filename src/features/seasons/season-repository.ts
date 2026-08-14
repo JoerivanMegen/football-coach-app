@@ -5,6 +5,7 @@ import type {
   Season,
   SeasonCompletionStatus,
   SeasonStatus,
+  UnpaidFineResolution,
 } from "@/features/seasons/season-types";
 
 type SeasonRow = {
@@ -59,7 +60,7 @@ export async function getSeasonCompletionStatusAsync(
   seasonId: number,
 ): Promise<SeasonCompletionStatus> {
   const db = await getDatabaseAsync();
-  const [matchRow, trainingRow] = await Promise.all([
+  const [matchRow, trainingRow, fineRow] = await Promise.all([
     db.getFirstAsync<{ count: number }>(
       `SELECT COUNT(*) AS count FROM match_day_matches
        WHERE season_id = ? AND (own_score IS NULL OR opponent_score IS NULL)`,
@@ -70,15 +71,25 @@ export async function getSeasonCompletionStatusAsync(
        WHERE season_id = ? AND type = 'training' AND attendance_status <> 'marked'`,
       [seasonId],
     ),
+    db.getFirstAsync<{ count: number; amount_cents: number }>(
+      `SELECT COUNT(*) AS count, COALESCE(SUM(amount_cents), 0) AS amount_cents
+       FROM player_fines
+       WHERE season_id = ? AND is_paid = 0 AND is_written_off = 0`,
+      [seasonId],
+    ),
   ]);
 
   return {
     matchesWithoutResults: Number(matchRow?.count ?? 0),
     trainingsWithoutAttendance: Number(trainingRow?.count ?? 0),
+    unpaidFineCount: Number(fineRow?.count ?? 0),
+    unpaidFineAmountCents: Number(fineRow?.amount_cents ?? 0),
   };
 }
 
-export async function endActiveSeasonAsync(): Promise<Season> {
+export async function endActiveSeasonAsync(
+  unpaidFineResolution: UnpaidFineResolution,
+): Promise<Season> {
   const db = await getDatabaseAsync();
   let endedSeason: Season | undefined;
 
@@ -99,10 +110,44 @@ export async function endActiveSeasonAsync(): Promise<Season> {
       [today, activeRow.id],
     );
 
-    await db.runAsync(
+    const nextSeasonResult = await db.runAsync(
       "INSERT INTO seasons (name, start_date, status) VALUES (?, ?, 'active')",
       [createNextSeasonName(activeRow.name, new Date()), today],
     );
+
+    if (unpaidFineResolution === "carry") {
+      await db.runAsync(
+        `INSERT INTO player_fines (
+          player_id,
+          fine_type_id,
+          fine_name,
+          amount_cents,
+          is_paid,
+          season_id,
+          is_carried_over,
+          carried_from_fine_id
+        )
+        SELECT
+          player_id,
+          fine_type_id,
+          fine_name,
+          amount_cents,
+          0,
+          ?,
+          1,
+          id
+        FROM player_fines
+        WHERE season_id = ? AND is_paid = 0 AND is_written_off = 0`,
+        [nextSeasonResult.lastInsertRowId, activeRow.id],
+      );
+    } else {
+      await db.runAsync(
+        `UPDATE player_fines
+         SET is_written_off = 1
+         WHERE season_id = ? AND is_paid = 0 AND is_written_off = 0`,
+        [activeRow.id],
+      );
+    }
 
     endedSeason = mapSeasonRow({
       ...activeRow,

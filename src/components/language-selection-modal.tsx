@@ -4,7 +4,7 @@ import { Modal, Pressable, StyleSheet } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Spacing } from "@/constants/theme";
+import { ActionColors, Spacing } from "@/constants/theme";
 import type { AppLocale } from "@/i18n/locales";
 import { useI18n } from "@/i18n/i18n-provider";
 
@@ -17,9 +17,11 @@ export function LanguageSelectionModal({
 }) {
   const { t } = useI18n();
   const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedLocale, setSelectedLocale] = useState<AppLocale | null>(null);
 
   async function selectLanguage(locale: AppLocale) {
     if (isSelecting) return;
+    setSelectedLocale(locale);
     setIsSelecting(true);
     try {
       await onSelect(locale);
@@ -43,6 +45,7 @@ export function LanguageSelectionModal({
               )}
               flag={t("onboarding.language_selection.dutch_flag")}
               label={t("onboarding.language_selection.dutch_code")}
+              filled={selectedLocale === "nl"}
               disabled={isSelecting}
               onPress={() => void selectLanguage("nl")}
             />
@@ -52,7 +55,7 @@ export function LanguageSelectionModal({
               )}
               flag={t("onboarding.language_selection.english_flag")}
               label={t("onboarding.language_selection.english_code")}
-              filled
+              filled={selectedLocale === "en"}
               disabled={isSelecting}
               onPress={() => void selectLanguage("en")}
             />
@@ -65,8 +68,9 @@ export function LanguageSelectionModal({
           <Image
             accessibilityLabel={t("onboarding.language_selection.logo_label")}
             contentFit="contain"
-            source={require("@/assets/images/assistant-coach-app-icon-1024.png")}
+            source={require("@/assets/images/assistant-coach-language-logo.png")}
             style={styles.logo}
+            tintColor={ActionColors.primary}
           />
         </ThemedView>
       </ThemedView>
@@ -164,9 +168,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   logo: {
-    height: 220,
+    aspectRatio: 1,
     marginTop: Spacing.two,
-    width: 280,
+    width: 300,
   },
   pressed: {
     opacity: 0.72,

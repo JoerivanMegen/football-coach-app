@@ -1,3 +1,6 @@
 match_result:
   title: How did your match go?
   body: Fill in your result!
+training_attendance:
+  title: How was the training?
+  body: Did everyone show up?

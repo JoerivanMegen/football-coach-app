@@ -37,6 +37,8 @@ export type PlayerAttendanceStats = {
   matchDutiesAssigned: number;
   matchDutiesFulfilled: number;
   matchDutyFulfillmentPercentage: number | null;
+  fineCount: number;
+  fineAmountCents: number;
   teamEvents: number;
   teamEventsAttended: number;
   teamEventAttendancePercentage: number | null;

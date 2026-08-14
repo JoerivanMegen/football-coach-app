@@ -1,6 +1,6 @@
 overview:
   title: Players
-  subtitle: Manage your squad list and start collecting player stats.
+  subtitle: Manage your players, injuries, and start collecting player stats.
   add_player: Add player
   open_team_stats: Open team statistics
   empty:
@@ -23,6 +23,27 @@ form:
   birth_date: Birth date
   position: Position
   kit_number: Kit number
+  injury:
+    title: Injury status
+    toggle_label: Injured
+    injured: Player is injured
+    healthy: Player is available
+    start_date: Injured since
+    recovery_date: Recovery date
+    note: Injury note (optional)
+    note_placeholder: For example, hamstring injury
+    help: Matches and trainings during an injury period do not count towards this player's statistics.
+    badge: Injured
+    history_title: Current and past injuries
+    history_empty: No injuries recorded yet.
+    present: Present
+    active: Active
+    edit: Edit injury
+    delete: Delete injury
+    save_changes: Save changes
+    delete_title: Delete injury?
+    delete_message: Events during this period will count towards the player's statistics again.
+    overlap_error: Injury periods cannot overlap.
   validation:
     required_names:
       title: Missing required fields
@@ -41,6 +62,9 @@ form:
     invalid_kit_number:
       title: Invalid kit number
       message: Use a whole number, or leave it empty.
+    invalid_injury_date:
+      title: Invalid injury date
+      message: Choose a valid date. A recovery date cannot be earlier than the injury start date.
   duplicate:
     player_title: Possible duplicate player
     kit_number_title: Kit number already taken
@@ -55,9 +79,72 @@ stats:
   attendance: Attendance
   match_data: Match data
   recent_form: Recent form
+  columns:
+    player: Player
+    training_percentage: Training %
+    match_percentage: Match %
+    late_percentage: Late %
+    starts: Starts
+    starter_percentage: Starter %
+    average_minutes: Avg min
+    goals: Goals
+    assists: Assists
+    yellow_cards: YC
+    red_cards: RC
+    clean_sheets: Clean sheets
+    average_rating: Avg rating
+    goals_per_90: Goals/90
+    assists_per_90: Assists/90
+    duties: Duties
+    fulfilled: Fulfilled
+    duty_percentage: Duty %
+    fines: Fines
+    fine_amount: Fine amount
+    last_five: Last 5
+  close_team_statistics: Close team statistics
   no_attendance: No marked attendance yet
   no_attendance_help: These stats update after attendance is saved for an event.
   no_ratings: No match ratings yet.
+  sort_by: "Sort by {{column}}"
+  detail:
+    training: Training
+    matches: Matches
+    late: Late
+    attended: "{{attended}}/{{total}} attended"
+    late_count: "{{count}} time"
+    late_count_plural: "{{count}} times"
+    available_but_absent: No show
+    available_but_absent_help: signed up, did not attend
+    out_but_attended: Show up
+    out_but_attended_help: "didn't sign up, still attended"
+    appearances: Appearances
+    completed_matches: "{{count}} completed matches"
+    starts: Starts
+    starts_help: named in the starting XI
+    starter: Starter
+    starter_help: starts per appearance
+    average_minutes: Avg mins
+    total_minutes: "{{count}} total minutes"
+    goals: Goals
+    goals_help: season match goals
+    assists: Assists
+    assists_help: season match assists
+    yellow_cards: Yellow cards
+    yellow_cards_help: season yellow cards
+    red_cards: Red cards
+    red_cards_help: season red cards
+    clean_sheets: Clean sheets
+    clean_sheets_help: 0 conceded and at least 60 minutes played
+    average_rating: Average rating
+    average_rating_help: per rated match
+    goals_per_90: Goals/90
+    goals_per_90_help: goals per 90 minutes
+    assists_per_90: Assists/90
+    assists_per_90_help: assists per 90 minutes
+    match_duties: Match chores
+    duties_fulfilled: "{{count}} fulfilled"
+    duty_fulfillment: Chore fulfillment
+    duty_fulfillment_help: fulfilled per assignment
 errors:
   load:
     title: Could not load players

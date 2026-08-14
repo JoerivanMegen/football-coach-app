@@ -78,6 +78,51 @@ export function BirthDatePickerField({ isOpen, value, onOpen, onChange, onClose 
   );
 }
 
+export function InjuryDatePickerField({ isOpen, label, value, onOpen, onChange, onClose }: {
+  isOpen: boolean;
+  label: string;
+  value: string;
+  onOpen: () => void;
+  onChange: (value: string) => void;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const selectedDate = parseDisplayDateToDate(value) ?? new Date();
+
+  function handleValueChange(_: unknown, date: Date) {
+    if (Platform.OS === "android") onClose();
+    onChange(formatDateForDisplay(date));
+  }
+
+  return (
+    <ThemedView style={styles.fieldGroup}>
+      <ThemedText type="smallBold">{label}</ThemedText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onOpen}
+        style={({ pressed }) => [styles.datePickerButton, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}
+      >
+        <SymbolView name={{ ios: "calendar", android: "calendar_month", web: "calendar_month" }} tintColor={theme.text} size={18} />
+        <ThemedText type="smallBold">{value}</ThemedText>
+      </Pressable>
+      {isOpen ? (
+        <>
+          <DateTimePicker
+            display={Platform.OS === "ios" ? "spinner" : "calendar"}
+            maximumDate={new Date()}
+            mode="date"
+            onDismiss={() => { if (Platform.OS === "android") onClose(); }}
+            onValueChange={handleValueChange}
+            value={selectedDate}
+          />
+          {Platform.OS === "ios" ? <PickerDoneButton onPress={onClose} /> : null}
+        </>
+      ) : null}
+    </ThemedView>
+  );
+}
+
 function PickerDoneButton({ onPress }: { onPress: () => void }) {
   const { t } = useI18n();
   return (

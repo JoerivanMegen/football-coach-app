@@ -32,6 +32,8 @@ type PlayerAttendanceStatsRow = {
   late_count: number;
   available_but_absent_count: number;
   signed_out_but_attended_count: number;
+  fine_count: number;
+  fine_amount_cents: number;
 };
 
 type RecentMatchRatingRow = {
@@ -81,13 +83,19 @@ type MatchDayPlayerAggregate = {
   dutiesFulfilled: number;
 };
 
+type PlayerInjuryRow = {
+  player_id: number;
+  start_date: string;
+  end_date: string | null;
+};
+
 export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
   const db = await getDatabaseAsync();
   const resolvedSeasonId = seasonId ?? (await getActiveSeasonIdAsync(db));
   const settings = await getTeamSettingsAsync();
   const includeFriendlyMatches =
     settings?.includeFriendlyMatchesInStats ?? true;
-  const [rows, recentRatingRows, matchDayRows] = await Promise.all([
+  const [rows, recentRatingRows, matchDayRows, injuryRows] = await Promise.all([
     db.getAllAsync<PlayerAttendanceStatsRow>(`
     SELECT
       players.id AS player_id,
@@ -207,6 +215,19 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
         ),
         0
       ) AS signed_out_but_attended_count
+      ,
+      (SELECT COUNT(*) FROM player_fines
+       WHERE player_fines.player_id = players.id
+         AND player_fines.season_id = ?
+         AND player_fines.is_carried_over = 0)
+        AS fine_count,
+      COALESCE(
+        (SELECT SUM(player_fines.amount_cents) FROM player_fines
+         WHERE player_fines.player_id = players.id
+           AND player_fines.season_id = ?
+           AND player_fines.is_carried_over = 0),
+        0
+      ) AS fine_amount_cents
     FROM players
     LEFT JOIN event_attendance
       ON event_attendance.player_id = players.id
@@ -214,6 +235,13 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
       ON events.id = event_attendance.event_id
      AND events.attendance_status = 'marked'
      AND events.season_id = ?
+     AND NOT EXISTS (
+       SELECT 1
+       FROM player_injuries
+       WHERE player_injuries.player_id = players.id
+         AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date(player_injuries.start_date)
+         AND (player_injuries.end_date IS NULL OR date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) < date(player_injuries.end_date))
+     )
     LEFT JOIN event_player_signups
       ON event_player_signups.event_id = events.id
      AND event_player_signups.player_id = players.id
@@ -236,7 +264,13 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
        )
     GROUP BY players.id
     ORDER BY players.last_name COLLATE NOCASE, players.first_name COLLATE NOCASE
-  `, [resolvedSeasonId, resolvedSeasonId, resolvedSeasonId]),
+  `, [
+    resolvedSeasonId,
+    resolvedSeasonId,
+    resolvedSeasonId,
+    resolvedSeasonId,
+    resolvedSeasonId,
+  ]),
     db.getAllAsync<RecentMatchRatingRow>(`
       SELECT
         event_attendance.player_id,
@@ -252,6 +286,13 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
        AND events.season_id = ?
       WHERE event_attendance.is_present = 1
         AND event_attendance.match_rating IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM player_injuries
+          WHERE player_injuries.player_id = event_attendance.player_id
+            AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date(player_injuries.start_date)
+            AND (player_injuries.end_date IS NULL OR date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) < date(player_injuries.end_date))
+        )
       ORDER BY
         event_attendance.player_id,
         events.event_date DESC,
@@ -279,9 +320,15 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
     `,
       [resolvedSeasonId, includeFriendlyMatches ? 1 : 0],
     ),
+    db.getAllAsync<PlayerInjuryRow>(`
+      SELECT player_id, start_date, end_date
+      FROM player_injuries
+      ORDER BY player_id, start_date
+    `),
   ]);
+  const injuriesByPlayerId = groupInjuriesByPlayerId(injuryRows);
   const matchDayStatsByPlayerId =
-    aggregateMatchDayStatsByPlayerId(matchDayRows);
+    aggregateMatchDayStatsByPlayerId(matchDayRows, injuriesByPlayerId);
   const recentRatingsByPlayerId = mergeRecentMatchRatingsByPlayerId(
     recentRatingRows,
     matchDayStatsByPlayerId,
@@ -387,6 +434,8 @@ function mapPlayerAttendanceStatsRow(
       matchDayStats?.dutiesFulfilled ?? 0,
       matchDayStats?.dutiesAssigned ?? 0,
     ),
+    fineCount: Number(row.fine_count),
+    fineAmountCents: Number(row.fine_amount_cents),
     teamEvents,
     teamEventsAttended,
     teamEventAttendancePercentage: calculatePercentage(
@@ -404,7 +453,10 @@ function mapPlayerAttendanceStatsRow(
   };
 }
 
-function aggregateMatchDayStatsByPlayerId(rows: MatchDayStatsRow[]) {
+function aggregateMatchDayStatsByPlayerId(
+  rows: MatchDayStatsRow[],
+  injuriesByPlayerId: Map<number, PlayerInjuryRow[]>,
+) {
   const statsByPlayerId = new Map<number, MatchDayPlayerAggregate>();
 
   for (const row of rows) {
@@ -422,6 +474,9 @@ function aggregateMatchDayStatsByPlayerId(rows: MatchDayStatsRow[]) {
     );
 
     for (const playerId of matchDutyPlayerIds) {
+      if (isPlayerInjuredOnDate(playerId, row.match_date, injuriesByPlayerId)) {
+        continue;
+      }
       const currentStats = getOrCreateMatchDayPlayerAggregate(
         statsByPlayerId,
         playerId,
@@ -436,6 +491,16 @@ function aggregateMatchDayStatsByPlayerId(rows: MatchDayStatsRow[]) {
       const numericPlayerId = Number(playerId);
 
       if (!Number.isInteger(numericPlayerId)) {
+        continue;
+      }
+
+      if (
+        isPlayerInjuredOnDate(
+          numericPlayerId,
+          row.match_date,
+          injuriesByPlayerId,
+        )
+      ) {
         continue;
       }
 
@@ -478,6 +543,28 @@ function aggregateMatchDayStatsByPlayerId(rows: MatchDayStatsRow[]) {
   }
 
   return statsByPlayerId;
+}
+
+function groupInjuriesByPlayerId(rows: PlayerInjuryRow[]) {
+  const grouped = new Map<number, PlayerInjuryRow[]>();
+  for (const row of rows) {
+    const injuries = grouped.get(row.player_id) ?? [];
+    injuries.push(row);
+    grouped.set(row.player_id, injuries);
+  }
+  return grouped;
+}
+
+function isPlayerInjuredOnDate(
+  playerId: number,
+  eventDate: string,
+  injuriesByPlayerId: Map<number, PlayerInjuryRow[]>,
+) {
+  return (injuriesByPlayerId.get(playerId) ?? []).some(
+    (injury) =>
+      eventDate >= injury.start_date &&
+      (injury.end_date === null || eventDate < injury.end_date),
+  );
 }
 
 function getOrCreateMatchDayPlayerAggregate(

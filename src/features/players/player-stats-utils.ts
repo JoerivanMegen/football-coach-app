@@ -8,7 +8,8 @@ export type TeamStatsSortKey =
   | "matchYellowCards" | "matchRedCards" | "matchCleanSheets"
   | "averageMatchRating" | "matchGoalsPer90" | "matchAssistsPer90"
   | "matchDutiesAssigned" | "matchDutiesFulfilled"
-  | "matchDutyFulfillmentPercentage" | "recentForm";
+  | "matchDutyFulfillmentPercentage" | "fineCount" | "fineAmountCents"
+  | "recentForm";
 
 export function compareTeamStats(left: PlayerAttendanceStats, right: PlayerAttendanceStats, key: TeamStatsSortKey, direction: "asc" | "desc") {
   const leftValue = getTeamStatsSortValue(left, key);
@@ -33,6 +34,7 @@ export function createEmptyPlayerStats(player: Player): PlayerAttendanceStats {
     matchCleanSheets: 0, matchGoalsPer90: null, matchAssistsPer90: null,
     matchDutiesAssigned: 0, matchDutiesFulfilled: 0,
     matchDutyFulfillmentPercentage: null, teamEvents: 0, teamEventsAttended: 0,
+    fineCount: 0, fineAmountCents: 0,
     teamEventAttendancePercentage: null, totalMatchMinutes: 0,
     averageMatchMinutes: null, averageMatchRating: null, lateCount: 0,
     latePercentage: null, availableButAbsentCount: 0,
@@ -72,6 +74,8 @@ function getTeamStatsSortValue(stats: PlayerAttendanceStats, key: TeamStatsSortK
     case "matchDutiesAssigned": return stats.matchDutiesAssigned;
     case "matchDutiesFulfilled": return stats.matchDutiesFulfilled;
     case "matchDutyFulfillmentPercentage": return stats.matchDutyFulfillmentPercentage;
+    case "fineCount": return stats.fineCount;
+    case "fineAmountCents": return stats.fineAmountCents;
     case "recentForm": {
       const ratings = stats.recentMatchRatings.slice(0, 5);
       return ratings.length ? ratings.reduce((total, rating) => total + rating.rating, 0) / ratings.length : null;

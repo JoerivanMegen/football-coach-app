@@ -1,0 +1,48 @@
+header:
+  title: Boetepot
+  subtitle: Maak de boetes van je team en houd bij wat er is betaald.
+actions:
+  add_fine: Boete toevoegen
+  add_fine_type: Boetetype toevoegen
+fine_types:
+  title: Boetetypes
+  description: 'Maak de boetes die je team gebruikt. Bijvoorbeeld: “Te laat voor training – €2”.'
+  empty: Nog geen boetetypes. Voeg je eerste boetetype toe om te beginnen.
+  expand: Boetetypes tonen
+  collapse: Boetetypes verbergen
+overview:
+  title: Boeteoverzicht
+  unpaid: Onbetaalde boetes
+  paid: Betaalde boetes
+  empty_unpaid: Er zijn geen onbetaalde boetes.
+  empty_paid: Er zijn nog geen betaalde boetes.
+  total: "Totaal: {{amount}}"
+  paid_value: Totaal betaald
+  unpaid_value: Totaal onbetaald
+fine:
+  mark_paid: Markeren als betaald
+  mark_unpaid: Markeren als onbetaald
+  paid: Betaald
+  unpaid: Onbetaald
+type_modal:
+  title: Boetetype toevoegen
+  name: Naam van de boete
+  name_placeholder: Te laat voor training
+  price: Bedrag
+  price_placeholder: "2,00"
+  submit: Boetetype toevoegen
+add_modal:
+  title: Boete toevoegen
+  player: Kies een speler
+  fine_type: Kies een boetetype
+  payment_status: Betaalstatus
+  submit: Boete toevoegen
+validation:
+  fine_name: Vul een naam voor de boete in.
+  price: Vul een geldig bedrag in.
+  duplicate: Er bestaat al een boetetype met deze naam.
+  player: Kies een speler.
+  fine_type: Kies een boetetype.
+errors:
+  load: De boetepot kon niet worden geladen.
+  save: De boete kon niet worden opgeslagen.

@@ -1,7 +1,7 @@
 import { Image } from "expo-image";
 import { type Href, usePathname, useRouter } from "expo-router";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Animated,
   Easing,
@@ -12,14 +12,20 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ActionColors, AppHeaderHeight, Spacing } from "@/constants/theme";
+import { AppHeaderHeight, Spacing } from "@/constants/theme";
 import { useI18n } from "@/i18n/i18n-provider";
 import type { TranslationKey } from "@/i18n/generated/translations";
+import {
+  getTeamSettingsAsync,
+  subscribeToTeamSettingsChanges,
+} from "@/features/settings/team-settings-repository";
+import { useTheme } from "@/hooks/use-theme";
 
 type MenuItem = {
   href: Href;
   icon: SymbolViewProps["name"];
   labelKey: TranslationKey;
+  requiresFineJar?: boolean;
 };
 
 const menuItems: MenuItem[] = [
@@ -48,6 +54,12 @@ const menuItems: MenuItem[] = [
     labelKey: "navigation.matchDay",
   },
   {
+    href: "/fine-jar",
+    icon: { ios: "eurosign.circle.fill", android: "payments", web: "payments" },
+    labelKey: "navigation.fineJar",
+    requiresFineJar: true,
+  },
+  {
     href: "/seasons",
     icon: { ios: "calendar.badge.clock", android: "history", web: "history" },
     labelKey: "navigation.seasons",
@@ -60,12 +72,30 @@ const menuItems: MenuItem[] = [
 ];
 
 export function AppHeader() {
+  const theme = useTheme();
   const { locale, setLocale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const router = useRouter();
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [isFineJarEnabled, setIsFineJarEnabled] = useState(false);
   const [menuProgress] = useState(() => new Animated.Value(0));
+
+  useEffect(
+    () =>
+      subscribeToTeamSettingsChanges((settings) => {
+        setIsFineJarEnabled(settings.fineJarEnabled);
+      }),
+    [],
+  );
+
+  useEffect(() => {
+    void getTeamSettingsAsync()
+      .then((settings) => setIsFineJarEnabled(settings?.fineJarEnabled ?? false))
+      .catch((error: unknown) => {
+        console.warn("Failed to load Fine Jar preference", error);
+      });
+  }, [pathname]);
 
   function openMenu() {
     menuProgress.stopAnimation();
@@ -105,15 +135,20 @@ export function AppHeader() {
       <View
         style={[
           styles.header,
-          { height: insets.top + AppHeaderHeight, paddingTop: insets.top },
+          {
+            backgroundColor: theme.headerBackground,
+            borderBottomColor: theme.headerBorder,
+            height: insets.top + AppHeaderHeight,
+            paddingTop: insets.top,
+          },
         ]}
       >
         <Image
           accessibilityLabel="Assistant Coach"
           contentFit="contain"
           contentPosition="left center"
-          source={require("@/assets/images/assistant-coach-notification-icon.png")}
-          style={styles.logo}
+          source={require("@/assets/images/assistant-coach-language-logo.png")}
+          style={[styles.logo, { tintColor: theme.headerLogo }]}
         />
         <Pressable
           accessibilityLabel={
@@ -127,7 +162,7 @@ export function AppHeader() {
             pressed && styles.pressed,
           ]}
         >
-          <AnimatedMenuIcon progress={menuProgress} />
+          <AnimatedMenuIcon color={theme.headerMenu} progress={menuProgress} />
         </Pressable>
       </View>
 
@@ -146,6 +181,7 @@ export function AppHeader() {
             style={[
               styles.menuPanel,
               {
+                backgroundColor: theme.sideMenuBackground,
                 paddingTop: insets.top + AppHeaderHeight + Spacing.three,
                 paddingBottom: insets.bottom + Spacing.three,
               },
@@ -162,7 +198,7 @@ export function AppHeader() {
             ]}
           >
             <View style={styles.menuList}>
-              {menuItems.map((item) => {
+              {menuItems.filter((item) => !item.requiresFineJar || isFineJarEnabled).map((item) => {
                 const isSelected =
                   item.href === "/" ? pathname === "/" : pathname === item.href;
                 return (
@@ -173,16 +209,27 @@ export function AppHeader() {
                     onPress={() => navigateTo(item.href)}
                     style={({ pressed }) => [
                       styles.menuItem,
-                      isSelected && styles.menuItemSelected,
+                      isSelected && {
+                        backgroundColor: theme.sideMenuSelected,
+                      },
                       pressed && styles.pressed,
                     ]}
                   >
                     <SymbolView
                       name={item.icon}
-                      tintColor="#FFFFFF"
+                      tintColor={
+                        isSelected ? theme.sideMenuSelectedText : "#FFFFFF"
+                      }
                       size={20}
                     />
-                    <Text style={styles.menuItemText}>{t(item.labelKey)}</Text>
+                    <Text
+                      style={[
+                        styles.menuItemText,
+                        isSelected && { color: theme.sideMenuSelectedText },
+                      ]}
+                    >
+                      {t(item.labelKey)}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -208,12 +255,22 @@ export function AppHeader() {
                       onPress={() => void setLocale(option.code)}
                       style={({ pressed }) => [
                         styles.languageButton,
-                        isSelected && styles.languageButtonSelected,
+                        { borderColor: theme.sideMenuControlBorder },
+                        isSelected && {
+                          backgroundColor: theme.sideMenuSelected,
+                        },
                         pressed && styles.pressed,
                       ]}
                     >
                       <Text style={styles.languageFlag}>{option.flag}</Text>
-                      <Text style={styles.languageCode}>{option.label}</Text>
+                      <Text
+                        style={[
+                          styles.languageCode,
+                          isSelected && { color: theme.sideMenuSelectedText },
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -226,7 +283,13 @@ export function AppHeader() {
   );
 }
 
-function AnimatedMenuIcon({ progress }: { progress: Animated.Value }) {
+function AnimatedMenuIcon({
+  color,
+  progress,
+}: {
+  color: string;
+  progress: Animated.Value;
+}) {
   const topRotation = progress.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "45deg"],
@@ -249,19 +312,23 @@ function AnimatedMenuIcon({ progress }: { progress: Animated.Value }) {
       <Animated.View
         style={[
           styles.menuIconLine,
-          { transform: [{ translateY: topOffset }, { rotate: topRotation }] },
+          {
+            backgroundColor: color,
+            transform: [{ translateY: topOffset }, { rotate: topRotation }],
+          },
         ]}
       />
       <Animated.View
         style={[
           styles.menuIconLine,
-          { opacity: Animated.subtract(1, progress) },
+          { backgroundColor: color, opacity: Animated.subtract(1, progress) },
         ]}
       />
       <Animated.View
         style={[
           styles.menuIconLine,
           {
+            backgroundColor: color,
             transform: [
               { translateY: bottomOffset },
               { rotate: bottomRotation },
@@ -276,8 +343,6 @@ function AnimatedMenuIcon({ progress }: { progress: Animated.Value }) {
 const styles = StyleSheet.create({
   header: {
     alignItems: "center",
-    backgroundColor: "#1b1b1b",
-    borderBottomColor: "#1C7C54",
     borderBottomWidth: 2,
     elevation: 12,
     flexDirection: "row",
@@ -291,7 +356,6 @@ const styles = StyleSheet.create({
   },
   logo: {
     height: 54,
-    tintColor: ActionColors.primary,
     width: 270,
   },
   menuButton: {
@@ -307,7 +371,6 @@ const styles = StyleSheet.create({
     width: 26,
   },
   menuIconLine: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 2,
     height: 2,
     position: "absolute",
@@ -336,7 +399,6 @@ const styles = StyleSheet.create({
     top: 0,
   },
   menuPanel: {
-    backgroundColor: "#1b1b1b",
     gap: Spacing.four,
     height: "100%",
     maxWidth: 340,
@@ -361,9 +423,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: Spacing.three,
   },
-  menuItemSelected: {
-    backgroundColor: "#1C7C54",
-  },
   menuItemText: {
     color: "#FFFFFF",
     fontSize: 16,
@@ -387,7 +446,6 @@ const styles = StyleSheet.create({
   },
   languageButton: {
     alignItems: "center",
-    borderColor: "#1C7C54",
     borderRadius: Spacing.two,
     borderWidth: 1,
     flex: 1,
@@ -395,9 +453,6 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     justifyContent: "center",
     minHeight: 46,
-  },
-  languageButtonSelected: {
-    backgroundColor: "#1C7C54",
   },
   languageFlag: {
     fontSize: 21,

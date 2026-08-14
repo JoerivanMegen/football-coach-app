@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { useCallback, useState } from "react";
@@ -13,36 +14,40 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
+import { LanguageSelectionModal } from "@/components/language-selection-modal";
+import { OnboardingTutorial } from "@/components/onboarding-tutorial";
+import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { OnboardingTutorial } from "@/components/onboarding-tutorial";
-import { LanguageSelectionModal } from "@/components/language-selection-modal";
-import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import {
+  ActionColors,
   AppHeaderHeight,
   BottomTabInset,
+  CompactScreenTopMargin,
   MaxContentWidth,
   PageTopPadding,
   Spacing,
 } from "@/constants/theme";
-import {
-  getTeamSettingsAsync,
-  saveTeamSettingsAsync,
-} from "@/features/settings/team-settings-repository";
-import { listPlayersAsync } from "@/features/players/player-repository";
+import { listEventsAsync } from "@/features/events/event-repository";
 import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-repository";
 import type { MatchDayMatch } from "@/features/match-day/match-day-types";
+import { isTrainingAttendanceOverdue } from "@/features/notifications/match-result-notifications";
+import { listPlayersAsync } from "@/features/players/player-repository";
 import {
   hasCompletedOnboardingAsync,
   hasSelectedAppLocaleAsync,
   setOnboardingCompletedAsync,
 } from "@/features/settings/app-preferences-repository";
+import {
+  getTeamSettingsAsync,
+  saveTeamSettingsAsync,
+} from "@/features/settings/team-settings-repository";
 import type {
   KitDesign,
   SaveTeamSettingsInput,
 } from "@/features/settings/team-settings-types";
 import { useTheme } from "@/hooks/use-theme";
-import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
+import type { TranslationKey } from "@/i18n/generated/translations";
 import { useI18n } from "@/i18n/i18n-provider";
 
 type HomeAction = {
@@ -51,6 +56,12 @@ type HomeAction = {
   iconName: SymbolViewProps["name"];
   href: Href;
   showNotification?: boolean;
+  priority?: number;
+};
+
+type UpcomingMatchHighlight = {
+  isWithinFinalTwoDays: boolean;
+  match: MatchDayMatch;
 };
 
 const defaultTeamSettingsForm: SaveTeamSettingsInput = {
@@ -65,8 +76,9 @@ const defaultTeamSettingsForm: SaveTeamSettingsInput = {
   matchDurationMinutes: 90,
   trainingDays: [],
   trainingStartTime: "",
-  preferNicknames: true,
+  preferNicknames: false,
   fineJarEnabled: false,
+  fineJarCurrency: "GBP",
   matchDutyEnabled: true,
   includeFriendlyMatchesInStats: true,
 };
@@ -75,14 +87,17 @@ const kitShirtPath =
   "M34 7 C38 11 62 11 66 7 L76 7 L95 25 Q98 27 96 31 L87 47 Q85 51 81 49 L73 44 L73 83 Q73 87 69 87 L31 87 Q27 87 27 83 L27 44 L19 49 Q15 51 13 47 L4 31 Q2 27 5 25 L24 7 Z";
 
 const kitDesignOptions = [
-  { value: "solid", label: "Regular" },
-  { value: "stripes", label: "Stripes" },
-  { value: "twoColorStripes", label: "Three colour stripes" },
-  { value: "hoops", label: "Hoops" },
-  { value: "sash", label: "Two colour sash" },
-  { value: "halves", label: "Halves" },
-  { value: "sides", label: "Sides" },
-] satisfies { value: KitDesign; label: string }[];
+  { value: "solid", labelKey: "settings.kit.patterns.regular" },
+  { value: "stripes", labelKey: "settings.kit.patterns.stripes" },
+  {
+    value: "twoColorStripes",
+    labelKey: "settings.kit.patterns.three_color_stripes",
+  },
+  { value: "hoops", labelKey: "settings.kit.patterns.hoops" },
+  { value: "sash", labelKey: "settings.kit.patterns.two_color_sash" },
+  { value: "halves", labelKey: "settings.kit.patterns.halves" },
+  { value: "sides", labelKey: "settings.kit.patterns.sides" },
+] satisfies { value: KitDesign; labelKey: TranslationKey }[];
 
 const colorOptions = [
   "#FFFFFF",
@@ -98,7 +113,6 @@ const colorOptions = [
 ] as const;
 
 export default function HomeScreen() {
-  const scrollViewRef = useScrollToTopOnFocus();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
@@ -111,11 +125,19 @@ export default function HomeScreen() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [playerCount, setPlayerCount] = useState<number | null>(null);
+  const [injuredPlayerCount, setInjuredPlayerCount] = useState(0);
   const [hasTeamSettings, setHasTeamSettings] = useState(false);
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
   const [isLanguageSelectionVisible, setIsLanguageSelectionVisible] =
     useState(false);
   const [overdueMatchResultCount, setOverdueMatchResultCount] = useState(0);
+  const [hasTraining, setHasTraining] = useState(false);
+  const [hasMatch, setHasMatch] = useState(false);
+  const [overdueTrainingAttendanceCount, setOverdueTrainingAttendanceCount] =
+    useState(0);
+  const [upcomingMatchHighlight, setUpcomingMatchHighlight] =
+    useState<UpcomingMatchHighlight | null>(null);
+  const [recentWin, setRecentWin] = useState<MatchDayMatch | null>(null);
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
@@ -127,12 +149,20 @@ export default function HomeScreen() {
 
       async function loadHomeData() {
         try {
-          const [settings, players, hasCompletedOnboarding, hasSelectedLanguage, matches] = await Promise.all([
+          const [
+            settings,
+            players,
+            hasCompletedOnboarding,
+            hasSelectedLanguage,
+            matches,
+            events,
+          ] = await Promise.all([
             getTeamSettingsAsync(),
             listPlayersAsync(),
             hasCompletedOnboardingAsync(),
             hasSelectedAppLocaleAsync(),
             listMatchDayMatchesAsync(),
+            listEventsAsync(),
           ]);
 
           if (!isFocused) {
@@ -140,15 +170,35 @@ export default function HomeScreen() {
           }
 
           setPlayerCount(players.length);
+          setInjuredPlayerCount(
+            players.filter((player) => player.activeInjuryStartDate !== null)
+              .length,
+          );
           setHasTeamSettings(Boolean(settings));
           setIsLanguageSelectionVisible(
             !hasCompletedOnboarding && !hasSelectedLanguage,
           );
-          setIsTutorialVisible(
-            !hasCompletedOnboarding && hasSelectedLanguage,
-          );
+          setIsTutorialVisible(!hasCompletedOnboarding && hasSelectedLanguage);
           setOverdueMatchResultCount(
-            matches.filter((match) => isMatchResultOverdue(match, new Date())).length,
+            matches.filter((match) => isMatchResultOverdue(match, new Date()))
+              .length,
+          );
+          setUpcomingMatchHighlight(
+            getUpcomingMatchHighlight(matches, new Date()),
+          );
+          setRecentWin(getRecentWin(matches, new Date()));
+          setHasTraining(events.some((event) => event.type === "training"));
+          setHasMatch(matches.length > 0);
+          setOverdueTrainingAttendanceCount(
+            events.filter(
+              (event) =>
+                event.type === "training" &&
+                isTrainingAttendanceOverdue(
+                  event.eventDate,
+                  event.startTime,
+                  event.attendanceStatus,
+                ),
+            ).length,
           );
 
           if (!settings) {
@@ -174,6 +224,7 @@ export default function HomeScreen() {
             trainingStartTime: settings.trainingStartTime,
             preferNicknames: settings.preferNicknames,
             fineJarEnabled: settings.fineJarEnabled,
+            fineJarCurrency: settings.fineJarCurrency,
             matchDutyEnabled: settings.matchDutyEnabled,
             includeFriendlyMatchesInStats:
               settings.includeFriendlyMatchesInStats,
@@ -195,7 +246,7 @@ export default function HomeScreen() {
     setSettingsError(null);
 
     if (!settingsForm.teamName.trim()) {
-      setSettingsError("Team name is required.");
+      setSettingsError(t("dashboard.setup.errors.team_name_required"));
       setSettingsStep(0);
       return;
     }
@@ -205,7 +256,7 @@ export default function HomeScreen() {
       settingsForm.matchDurationMinutes < 1 ||
       settingsForm.matchDurationMinutes > 120
     ) {
-      setSettingsError("Match minutes must be between 1 and 120.");
+      setSettingsError(t("dashboard.setup.errors.invalid_match_minutes"));
       setSettingsStep(1);
       return;
     }
@@ -217,7 +268,7 @@ export default function HomeScreen() {
       setIsSettingsModalVisible(false);
     } catch (error) {
       console.warn("Failed to save team settings", error);
-      setSettingsError("Please check your team name and color values.");
+      setSettingsError(t("dashboard.setup.errors.invalid_values"));
     } finally {
       setIsSavingSettings(false);
     }
@@ -227,7 +278,7 @@ export default function HomeScreen() {
     setSettingsError(null);
 
     if (!settingsForm.teamName.trim()) {
-      setSettingsError("Team name is required.");
+      setSettingsError(t("dashboard.setup.errors.team_name_required"));
       return;
     }
 
@@ -260,61 +311,113 @@ export default function HomeScreen() {
     },
   });
   const hasNoPlayers = playerCount === 0;
-  const homeActions = ([
-    {
-      title: hasNoPlayers ? t("dashboard.actions.add_first_players.title") : t("dashboard.actions.players.title"),
-      description: hasNoPlayers
-        ? t("dashboard.actions.add_first_players.description")
-        : t("dashboard.actions.players.description"),
-      iconName: { ios: "person.3.fill", android: "groups", web: "groups" },
-      href: "/players",
-      showNotification: hasNoPlayers,
-    },
-    {
-      title: t("dashboard.actions.add_training.title"),
-      description: t("dashboard.actions.add_training.description"),
-      iconName: {
-        ios: "calendar.badge.plus",
-        android: "event",
-        web: "event",
-      },
-      href: "/events",
-    },
-    {
-      title: t("dashboard.actions.add_match.title"),
-      description: t("dashboard.actions.add_match.description"),
-      iconName: {
-        ios: "sportscourt.fill",
-        android: "sports_soccer",
-        web: "sports_soccer",
-      },
-      href: "/match-day",
-    },
-    ...(overdueMatchResultCount > 0
-      ? [{
-          title: overdueMatchResultCount === 1 ? "Add match result" : "Add match results",
-          description: overdueMatchResultCount === 1
-            ? "A finished match is waiting for its result and player stats."
-            : `${overdueMatchResultCount} finished matches are waiting for results and player stats.`,
-          iconName: {
-            ios: "exclamationmark.circle.fill" as const,
-            android: "notification_important" as const,
-            web: "notification_important" as const,
-          },
-          href: "/match-day" as const,
-          showNotification: true,
-        }]
-      : []),
-  ] satisfies HomeAction[]).sort(
-    (left, right) =>
-      Number(Boolean(right.showNotification)) -
-      Number(Boolean(left.showNotification)),
-  );
+  const homeActions = (
+    [
+      ...(playerCount !== null && playerCount < 11
+        ? [
+            {
+              title: hasNoPlayers
+                ? t("dashboard.actions.add_first_players.title")
+                : t("dashboard.actions.players.title"),
+              description: hasNoPlayers
+                ? t("dashboard.actions.add_first_players.description")
+                : t("dashboard.actions.players.description"),
+              iconName: {
+                ios: "person.3.fill" as const,
+                android: "groups" as const,
+                web: "groups" as const,
+              },
+              href: "/players" as const,
+              showNotification: hasNoPlayers,
+            },
+          ]
+        : []),
+      ...(!hasTraining
+        ? [
+            {
+              title: t("dashboard.actions.add_training.title"),
+              description: t("dashboard.actions.add_training.description"),
+              iconName: {
+                ios: "calendar.badge.plus" as const,
+                android: "event" as const,
+                web: "event" as const,
+              },
+              href: "/events" as const,
+            },
+          ]
+        : []),
+      ...(!hasMatch
+        ? [
+            {
+              title: t("dashboard.actions.add_match.title"),
+              description: t("dashboard.actions.add_match.description"),
+              iconName: {
+                ios: "sportscourt.fill" as const,
+                android: "sports_soccer" as const,
+                web: "sports_soccer" as const,
+              },
+              href: "/match-day" as const,
+            },
+          ]
+        : []),
+      ...(overdueTrainingAttendanceCount > 0
+        ? [
+            {
+              title:
+                overdueTrainingAttendanceCount === 1
+                  ? t("dashboard.actions.add_training_attendance.title")
+                  : t("dashboard.actions.add_training_attendance.title_plural"),
+              description:
+                overdueTrainingAttendanceCount === 1
+                  ? t("dashboard.actions.add_training_attendance.description")
+                  : t(
+                      "dashboard.actions.add_training_attendance.description_plural",
+                      {
+                        count: overdueTrainingAttendanceCount,
+                      },
+                    ),
+              iconName: {
+                ios: "exclamationmark.circle.fill" as const,
+                android: "notification_important" as const,
+                web: "notification_important" as const,
+              },
+              href: "/events" as const,
+              showNotification: true,
+              priority: 2,
+            },
+          ]
+        : []),
+      ...(overdueMatchResultCount > 0
+        ? [
+            {
+              title:
+                overdueMatchResultCount === 1
+                  ? t("dashboard.actions.add_match_result.title")
+                  : t("dashboard.actions.add_match_result.title_plural"),
+              description:
+                overdueMatchResultCount === 1
+                  ? t("dashboard.actions.add_match_result.waiting_description")
+                  : t(
+                      "dashboard.actions.add_match_result.waiting_description_plural",
+                      { count: overdueMatchResultCount },
+                    ),
+              iconName: {
+                ios: "exclamationmark.circle.fill" as const,
+                android: "notification_important" as const,
+                web: "notification_important" as const,
+              },
+              href: "/match-day" as const,
+              showNotification: true,
+              priority: 3,
+            },
+          ]
+        : []),
+    ] satisfies HomeAction[]
+  ).sort((left, right) => (right.priority ?? 0) - (left.priority ?? 0));
 
   return (
     <>
       <ScrollView
-        ref={scrollViewRef}
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentInset={insets}
         contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
@@ -327,10 +430,142 @@ export default function HomeScreen() {
             <ThemedText themeColor="textSecondary" style={styles.intro}>
               {t("dashboard.header.subtitle")}
             </ThemedText>
+            {injuredPlayerCount > 0 ? (
+              <ThemedView type="backgroundElement" style={styles.injurySummary}>
+                <SymbolView
+                  name={{
+                    ios: "cross.case.fill",
+                    android: "healing",
+                    web: "healing",
+                  }}
+                  tintColor={ActionColors.danger}
+                  size={18}
+                />
+                <ThemedText type="smallBold">
+                  {t(
+                    injuredPlayerCount === 1
+                      ? "dashboard.header.injuries"
+                      : "dashboard.header.injuries_plural",
+                    { count: injuredPlayerCount },
+                  )}
+                </ThemedText>
+              </ThemedView>
+            ) : null}
           </ThemedView>
 
+          {upcomingMatchHighlight ? (
+            upcomingMatchHighlight.isWithinFinalTwoDays ? (
+              <ThemedView type="backgroundElement" style={styles.nextMatchCard}>
+                <ThemedView
+                  type="backgroundSelected"
+                  style={styles.nextMatchIcon}
+                >
+                  <SymbolView
+                    name={{
+                      ios: "sportscourt.fill",
+                      android: "sports_soccer",
+                      web: "sports_soccer",
+                    }}
+                    tintColor={ActionColors.primary}
+                    size={26}
+                  />
+                </ThemedView>
+                <ThemedText type="smallBold" style={styles.nextMatchText}>
+                  {t("dashboard.next_match.good_luck", {
+                    opponent: upcomingMatchHighlight.match.opponent,
+                  })}
+                </ThemedText>
+              </ThemedView>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("dashboard.next_match.open_training")}
+                onPress={() => router.push("/events")}
+                style={({ pressed }) => pressed && styles.pressed}
+              >
+                <ThemedView
+                  type="backgroundElement"
+                  style={styles.nextMatchCard}
+                >
+                  <ThemedView
+                    type="backgroundSelected"
+                    style={styles.nextMatchIcon}
+                  >
+                    <MaterialCommunityIcons
+                      name="traffic-cone"
+                      color={ActionColors.primary}
+                      size={28}
+                    />
+                  </ThemedView>
+                  <ThemedText type="smallBold" style={styles.nextMatchText}>
+                    {t("dashboard.next_match.preparation", {
+                      opponent: upcomingMatchHighlight.match.opponent,
+                    })}
+                  </ThemedText>
+                  <SymbolView
+                    name={{
+                      ios: "chevron.right",
+                      android: "chevron_right",
+                      web: "chevron_right",
+                    }}
+                    tintColor={ActionColors.primary}
+                    size={20}
+                  />
+                </ThemedView>
+              </Pressable>
+            )
+          ) : null}
+
+          {recentWin ? (
+            <ThemedView type="backgroundElement" style={styles.recentWinCard}>
+              <ThemedView style={styles.recentWinContent}>
+                <ThemedText type="default">
+                  {t("dashboard.recent_win.message")}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {t("dashboard.recent_win.result", {
+                    score: `${recentWin.ownScore}-${recentWin.opponentScore}`,
+                    opponent: recentWin.opponent,
+                  })}
+                </ThemedText>
+              </ThemedView>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  "dashboard.recent_win.share_accessibility",
+                  { opponent: recentWin.opponent },
+                )}
+                onPress={() =>
+                  router.push({
+                    pathname: "/match-day",
+                    params: { shareMatchId: String(recentWin.id) },
+                  })
+                }
+                style={({ pressed }) => [
+                  styles.recentWinShareButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <SymbolView
+                  name={{
+                    ios: "square.and.arrow.up",
+                    android: "share",
+                    web: "share",
+                  }}
+                  tintColor={ActionColors.onAccent}
+                  size={18}
+                />
+                <ThemedText type="smallBold" style={styles.recentWinShareText}>
+                  {t("dashboard.recent_win.share")}
+                </ThemedText>
+              </Pressable>
+            </ThemedView>
+          ) : null}
+
           <ThemedView style={styles.actionsSection}>
-            <ThemedText type="default">{t("dashboard.actions.title")}</ThemedText>
+            <ThemedText type="default">
+              {t("dashboard.actions.title")}
+            </ThemedText>
             <ThemedView style={styles.actionsGrid}>
               {homeActions.map((action) => (
                 <Pressable
@@ -356,7 +591,7 @@ export default function HomeScreen() {
                     >
                       <SymbolView
                         name={action.iconName}
-                        tintColor={theme.text}
+                        tintColor={theme.dashboardIcon}
                         size={24}
                       />
                     </ThemedView>
@@ -373,6 +608,36 @@ export default function HomeScreen() {
                 </Pressable>
               ))}
             </ThemedView>
+            <ThemedView style={styles.shortcutRow}>
+              <DashboardShortcut
+                label={t("dashboard.actions.shortcuts.training")}
+                iconType="training"
+                onPress={() => router.push("/events")}
+              />
+              <DashboardShortcut
+                label={t("dashboard.actions.shortcuts.match_day")}
+                iconName={{
+                  ios: "sportscourt.fill",
+                  android: "sports_soccer",
+                  web: "sports_soccer",
+                }}
+                onPress={() => router.push("/match-day")}
+              />
+            </ThemedView>
+            <DashboardWideShortcut
+              label={t("dashboard.actions.shortcuts.team_stats")}
+              iconName={{
+                ios: "chart.bar.xaxis",
+                android: "bar_chart",
+                web: "bar_chart",
+              }}
+              onPress={() =>
+                router.push({
+                  pathname: "/players",
+                  params: { openTeamStats: "true" },
+                })
+              }
+            />
           </ThemedView>
         </ThemedView>
       </ScrollView>
@@ -385,6 +650,10 @@ export default function HomeScreen() {
         visible={isLanguageSelectionVisible}
         onSelect={async (locale) => {
           await setLocale(locale);
+          setSettingsForm((current) => ({
+            ...current,
+            fineJarCurrency: locale === "nl" ? "EUR" : "GBP",
+          }));
           setIsLanguageSelectionVisible(false);
           setIsTutorialVisible(true);
         }}
@@ -401,6 +670,160 @@ export default function HomeScreen() {
         visible={isSettingsModalVisible && !isTutorialVisible}
       />
     </>
+  );
+}
+
+function DashboardShortcut({
+  iconName,
+  iconType,
+  label,
+  onPress,
+}: {
+  iconName?: SymbolViewProps["name"];
+  iconType?: "training";
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.shortcutPressable,
+        pressed && styles.pressed,
+      ]}
+    >
+      <ThemedView type="backgroundElement" style={styles.shortcutCard}>
+        <ThemedView type="backgroundSelected" style={styles.shortcutIcon}>
+          {iconType === "training" ? (
+            <MaterialCommunityIcons
+              name="traffic-cone"
+              color={theme.dashboardIcon}
+              size={30}
+            />
+          ) : iconName ? (
+            <SymbolView
+              name={iconName}
+              tintColor={theme.dashboardIcon}
+              size={28}
+            />
+          ) : null}
+        </ThemedView>
+        <ThemedText type="smallBold" style={styles.shortcutLabel}>
+          {label}
+        </ThemedText>
+      </ThemedView>
+    </Pressable>
+  );
+}
+
+function DashboardWideShortcut({
+  iconName,
+  label,
+  onPress,
+}: {
+  iconName: SymbolViewProps["name"];
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.wideShortcutPressable,
+        pressed && styles.pressed,
+      ]}
+    >
+      <ThemedView type="backgroundElement" style={styles.wideShortcutCard}>
+        <ThemedView type="backgroundSelected" style={styles.wideShortcutIcon}>
+          <SymbolView
+            name={iconName}
+            tintColor={theme.dashboardIcon}
+            size={24}
+          />
+        </ThemedView>
+        <ThemedText type="smallBold">{label}</ThemedText>
+      </ThemedView>
+    </Pressable>
+  );
+}
+
+function getUpcomingMatchHighlight(
+  matches: MatchDayMatch[],
+  now: Date,
+): UpcomingMatchHighlight | null {
+  const sevenDaysInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+  const finalTwoDaysInMilliseconds = 2 * 24 * 60 * 60 * 1000;
+  const upcomingMatches = matches
+    .map((match) => ({ match, kickoff: getMatchKickoff(match) }))
+    .filter(
+      (entry): entry is { match: MatchDayMatch; kickoff: Date } =>
+        entry.kickoff !== null &&
+        entry.kickoff.getTime() >= now.getTime() &&
+        entry.kickoff.getTime() - now.getTime() <= sevenDaysInMilliseconds,
+    )
+    .sort(
+      (firstMatch, secondMatch) =>
+        firstMatch.kickoff.getTime() - secondMatch.kickoff.getTime(),
+    );
+
+  const nextMatch = upcomingMatches[0];
+  if (!nextMatch) {
+    return null;
+  }
+
+  return {
+    match: nextMatch.match,
+    isWithinFinalTwoDays:
+      nextMatch.kickoff.getTime() - now.getTime() <= finalTwoDaysInMilliseconds,
+  };
+}
+
+function getMatchKickoff(match: MatchDayMatch) {
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(match.matchDate);
+  const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(match.startTime);
+  if (!dateMatch || !timeMatch) {
+    return null;
+  }
+
+  return new Date(
+    Number(dateMatch[1]),
+    Number(dateMatch[2]) - 1,
+    Number(dateMatch[3]),
+    Number(timeMatch[1]),
+    Number(timeMatch[2]),
+  );
+}
+
+function getRecentWin(matches: MatchDayMatch[], now: Date) {
+  const fourDaysInMilliseconds = 4 * 24 * 60 * 60 * 1000;
+
+  return (
+    matches
+      .filter(
+        (match) =>
+          match.ownScore !== null &&
+          match.opponentScore !== null &&
+          match.ownScore > match.opponentScore,
+      )
+      .map((match) => ({ match, kickoff: getMatchKickoff(match) }))
+      .filter(
+        (entry): entry is { match: MatchDayMatch; kickoff: Date } =>
+          entry.kickoff !== null &&
+          entry.kickoff.getTime() <= now.getTime() &&
+          now.getTime() - entry.kickoff.getTime() <= fourDaysInMilliseconds,
+      )
+      .sort(
+        (firstMatch, secondMatch) =>
+          secondMatch.kickoff.getTime() - firstMatch.kickoff.getTime(),
+      )[0]?.match ?? null
   );
 }
 
@@ -443,6 +866,7 @@ function TeamSettingsSetupModal({
   visible: boolean;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   function updateFormValue<Key extends keyof SaveTeamSettingsInput>(
     key: Key,
@@ -465,14 +889,16 @@ function TeamSettingsSetupModal({
         <ThemedView type="modalBackground" style={styles.settingsModalCard}>
           <ThemedView style={styles.settingsModalHeader}>
             <ThemedText type="subtitle" style={styles.settingsModalTitle}>
-              Set up your team
+              {t("dashboard.actions.setup_team.title")}
             </ThemedText>
             <ThemedText themeColor="textSecondary">
-              Before you start managing your team, you will need to set up the
-              app!
+              {t("dashboard.actions.setup_team.description")}
             </ThemedText>
             <ThemedText type="smallBold" themeColor="textSecondary">
-              Step {step + 1} of 2
+              {t("dashboard.setup.header.step_progress", {
+                step: step + 1,
+                total: 2,
+              })}
             </ThemedText>
           </ThemedView>
 
@@ -483,11 +909,15 @@ function TeamSettingsSetupModal({
             {step === 0 ? (
               <>
                 <ThemedView style={styles.settingsFieldGroup}>
-                  <ThemedText type="smallBold">Team name</ThemedText>
+                  <ThemedText type="smallBold">
+                    {t("dashboard.setup.team_details.team_name")}
+                  </ThemedText>
                   <TextInput
                     autoCapitalize="words"
                     autoCorrect={false}
-                    placeholder="Example FC"
+                    placeholder={t(
+                      "dashboard.setup.team_details.team_name_placeholder",
+                    )}
                     placeholderTextColor={theme.textSecondary}
                     value={form.teamName}
                     onChangeText={(value) => updateFormValue("teamName", value)}
@@ -504,15 +934,17 @@ function TeamSettingsSetupModal({
 
                 <ThemedView style={styles.settingsFieldGroup}>
                   <ThemedText type="smallBold">
-                    Club location (optional)
+                    {t("dashboard.setup.team_details.club_location")}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    Used as the default location for home matches and trainings.
+                    {t("dashboard.setup.team_details.club_location_help")}
                   </ThemedText>
                   <TextInput
                     autoCapitalize="words"
                     autoCorrect={false}
-                    placeholder="Sports park, clubhouse, or address"
+                    placeholder={t(
+                      "dashboard.setup.team_details.club_location_placeholder",
+                    )}
                     placeholderTextColor={theme.textSecondary}
                     value={form.clubLocation}
                     onChangeText={(value) =>
@@ -537,14 +969,14 @@ function TeamSettingsSetupModal({
                 />
 
                 <SettingsColorField
-                  label="Primary kit colour"
+                  label={t("settings.kit.player_primary")}
                   value={form.outfieldKitColor}
                   onChange={(value) =>
                     updateFormValue("outfieldKitColor", value)
                   }
                 />
                 <SettingsColorField
-                  label="Secondary kit colour"
+                  label={t("settings.kit.player_secondary")}
                   value={form.secondaryKitColor}
                   onChange={(value) =>
                     updateFormValue("secondaryKitColor", value)
@@ -553,7 +985,7 @@ function TeamSettingsSetupModal({
                 {form.kitDesign === "sash" ||
                 form.kitDesign === "twoColorStripes" ? (
                   <SettingsColorField
-                    label="Third colour"
+                    label={t("dashboard.setup.kit.third_colour")}
                     value={form.thirdKitColor}
                     onChange={(value) =>
                       updateFormValue("thirdKitColor", value)
@@ -561,12 +993,12 @@ function TeamSettingsSetupModal({
                   />
                 ) : null}
                 <SettingsColorField
-                  label="Kit number colour"
+                  label={t("dashboard.setup.kit.number_colour")}
                   value={form.kitNumberColor}
                   onChange={(value) => updateFormValue("kitNumberColor", value)}
                 />
                 <SettingsColorField
-                  label="Goalkeeper kit colour"
+                  label={t("settings.kit.goalkeeper_primary")}
                   value={form.goalkeeperKitColor}
                   onChange={(value) =>
                     updateFormValue("goalkeeperKitColor", value)
@@ -587,7 +1019,9 @@ function TeamSettingsSetupModal({
           {step === 0 ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Continue team settings setup"
+              accessibilityLabel={t(
+                "dashboard.setup.actions.continue_team_settings",
+              )}
               onPress={onContinue}
               style={({ pressed }) => [
                 styles.settingsSaveButton,
@@ -598,14 +1032,14 @@ function TeamSettingsSetupModal({
                 type="smallBold"
                 style={styles.settingsSaveButtonText}
               >
-                Next
+                {t("common.next")}
               </ThemedText>
             </Pressable>
           ) : (
             <ThemedView style={styles.settingsFooter}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Back to kit settings"
+                accessibilityLabel={t("dashboard.setup.actions.back_to_kit")}
                 disabled={isSaving}
                 onPress={onBack}
                 style={({ pressed }) => [
@@ -618,12 +1052,12 @@ function TeamSettingsSetupModal({
                   type="smallBold"
                   style={styles.settingsBackButtonText}
                 >
-                  Back
+                  {t("common.back")}
                 </ThemedText>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Save team settings"
+                accessibilityLabel={t("dashboard.setup.actions.save")}
                 disabled={isSaving}
                 onPress={onSave}
                 style={({ pressed }) => [
@@ -637,7 +1071,9 @@ function TeamSettingsSetupModal({
                   type="smallBold"
                   style={styles.settingsSaveButtonText}
                 >
-                  {isSaving ? "Saving..." : "Save setup"}
+                  {isSaving
+                    ? t("dashboard.setup.actions.saving")
+                    : t("dashboard.setup.actions.save")}
                 </ThemedText>
               </Pressable>
             </ThemedView>
@@ -656,10 +1092,11 @@ function SettingsKitDesignField({
   onChange: (value: KitDesign) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   return (
     <ThemedView style={styles.settingsFieldGroup}>
-      <ThemedText type="smallBold">Kit design</ThemedText>
+      <ThemedText type="smallBold">{t("dashboard.setup.kit.title")}</ThemedText>
       <ThemedView style={styles.kitDesignLayout}>
         <ThemedView style={styles.kitDesignOptions}>
           {kitDesignOptions.map((option) => {
@@ -669,7 +1106,7 @@ function SettingsKitDesignField({
               <Pressable
                 key={option.value}
                 accessibilityRole="button"
-                accessibilityLabel={option.label}
+                accessibilityLabel={t(option.labelKey)}
                 accessibilityState={{ selected: isSelected }}
                 onPress={() => onChange(option.value)}
                 style={({ pressed }) => [
@@ -687,7 +1124,7 @@ function SettingsKitDesignField({
                   type="smallBold"
                   style={isSelected && styles.kitDesignOptionTextSelected}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </ThemedText>
               </Pressable>
             );
@@ -710,6 +1147,7 @@ function SettingsPreferencesStep({
   ) => void;
 }) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   function updateMatchMinutes(value: number) {
     onChange("matchDurationMinutes", Math.min(Math.max(value, 1), 120));
@@ -726,13 +1164,17 @@ function SettingsPreferencesStep({
   return (
     <>
       <ThemedView style={styles.settingsFieldGroup}>
-        <ThemedText type="smallBold">Match minutes</ThemedText>
+        <ThemedText type="smallBold">
+          {t("settings.match_preferences.match_minutes")}
+        </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          Use this for youth teams or competitions with shorter matches.
+          {t("settings.match_preferences.match_minutes_help")}
         </ThemedText>
         <ThemedView style={styles.settingsNumberRow}>
           <StepperArrowButton
-            accessibilityLabel="Decrease match minutes"
+            accessibilityLabel={t(
+              "settings.match_preferences.decrease_match_minutes",
+            )}
             direction="left"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes - 5)}
           />
@@ -755,7 +1197,9 @@ function SettingsPreferencesStep({
             ]}
           />
           <StepperArrowButton
-            accessibilityLabel="Increase match minutes"
+            accessibilityLabel={t(
+              "settings.match_preferences.increase_match_minutes",
+            )}
             direction="right"
             onPress={() => updateMatchMinutes(form.matchDurationMinutes + 5)}
           />
@@ -763,32 +1207,50 @@ function SettingsPreferencesStep({
       </ThemedView>
 
       <SettingsSegmentedField
-        label="Lineup names"
+        label={t("settings.match_preferences.player_names.title")}
         options={[
-          { label: "Nicknames", value: true },
-          { label: "First names", value: false },
+          {
+            label: t("settings.match_preferences.player_names.nicknames"),
+            value: true,
+          },
+          {
+            label: t("settings.match_preferences.player_names.first_names"),
+            value: false,
+          },
         ]}
         value={form.preferNicknames}
         onChange={(value) => onChange("preferNicknames", value)}
       />
 
       <SettingsSegmentedField
-        label="Fine jar"
-        helperText="You can turn this into fines, reminders, and team rules later."
+        label={t("settings.match_preferences.fine_jar.title")}
+        helperText={t("settings.match_preferences.fine_jar.description")}
         options={[
-          { label: "Use fine jar", value: true },
-          { label: "Skip for now", value: false },
+          {
+            label: t("settings.match_preferences.fine_jar.enabled"),
+            value: true,
+          },
+          {
+            label: t("settings.match_preferences.fine_jar.disabled"),
+            value: false,
+          },
         ]}
         value={form.fineJarEnabled}
         onChange={(value) => onChange("fineJarEnabled", value)}
       />
 
       <SettingsSegmentedField
-        label="Does your team have match duties?"
-        helperText="Do your players take care of bringing the jerseys, warm-up equipment, or other match-day materials?"
+        label={t("settings.match_preferences.match_duties.title")}
+        helperText={t("settings.match_preferences.match_duties.description")}
         options={[
-          { label: "Use match duties", value: true },
-          { label: "No match duties", value: false },
+          {
+            label: t("settings.match_preferences.match_duties.enabled"),
+            value: true,
+          },
+          {
+            label: t("settings.match_preferences.match_duties.disabled"),
+            value: false,
+          },
         ]}
         value={form.matchDutyEnabled}
         onChange={(value) => onChange("matchDutyEnabled", value)}
@@ -857,7 +1319,7 @@ function SettingsSegmentedField({
 }
 
 function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
-  const kitOutlineColor = getKitOutlineColor(form.outfieldKitColor);
+  const kitOutlineColor = "#111827";
 
   return (
     <ThemedView style={styles.kitPreviewFrame}>
@@ -1068,13 +1530,6 @@ function getKitNumberOutlineColor(color: string) {
     : "#111827";
 }
 
-function getKitOutlineColor(color: string) {
-  const normalizedColor = color.trim().toUpperCase();
-  return normalizedColor === "#000000" || normalizedColor === "#111827"
-    ? "#FFFFFF"
-    : "#111827";
-}
-
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
@@ -1087,6 +1542,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: Spacing.five,
     maxWidth: MaxContentWidth,
+    marginTop: CompactScreenTopMargin,
     paddingHorizontal: Spacing.four,
     paddingTop: AppHeaderHeight + PageTopPadding,
   },
@@ -1102,11 +1558,118 @@ const styles = StyleSheet.create({
   intro: {
     maxWidth: 560,
   },
+  injurySummary: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    borderColor: ActionColors.danger,
+    borderRadius: Spacing.two,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: Spacing.two,
+    marginTop: Spacing.one,
+    minHeight: 40,
+    paddingHorizontal: Spacing.three,
+  },
+  nextMatchCard: {
+    alignItems: "center",
+    borderColor: ActionColors.primary,
+    borderRadius: Spacing.three,
+    borderWidth: 1.5,
+    flexDirection: "row",
+    gap: Spacing.three,
+    minHeight: 80,
+    padding: Spacing.three,
+    marginTop: -Spacing.three,
+    marginBottom: -Spacing.three,
+  },
+  nextMatchIcon: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  nextMatchText: {
+    flex: 1,
+  },
+  recentWinCard: {
+    alignItems: "center",
+    borderColor: ActionColors.primary,
+    borderRadius: Spacing.three,
+    borderWidth: 1.5,
+    flexDirection: "row",
+    gap: Spacing.three,
+    minHeight: 80,
+    padding: Spacing.three,
+  },
+  recentWinContent: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  recentWinShareButton: {
+    alignItems: "center",
+    backgroundColor: ActionColors.warning,
+    borderRadius: Spacing.two,
+    flexDirection: "row",
+    gap: Spacing.two,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
+  recentWinShareText: {
+    color: ActionColors.onAccent,
+  },
   actionsGrid: {
     gap: Spacing.three,
   },
   actionsSection: {
     gap: Spacing.two,
+    marginTop: -Spacing.three,
+  },
+  shortcutRow: {
+    flexDirection: "row",
+    gap: Spacing.three,
+    marginTop: Spacing.one,
+  },
+  shortcutPressable: {
+    borderRadius: Spacing.three,
+    flex: 1,
+  },
+  shortcutCard: {
+    alignItems: "center",
+    borderRadius: Spacing.three,
+    gap: Spacing.two,
+    height: 112,
+    justifyContent: "center",
+    padding: Spacing.three,
+  },
+  shortcutIcon: {
+    alignItems: "center",
+    borderRadius: Spacing.three,
+    height: 52,
+    justifyContent: "center",
+    width: 52,
+  },
+  shortcutLabel: {
+    textAlign: "center",
+  },
+  wideShortcutPressable: {
+    borderRadius: Spacing.three,
+  },
+  wideShortcutCard: {
+    alignItems: "center",
+    borderRadius: Spacing.three,
+    flexDirection: "row",
+    gap: Spacing.three,
+    minHeight: 64,
+    paddingHorizontal: Spacing.three,
+  },
+  wideShortcutIcon: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    height: 42,
+    justifyContent: "center",
+    width: 42,
   },
   actionPressable: {
     borderRadius: Spacing.three,
@@ -1324,6 +1887,8 @@ const styles = StyleSheet.create({
   },
   settingsSaveButtonText: {
     color: "#ffffff",
+    textAlign: "center",
+    width: "100%",
   },
   disabledButton: {
     opacity: 0.55,

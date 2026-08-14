@@ -6,28 +6,35 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { AppHeaderHeight, BottomTabInset, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import { AppHeaderHeight, BottomTabInset, CompactScreenTopMargin, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
 import {
   endActiveSeasonAsync,
   getActiveSeasonAsync,
   getSeasonCompletionStatusAsync,
   listEndedSeasonsAsync,
 } from "@/features/seasons/season-repository";
-import type { Season } from "@/features/seasons/season-types";
+import type {
+  Season,
+  SeasonCompletionStatus,
+  UnpaidFineResolution,
+} from "@/features/seasons/season-types";
+import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
+import type { FineJarCurrency } from "@/features/settings/team-settings-types";
 import { useTheme } from "@/hooks/use-theme";
-import { useScrollToTopOnFocus } from "@/hooks/use-scroll-to-top-on-focus";
 import { useI18n } from "@/i18n/i18n-provider";
 
 export default function SeasonsScreen() {
-  const scrollViewRef = useScrollToTopOnFocus();
   const router = useRouter();
   const theme = useTheme();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const safeAreaInsets = useSafeAreaInsets();
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [endedSeasons, setEndedSeasons] = useState<Season[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEndingSeason, setIsEndingSeason] = useState(false);
+  const [fineJarCurrency, setFineJarCurrency] = useState<FineJarCurrency>(
+    locale === "nl" ? "EUR" : "GBP",
+  );
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
@@ -49,11 +56,18 @@ export default function SeasonsScreen() {
     useCallback(() => {
       let isFocused = true;
 
-      Promise.all([getActiveSeasonAsync(), listEndedSeasonsAsync()])
-        .then(([current, history]) => {
+      Promise.all([
+        getActiveSeasonAsync(),
+        listEndedSeasonsAsync(),
+        getTeamSettingsAsync(),
+      ])
+        .then(([current, history, settings]) => {
           if (!isFocused) return;
           setActiveSeason(current);
           setEndedSeasons(history);
+          setFineJarCurrency(
+            settings?.fineJarCurrency ?? (locale === "nl" ? "EUR" : "GBP"),
+          );
         })
         .catch((error: unknown) => {
           console.warn("Failed to load seasons", error);
@@ -65,7 +79,7 @@ export default function SeasonsScreen() {
       return () => {
         isFocused = false;
       };
-    }, []),
+    }, [locale]),
   );
 
   function openSummary(season: Season) {
@@ -82,21 +96,43 @@ export default function SeasonsScreen() {
       const status = await getSeasonCompletionStatusAsync(activeSeason.id);
       const unfinished: string[] = [];
       if (status.matchesWithoutResults) {
-        unfinished.push(`${status.matchesWithoutResults} match result${status.matchesWithoutResults === 1 ? "" : "s"}`);
+        unfinished.push(t(
+          status.matchesWithoutResults === 1
+            ? "seasons.confirm_end.unfinished_matches"
+            : "seasons.confirm_end.unfinished_matches_plural",
+          { count: status.matchesWithoutResults },
+        ));
       }
       if (status.trainingsWithoutAttendance) {
-        unfinished.push(`${status.trainingsWithoutAttendance} training attendance record${status.trainingsWithoutAttendance === 1 ? "" : "s"}`);
+        unfinished.push(t(
+          status.trainingsWithoutAttendance === 1
+            ? "seasons.confirm_end.unfinished_trainings"
+            : "seasons.confirm_end.unfinished_trainings_plural",
+          { count: status.trainingsWithoutAttendance },
+        ));
       }
       const warning = unfinished.length
-        ? `There are still ${unfinished.join(" and ")} unfinished. They will be archived as they are.\n\n`
+        ? t("seasons.confirm_end.unfinished_warning", {
+            items: unfinished.join(t("seasons.confirm_end.join")),
+          })
         : "";
 
       Alert.alert(
-        `End season ${activeSeason.name}?`,
-        `${warning}This creates a permanent season summary and starts a new season. Your players and settings will carry over.`,
+        t("seasons.confirm_end.title", { season: activeSeason.name }),
+        `${warning}${t("seasons.confirm_end.message")}`,
         [
-          { text: "Cancel", style: "cancel" },
-          { text: "End season", style: "destructive", onPress: () => void handleEndSeason() },
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("seasons.confirm_end.action"),
+            style: "destructive",
+            onPress: () => {
+              if (status.unpaidFineCount > 0) {
+                confirmUnpaidFineResolution(status);
+              } else {
+                void handleEndSeason("write_off");
+              }
+            },
+          },
         ],
       );
     } catch (error) {
@@ -105,10 +141,41 @@ export default function SeasonsScreen() {
     }
   }
 
-  async function handleEndSeason() {
+  function confirmUnpaidFineResolution(status: SeasonCompletionStatus) {
+    const amount = new Intl.NumberFormat(
+      locale === "nl" ? "nl-NL" : "en-GB",
+      {
+        style: "currency",
+        currency: fineJarCurrency,
+        currencyDisplay: "narrowSymbol",
+      },
+    ).format(status.unpaidFineAmountCents / 100);
+
+    Alert.alert(
+      t("seasons.confirm_end.unpaid_fines.title"),
+      t("seasons.confirm_end.unpaid_fines.message", {
+        count: status.unpaidFineCount,
+        amount,
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("seasons.confirm_end.unpaid_fines.write_off"),
+          style: "destructive",
+          onPress: () => void handleEndSeason("write_off"),
+        },
+        {
+          text: t("seasons.confirm_end.unpaid_fines.carry"),
+          onPress: () => void handleEndSeason("carry"),
+        },
+      ],
+    );
+  }
+
+  async function handleEndSeason(unpaidFineResolution: UnpaidFineResolution) {
     setIsEndingSeason(true);
     try {
-      const endedSeason = await endActiveSeasonAsync();
+      const endedSeason = await endActiveSeasonAsync(unpaidFineResolution);
       const [nextSeason, history] = await Promise.all([
         getActiveSeasonAsync(),
         listEndedSeasonsAsync(),
@@ -126,7 +193,6 @@ export default function SeasonsScreen() {
 
   return (
     <ScrollView
-      ref={scrollViewRef}
       style={{ backgroundColor: theme.background }}
       contentInset={insets}
       contentContainerStyle={[styles.screen, contentPlatformStyle]}
@@ -171,7 +237,12 @@ export default function SeasonsScreen() {
             <View style={styles.historyHeading}>
               <ThemedText type="default">{t("seasons.overview.history.title")}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {endedSeasons.length} completed {endedSeasons.length === 1 ? "season" : "seasons"}
+                {t(
+                  endedSeasons.length === 1
+                    ? "seasons.overview.history.count"
+                    : "seasons.overview.history.count_plural",
+                  { count: endedSeasons.length },
+                )}
               </ThemedText>
             </View>
 
@@ -180,7 +251,10 @@ export default function SeasonsScreen() {
                 <Pressable
                   key={season.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`View ${season.name} season summary`}
+                  accessibilityLabel={t(
+                    "seasons.overview.history.view_accessibility",
+                    { season: season.name },
+                  )}
                   onPress={() => openSummary(season)}
                   style={({ pressed }) => [pressed && styles.pressed]}
                 >
@@ -243,6 +317,7 @@ const styles = StyleSheet.create({
   screen: { alignItems: "center", paddingHorizontal: Spacing.four },
   container: {
     gap: Spacing.three,
+    marginTop: CompactScreenTopMargin,
     maxWidth: MaxContentWidth,
     paddingTop:
       Platform.select({

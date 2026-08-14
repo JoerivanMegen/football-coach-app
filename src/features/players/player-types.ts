@@ -14,6 +14,7 @@ export type Player = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  activeInjuryStartDate: string | null;
   isGuest?: boolean;
 };
 
@@ -29,4 +30,12 @@ export type CreatePlayerInput = {
 
 export type UpdatePlayerInput = Partial<CreatePlayerInput> & {
   isActive?: boolean;
+};
+
+export type PlayerInjury = {
+  id: number;
+  playerId: number;
+  startDate: string;
+  endDate: string | null;
+  note: string;
 };

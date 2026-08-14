@@ -1,6 +1,6 @@
 overview:
-  title: Trainingen
-  subtitle: Plan trainingen en houd aanwezigheid bij voor de spelersstatistieken.
+  title: Training
+  subtitle: Plan je training en hou de statistieken van je spelers bij.
   add_training: Nieuwe training
   create_match: Wedstrijd maken in Wedstrijddag
 sections:
@@ -14,8 +14,18 @@ sections:
     title: Afgerond
     description: Trainingen met geregistreerde aanwezigheid verschijnen hier.
   empty: Nog geen trainingen gepland.
+  count: "{{count}} training"
+  count_plural: "{{count}} trainingen"
+card:
+  title: Training
+  signup_summary: "{{available}} beschikbaar · {{unavailable}} afwezig · {{unknown}} onbekend"
+  action_for: "{{action}} voor {{title}}"
+  edit_attendance_for: "Aanwezigheid bewerken voor {{title}}"
+  edit_for: "{{title}} bewerken"
+  cancel_for: "{{title}} annuleren"
 add_training:
   title: Training toevoegen
+  progress: "Stap {{current}} van {{total}}: {{step}}"
   steps:
     type: Activiteitstype
     details: Trainingsgegevens
@@ -27,10 +37,43 @@ add_training:
     date: Datum
     start_time: Starttijd
     location: Locatie
+    opponent: Tegenstander
+    notes: Notities
+    open_date_picker: Open de datumkiezer voor de training
+    open_time_picker: Open de tijdkiezer voor de training
+    confirm_picker: Bevestig de gekozen waarde
+    locations:
+      home: Thuis
+      away: Uit
+  types:
+    training:
+      label: Training
+      description: Training of oefensessie.
+    match:
+      label: Wedstrijd
+      description: Competitie-, oefen- of toernooiwedstrijd.
+    other:
+      label: Overig
+      description: Teamavond, vergadering of andere activiteit.
   players:
     title: Spelersbeschikbaarheid
     empty: Voeg eerst spelers toe om beschikbaarheid te plannen.
+    available: Beschikbaar
+    out: Afwezig
+    unknown: Onbekend
+    injured: Geblesseerd
+    injury_override:
+      title: Geblesseerde speler
+      message: Deze speler is geblesseerd. Wil je deze speler toch aan de training toevoegen?
+      action: Toch toevoegen
   review:
+    type: Type
+    title: Titel
+    date: Datum
+    start_time: Starttijd
+    location: Locatie
+    opponent: Tegenstander
+    players_tracked: Aantal spelers
     available_players: Beschikbare spelers
     no_available_players: Nog geen spelers als beschikbaar gemarkeerd.
   validation:
@@ -48,6 +91,8 @@ attendance:
   edit: Aanwezigheid bewerken
   not_marked: De aanwezigheid voor deze training is nog niet geregistreerd.
   loading: Aanwezigheid laden...
+  attended: Aanwezig
+  none: Geen
   empty: Voeg eerst spelers toe om aanwezigheid te registreren.
   columns:
     name: Naam
@@ -68,6 +113,13 @@ actions:
   edit: Training bewerken
   cancel: Training annuleren
   keep: Training behouden
+  save: Training opslaan
+  save_changes: Wijzigingen opslaan
+  saving: Opslaan...
+confirm:
+  cancel:
+    title: Training annuleren
+    message: "‘{{title}}’ annuleren? Hiermee verwijder je de training en de bijbehorende aanwezigheidsgegevens."
 errors:
   load:
     title: Trainingen konden niet worden geladen

@@ -49,13 +49,20 @@ export function getSharePosterTextConfig(
   preferNicknames: boolean,
   substitutes: Player[],
   teamName: string,
+  translations: {
+    opponent: string;
+    homeMatch: string;
+    awayMatch: string;
+    subs: string;
+    substitutes: string;
+  },
 ) {
   switch (pieceId) {
     case "teamName":
       return createSharePosterTextConfig(teamName.toUpperCase(), 58, "900");
     case "opponentName":
       return createSharePosterTextConfig(
-        form.opponent.trim().toUpperCase() || "OPPONENT",
+        form.opponent.trim().toUpperCase() || translations.opponent,
         34,
         "900",
       );
@@ -107,7 +114,9 @@ export function getSharePosterTextConfig(
     case "locationValue":
       return createSharePosterTextConfig(
         form.venue.trim() ||
-          (form.location === "home" ? "Home match" : "Away match"),
+          (form.location === "home"
+            ? translations.homeMatch
+            : translations.awayMatch),
         20,
         "500",
         "normal",
@@ -121,7 +130,9 @@ export function getSharePosterTextConfig(
       );
     case "subsTitle":
       return createSharePosterTextConfig(
-        overlayStyle === "broadcast" ? "SUBS" : "SUBSTITUTES:",
+        overlayStyle === "broadcast"
+          ? translations.subs
+          : translations.substitutes,
         34,
         "900",
       );
@@ -279,5 +290,4 @@ export function darkenHexColor(hexColor: string, amount: number) {
 
   return `#${nextColor}`;
 }
-
 

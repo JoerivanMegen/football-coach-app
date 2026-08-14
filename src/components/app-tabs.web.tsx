@@ -16,11 +16,13 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useI18n } from '@/i18n/i18n-provider';
+import type { TranslationKey } from '@/i18n/generated/translations';
 
 type AppTab = {
   name: string;
   href: Href;
-  label: string;
+  labelKey: TranslationKey;
   iconName?: SymbolViewProps['name'];
   iconType?: 'training';
 };
@@ -29,30 +31,31 @@ const appTabs = [
   {
     name: 'home',
     href: '/',
-    label: 'Home',
+    labelKey: 'navigation.home',
     iconName: { ios: 'house.fill', web: 'home' },
   },
   {
     name: 'players',
     href: '/players',
-    label: 'Players',
+    labelKey: 'navigation.players',
     iconName: { ios: 'person.3.fill', web: 'groups' },
   },
   {
     name: 'events',
     href: '/events',
-    label: 'Training',
+    labelKey: 'navigation.training',
     iconType: 'training',
   },
   {
     name: 'match-day',
     href: '/match-day',
-    label: 'Match Day',
+    labelKey: 'navigation.matchDay',
     iconName: { ios: 'sportscourt.fill', web: 'sports_soccer' },
   },
 ] satisfies AppTab[];
 
 export default function AppTabs() {
+  const { t } = useI18n();
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -61,7 +64,7 @@ export default function AppTabs() {
           {appTabs.map((tab) => (
             <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
               <TabButton iconName={tab.iconName} iconType={tab.iconType}>
-                {tab.label}
+                {t(tab.labelKey)}
               </TabButton>
             </TabTrigger>
           ))}
