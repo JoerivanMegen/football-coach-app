@@ -1,0 +1,124 @@
+language:
+  title: Taal
+  description: Kies de taal die in Assistant Coach wordt gebruikt.
+  english: Engels
+  dutch: Nederlands
+  changed: Taal aangepast.
+header:
+  title: Instellingen
+  subtitle: Werk je teamgegevens, tenue en wedstrijdvoorkeuren bij.
+introduction:
+  title: Introductie
+  description: Bekijk de korte uitleg over spelers, trainingen, Match day, delen en instellingen opnieuw.
+  action: Introductie opnieuw bekijken
+team:
+  title: Team en tenue
+  name: Teamnaam
+  name_placeholder: Voorbeeld FC
+  club_location: Clublocatie
+  club_location_help: Wordt gebruikt als standaardlocatie voor thuiswedstrijden en trainingen.
+  club_location_placeholder: Sportpark, clubhuis of adres
+kit:
+  title: Tenueontwerp
+  player_primary: Primaire spelerskleur
+  player_secondary: Secundaire spelerskleur
+  goalkeeper_primary: Primaire keeperskleur
+  goalkeeper_secondary: Secundaire keeperskleur
+  third: Derde kleur
+  number: Kleur rugnummer
+  patterns:
+    regular: Effen
+    stripes: Strepen
+    three_color_stripes: Driekleurige strepen
+    hoops: Horizontale strepen
+    two_color_sash: Dubbele diagonaal
+    halves: Helften
+    sides: Zijkanten
+match_preferences:
+  title: Wedstrijdvoorkeuren
+  match_minutes: Wedstrijdduur
+  match_minutes_help: Gebruik dit voor jeugdteams of competities met kortere wedstrijden.
+  decrease_match_minutes: Wedstrijdduur verkorten
+  increase_match_minutes: Wedstrijdduur verlengen
+  player_names:
+    title: Namen in de opstelling
+    nicknames: Bijnamen
+    first_names: Voornamen
+  fine_jar:
+    title: Boetepot
+    description: Je kunt dit later gebruiken voor boetes, herinneringen en teamregels.
+    enabled: Boetepot aan
+    disabled: Boetepot uit
+    currency:
+      title: Valuta van de boetepot
+      description: Kies de valuta voor boetetypes en totalen.
+      euro: Euro (€)
+      pound: Pond (£)
+      dollar: Dollar ($)
+  match_duties:
+    title: Heeft je team corvee?
+    description: Zorgen je spelers voor de tenues, warming-upmaterialen of andere taken op wedstrijddagen?
+    enabled: Corvee gebruiken
+    disabled: Geen corvee
+statistics:
+  title: Speler- en teamstatistieken
+  friendlies:
+    title: Oefenwedstrijden meetellen
+    description: Kies of oefenwedstrijden meetellen voor speler- en teamstatistieken.
+    include: Meetellen
+    exclude: Niet meetellen
+training_preferences:
+  title: Trainingsvoorkeuren
+  days:
+    title: Trainingsdagen
+    description: Handig voor latere herinneringen. Laat leeg als trainingen iedere week veranderen.
+  default_time:
+    title: Standaard trainingstijd
+    description: Nieuwe trainingen gebruiken deze starttijd automatisch.
+  day_labels:
+    monday: Ma
+    tuesday: Di
+    wednesday: Wo
+    thursday: Do
+    friday: Vr
+    saturday: Za
+    sunday: Zo
+season:
+  title: Seizoen
+  current: "Huidig seizoen:"
+  name: Seizoensnaam
+  name_placeholder: 2026/27
+  save_help: Wordt opgeslagen met de hoofdknop Instellingen opslaan.
+  history: Seizoenshistorie
+  view_summary: Samenvatting bekijken ›
+  end: Huidig seizoen afsluiten
+  ending: Seizoen afsluiten...
+  confirm:
+    title: "Seizoen {{name}} afsluiten?"
+    message: Hiermee maak je een permanent seizoensoverzicht en start je een nieuw seizoen. Je spelers en instellingen blijven behouden.
+    unfinished: "Er zijn nog {{items}} niet afgerond. Deze worden in de huidige staat gearchiveerd.\n\n"
+    join: "{{first}} en {{second}}"
+    match_result: "{{count}} wedstrijduitslag"
+    match_results: "{{count}} wedstrijduitslagen"
+    training_record: "{{count}} trainingsregistratie"
+    training_records: "{{count}} trainingsregistraties"
+actions:
+  save: Instellingen opslaan
+  saving: Opslaan...
+  saved: Instellingen opgeslagen.
+errors:
+  load: Je teaminstellingen konden niet worden geladen.
+  team_name_required: Teamnaam is verplicht.
+  season_name_required: Seizoensnaam is verplicht.
+  match_minutes: De wedstrijdduur moet tussen 1 en 120 minuten liggen.
+  training_time: "De trainingstijd moet het formaat UU:MM gebruiken, bijvoorbeeld 19:30."
+  save: Controleer je teamnaam en kleurwaarden.
+  tutorial:
+    title: Introductie kon niet worden geopend
+    message: Probeer het opnieuw.
+  season_check:
+    title: Seizoen kon niet worden gecontroleerd
+    message: Probeer het opnieuw.
+  season_end:
+    title: Seizoen niet afgesloten
+    message: Je gegevens zijn niet gewijzigd. Probeer het opnieuw.

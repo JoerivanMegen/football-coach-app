@@ -1,0 +1,38 @@
+language_selection:
+  heading_english: Choose your language!
+  heading_dutch: Kies je taal!
+  dutch_flag: 🇳🇱
+  dutch_code: NL
+  dutch_name: Nederlands
+  english_flag: 🇬🇧
+  english_code: EN
+  english_name: English
+  logo_label: Assistant Coach
+slides:
+  welcome:
+    eyebrow: Spelers
+    title: Welkom bij Assistant Coach
+    description: Stel je selectie samen met posities, rugnummers en spelersgegevens. De statistieken groeien mee terwijl je de app gebruikt.
+  training:
+    eyebrow: Training
+    title: Houd aanwezigheid eenvoudig bij
+    description: Plan trainingen, registreer wie aanwezig was en volg de deelname gedurende het seizoen.
+  matchday:
+    eyebrow: Match day
+    title: Bereid iedere wedstrijd voor
+    description: Stel beschikbaarheid en de opstelling in en registreer uitslag, minuten, doelpunten, assists, kaarten en beoordelingen.
+  sharing:
+    eyebrow: Delen
+    title: Maak afbeeldingen van opstellingen
+    description: Maak verzorgde opstellings- en uitslagafbeeldingen om te delen met spelers, supporters en je club.
+  privacy:
+    eyebrow: Jouw gegevens
+    title: Jouw gegevens blijven bij jou
+    description: Wij slaan je coachgegevens niet op. Ze staan lokaal op je telefoon, dus bij het verwijderen van de app kunnen ze voorgoed verdwijnen. Exporteer vóór een telefoonwissel een back-up via Instellingen en bewaar die veilig.
+  settings:
+    eyebrow: Instellingen
+    title: Maak het jouw team
+    description: Kies je tenue, wedstrijdduur en voorkeuren. Je kunt ook op ieder moment een volledige back-up downloaden.
+actions:
+  skip: Tutorial overslaan
+  finish: Stel je team in

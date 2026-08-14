@@ -9,20 +9,28 @@ import {
   type EventType,
 } from '@/features/events/components/event-wizard/event-wizard-types';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n/i18n-provider';
+import type { TranslationKey } from '@/i18n/generated/translations';
 
 type EventTypeStepProps = {
+  eventTypes?: readonly EventType[];
   selectedType: EventType | null;
   onSelectType: (type: EventType) => void;
 };
 
-export function EventTypeStep({ selectedType, onSelectType }: EventTypeStepProps) {
+export function EventTypeStep({
+  eventTypes = EventTypes,
+  selectedType,
+  onSelectType,
+}: EventTypeStepProps) {
   const theme = useTheme();
+  const { t } = useI18n();
 
   return (
     <ThemedView style={styles.stepContent}>
-      <ThemedText type="smallBold">Event type</ThemedText>
+      <ThemedText type="smallBold">{t('training.add_training.steps.type')}</ThemedText>
       <ThemedView style={styles.typeGrid}>
-        {EventTypes.map((type) => {
+        {eventTypes.map((type) => {
           const isSelected = selectedType === type;
 
           return (
@@ -37,9 +45,9 @@ export function EventTypeStep({ selectedType, onSelectType }: EventTypeStepProps
                 style={styles.typeOptionInner}>
                 <SymbolView name={getEventTypeIcon(type)} tintColor={theme.text} size={22} />
                 <ThemedView type={isSelected ? 'backgroundSelected' : 'backgroundElement'}>
-                  <ThemedText type="smallBold">{getEventTypeLabel(type)}</ThemedText>
+                  <ThemedText type="smallBold">{getEventTypeLabel(type, t)}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {getEventTypeDescription(type)}
+                    {getEventTypeDescription(type, t)}
                   </ThemedText>
                 </ThemedView>
               </ThemedView>
@@ -51,25 +59,25 @@ export function EventTypeStep({ selectedType, onSelectType }: EventTypeStepProps
   );
 }
 
-export function getEventTypeLabel(type: EventType) {
+export function getEventTypeLabel(type: EventType, t: (key: TranslationKey) => string) {
   switch (type) {
     case 'training':
-      return 'Training';
+      return t('training.add_training.types.training.label');
     case 'match':
-      return 'Match';
+      return t('training.add_training.types.match.label');
     case 'other':
-      return 'Other';
+      return t('training.add_training.types.other.label');
   }
 }
 
-function getEventTypeDescription(type: EventType) {
+function getEventTypeDescription(type: EventType, t: (key: TranslationKey) => string) {
   switch (type) {
     case 'training':
-      return 'Training session or practice.';
+      return t('training.add_training.types.training.description');
     case 'match':
-      return 'Fixture, friendly, or tournament match.';
+      return t('training.add_training.types.match.description');
     case 'other':
-      return 'Team night, meeting, or custom event.';
+      return t('training.add_training.types.other.description');
   }
 }
 

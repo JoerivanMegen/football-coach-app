@@ -1,0 +1,162 @@
+overview:
+  title: Spelers
+  subtitle: Beheer je spelers, blessures, en begin met het verzamelen van statistieken.
+  add_player: Nieuwe speler
+  open_team_stats: Teamstatistieken openen
+  empty:
+    title: Nog geen spelers
+    description: Voeg je eerste speler toe om je selectie samen te stellen.
+  groups:
+    goalkeepers: Keepers
+    defenders: Verdedigers
+    midfielders: Middenvelders
+    attackers: Aanvallers
+form:
+  add_title: Speler toevoegen
+  edit_title: Speler bewerken
+  save: Speler opslaan
+  update: Speler bijwerken
+  saving: Opslaan...
+  first_name: Voornaam
+  last_name: Achternaam
+  nickname: Bijnaam
+  birth_date: Geboortedatum
+  position: Positie
+  kit_number: Rugnummer
+  injury:
+    title: Blessurestatus
+    toggle_label: Geblesseerd
+    injured: Speler is geblesseerd
+    healthy: Speler is beschikbaar
+    start_date: Geblesseerd sinds
+    recovery_date: Hersteldatum
+    note: Blessurenotitie (optioneel)
+    note_placeholder: Bijvoorbeeld hamstringblessure
+    help: Wedstrijden en trainingen tijdens een blessureperiode tellen niet mee voor de statistieken van deze speler.
+    badge: Geblesseerd
+    history_title: Huidige en eerdere blessures
+    history_empty: Nog geen blessures geregistreerd.
+    present: Heden
+    active: Actief
+    edit: Blessure bewerken
+    delete: Blessure verwijderen
+    save_changes: Wijzigingen opslaan
+    delete_title: Blessure verwijderen?
+    delete_message: Activiteiten tijdens deze periode tellen daarna weer mee voor de statistieken van de speler.
+    overlap_error: Blessureperiodes mogen elkaar niet overlappen.
+  validation:
+    required_names:
+      title: Verplichte velden ontbreken
+      message: Voornaam en achternaam zijn verplicht.
+    invalid_first_name:
+      title: Ongeldige voornaam
+      message: Gebruik alleen letters, met enkele spaties tussen namen.
+    invalid_last_name:
+      title: Ongeldige achternaam
+      message: Gebruik alleen letters, met enkele spaties tussen namen.
+    invalid_nickname: Ongeldige bijnaam
+    invalid_birth_date:
+      title: Ongeldige geboortedatum
+      message: Gebruik DD-MM-JJJJ, bijvoorbeeld 24-09-2012.
+    position_required: Kies een spelerspositie.
+    invalid_kit_number:
+      title: Ongeldig rugnummer
+      message: Gebruik een heel getal of laat het veld leeg.
+    invalid_injury_date:
+      title: Ongeldige blessuredatum
+      message: Kies een geldige datum. De hersteldatum kan niet vóór de begindatum van de blessure liggen.
+  duplicate:
+    player_title: Mogelijk dubbele speler
+    player_message: '"{{name}}" bestaat al. Weet je zeker dat je nog een speler met deze naam wilt toevoegen?'
+    add_anyway: Toch toevoegen
+    kit_number_title: Rugnummer is al bezet
+    kit_number_message: "{{name}} heeft dit rugnummer al. Wil je diens nummer wijzigen naar {{number}}?"
+    change_number: Nummer wijzigen
+stats:
+  player_title: Spelersstatistieken
+  player_subtitle: Vergelijk aanwezigheid, wedstrijdminuten en recente vorm.
+  team_title: Team stats
+  empty:
+    title: Nog geen teamstatistieken
+    description: Voeg spelers toe en registreer aanwezigheid om het teamoverzicht op te bouwen.
+  attendance: Aanwezigheid
+  match_data: Wedstrijdgegevens
+  recent_form: Recente vorm
+  columns:
+    player: Speler
+    training_percentage: Training aanw %
+    match_percentage: Wedstrijd aanw %
+    late_percentage: Te laat %
+    starts: Basis
+    starter_percentage: Basis %
+    average_minutes: Gem. min
+    goals: Goals
+    assists: Assists
+    yellow_cards: Geel
+    red_cards: Rood
+    clean_sheets: Clean sheet
+    average_rating: Gem. cijfer
+    goals_per_90: Goals/90
+    assists_per_90: Assists/90
+    duties: Corvee
+    fulfilled: Uitgevoerd
+    duty_percentage: Corvee %
+    fines: Boetes
+    fine_amount: Boete bedrag
+    last_five: Vorm (Laatste 5)
+  close_team_statistics: Teamstatistieken sluiten
+  no_attendance: Nog geen aanwezigheid geregistreerd
+  no_attendance_help: Deze statistieken worden bijgewerkt nadat aanwezigheid voor een activiteit is opgeslagen.
+  no_ratings: Nog geen wedstrijdbeoordelingen.
+  sort_by: "Sorteren op {{column}}"
+  detail:
+    training: Trainingen
+    matches: Wedstrijden
+    late: Te laat
+    attended: "{{attended}}/{{total}} aanwezig"
+    late_count: "{{count}} keer"
+    late_count_plural: "{{count}} keer"
+    available_but_absent: No show
+    available_but_absent_help: aangemeld als beschikbaar, maar niet aanwezig
+    out_but_attended: Toch gekomen
+    out_but_attended_help: afgemeld, maar toch aanwezig
+    appearances: Wedstrijden gespeeld
+    completed_matches: "{{count}} afgeronde wedstrijden"
+    starts: Basisplaatsen
+    starts_help: opgenomen in de basisopstelling
+    starter: Basisspeler
+    starter_help: basisplaatsen per gespeelde wedstrijd
+    average_minutes: Gem. minuten
+    total_minutes: "{{count}} minuten totaal"
+    goals: Doelpunten
+    goals_help: doelpunten dit seizoen
+    assists: Assists
+    assists_help: assists dit seizoen
+    yellow_cards: Gele kaarten
+    yellow_cards_help: gele kaarten dit seizoen
+    red_cards: Rode kaarten
+    red_cards_help: rode kaarten dit seizoen
+    clean_sheets: Clean sheet
+    clean_sheets_help: 0 tegendoelpunten en minimaal 60 minuten gespeeld
+    average_rating: Gemiddeld cijfer
+    average_rating_help: per beoordeelde wedstrijd
+    goals_per_90: Doelpunten/90
+    goals_per_90_help: doelpunten per 90 minuten
+    assists_per_90: Assists/90
+    assists_per_90_help: assists per 90 minuten
+    match_duties: Corveebeurten
+    duties_fulfilled: "{{count}} uitgevoerd"
+    duty_fulfillment: Corvee uitgevoerd
+    duty_fulfillment_help: uitgevoerd per toegewezen beurt
+errors:
+  load:
+    title: Spelers konden niet worden geladen
+    message: Probeer het opnieuw.
+  save:
+    title: Speler kon niet worden opgeslagen
+    message: Controleer de gegevens en probeer het opnieuw.
+  delete:
+    title: Speler kon niet worden verwijderd
+    message: Probeer het opnieuw.
+confirm:
+  delete_title: Speler verwijderen

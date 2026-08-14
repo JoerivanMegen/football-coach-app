@@ -1,0 +1,94 @@
+overview:
+  title: Seizoenen
+  subtitle: Bekijk eerdere uitslagen, spelersstatistieken en seizoenshoogtepunten.
+  current:
+    title: Huidig seizoen
+    view_statistics: Huidige statistieken bekijken
+  history:
+    title: Seizoenshistorie
+    completed: afgerond
+    view_summary: Samenvatting bekijken ›
+    empty:
+      title: Nog geen afgeronde seizoenen
+      description: Nadat je je eerste seizoen via Instellingen afsluit, verschijnen de samenvatting en top drieën hier.
+    count: "{{count}} afgerond seizoen"
+    count_plural: "{{count}} afgeronde seizoenen"
+    view_accessibility: "Seizoenssamenvatting van {{season}} bekijken"
+  end_season:
+    title: Seizoen afsluiten
+    description: Archiveer {{season}}, maak de definitieve samenvatting en start het volgende seizoen. Spelers en instellingen blijven behouden.
+    action: Huidig seizoen afsluiten
+summary:
+  title: Seizoenssamenvatting
+  season_title: "Seizoen {{season}}"
+  current_season: Huidig seizoen
+  team_overview: Teamoverzicht
+  player_highlights: Spelershoogtepunten
+  player_overview: Spelersoverzicht
+  no_data: Nog geen gegevens
+  no_match: Geen wedstrijd
+  card_points_help: Geel = 1, rood = 3
+  minimum_appearances: Minimaal 3 gespeelde wedstrijden
+  minutes_short: "{{count}} min"
+  match_location:
+    home: tegen
+    away: bij
+  team_stats:
+    matches: Wedstrijden
+    wins: Overwinningen
+    draws: Gelijke spelen
+    losses: Nederlagen
+    goals_for: Doelpunten voor
+    goals_against: Doelpunten tegen
+    trainings: Trainingen
+    fine_amount: Eindbedrag boetepot
+  player_columns:
+    player: Speler
+    training: Training
+    match: Wedstrijd
+    late: Te laat
+    starts: Basis
+    average_minutes: Min/wed
+    goals: Goals
+    assists: Assists
+    yellow_cards: Geel
+    red_cards: Rood
+    clean_sheets: Schoon doel
+    rating: Cijfer
+    duties: Corvee
+  highlights:
+    most_goals: Meeste doelpunten
+    most_assists: Meeste assists
+    most_card_points: Meeste kaartpunten
+    highest_average_minutes: Hoogste gemiddelde minuten
+    best_training_attendance: Beste trainingsopkomst
+    highest_lateness_percentage: Hoogste percentage te laat
+    minutes_per_training: Wedstrijdminuten per bijgewoonde training
+    most_fines: Meeste boetes
+    biggest_win: Grootste overwinning
+    biggest_loss: Grootste nederlaag
+  fine_count: "{{count}} boete"
+  fine_count_plural: "{{count}} boetes"
+errors:
+  load:
+    title: Seizoen kon niet worden gecontroleerd
+    message: Probeer het opnieuw.
+  not_ended:
+    title: Seizoen niet afgesloten
+    message: Je gegevens zijn niet gewijzigd. Probeer het opnieuw.
+  summary_not_found: De seizoenssamenvatting kon niet worden gevonden.
+confirm_end:
+  title: "Seizoen {{season}} afsluiten?"
+  unfinished_matches: "{{count}} wedstrijduitslag"
+  unfinished_matches_plural: "{{count}} wedstrijduitslagen"
+  unfinished_trainings: "{{count}} trainingsregistratie"
+  unfinished_trainings_plural: "{{count}} trainingsregistraties"
+  unfinished_warning: "Er zijn nog {{items}} niet afgerond. Deze worden in de huidige staat gearchiveerd.\n\n"
+  message: Hiermee maak je een definitieve seizoenssamenvatting en start je een nieuw seizoen. Je spelers en instellingen blijven behouden.
+  action: Seizoen afsluiten
+  join: " en "
+  unpaid_fines:
+    title: Openstaande boetes
+    message: "Er zijn {{count}} openstaande boetes ter waarde van {{amount}}. Betaalde boetes worden gearchiveerd. Wil je de openstaande boetes meenemen naar het nieuwe seizoen of kwijtschelden?"
+    carry: Meenemen naar nieuw seizoen
+    write_off: Kwijtschelden

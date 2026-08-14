@@ -7,36 +7,38 @@ import { ThemedView } from '@/components/themed-view';
 import {
   EventDetailsStep,
   formatDateForDisplay,
-  getDefaultTitleForEventType,
 } from '@/features/events/components/event-wizard/event-details-step';
 import { EventPlayersStep } from '@/features/events/components/event-wizard/event-players-step';
 import { EventReviewStep } from '@/features/events/components/event-wizard/event-review-step';
-import { EventTypeStep } from '@/features/events/components/event-wizard/event-type-step';
 import { eventWizardStyles as styles } from '@/features/events/components/event-wizard/event-wizard-styles';
 import {
   EventWizardStepLabels,
-  type EventType,
   type EventWizardFormState,
   type EventWizardStep,
-  type MatchLocation,
 } from '@/features/events/components/event-wizard/event-wizard-types';
-import { listPlayersAsync } from '@/features/players/player-repository';
-import type { Player } from '@/features/players/player-types';
+import {
+  listAllPlayerInjuriesAsync,
+  listPlayersAsync,
+} from '@/features/players/player-repository';
+import type { Player, PlayerInjury } from '@/features/players/player-types';
+import { isPlayerInjuredOnDate } from '@/features/players/player-injury-utils';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n/i18n-provider';
 
 type EventWizardProps = {
   visible: boolean;
   initialForm?: EventWizardFormState | null;
+  isEditing?: boolean;
   title?: string;
   saveButtonLabel?: string;
   onClose: () => void;
   onSave: (form: EventWizardFormState) => Promise<void>;
 };
 
-function createEmptyEventWizardFormState(): EventWizardFormState {
+function createEmptyEventWizardFormState(defaultTitle: string): EventWizardFormState {
   return {
-    type: null,
-    title: '',
+    type: 'training',
+    title: defaultTitle,
     date: formatDateForDisplay(new Date()),
     startTime: '',
     location: '',
@@ -49,15 +51,27 @@ function createEmptyEventWizardFormState(): EventWizardFormState {
 export function EventWizard({
   visible,
   initialForm,
-  title = 'Add event',
-  saveButtonLabel = 'Save event',
+  isEditing = false,
+  title,
+  saveButtonLabel,
   onClose,
   onSave,
 }: EventWizardProps) {
   const theme = useTheme();
+  const { t } = useI18n();
+  const stepLabels = [
+    t('training.add_training.steps.details'),
+    t('training.add_training.steps.players'),
+    t('training.add_training.steps.review'),
+  ];
+  const displayedTitle = title ?? t('training.add_training.title');
+  const displayedSaveButtonLabel = saveButtonLabel ?? t('training.actions.save');
   const [players, setPlayers] = useState<Player[]>([]);
+  const [injuriesByPlayerId, setInjuriesByPlayerId] = useState(
+    new Map<number, PlayerInjury[]>(),
+  );
   const [form, setForm] = useState<EventWizardFormState>(
-    () => initialForm ?? createEmptyEventWizardFormState()
+    () => initialForm ?? createEmptyEventWizardFormState(t('training.add_training.details.title_placeholder'))
   );
   const [isSaving, setIsSaving] = useState(false);
   const [wizardStep, setWizardStep] = useState<EventWizardStep>(0);
@@ -69,25 +83,33 @@ export function EventWizard({
 
     let isMounted = true;
 
-    listPlayersAsync()
-      .then((nextPlayers) => {
+    Promise.all([listPlayersAsync(), listAllPlayerInjuriesAsync()])
+      .then(([nextPlayers, injuries]) => {
         if (isMounted) {
+          const nextInjuriesByPlayerId = groupInjuriesByPlayerId(injuries);
           setPlayers(nextPlayers);
+          setInjuriesByPlayerId(nextInjuriesByPlayerId);
           setForm((current) => ({
             ...current,
-            playerStatuses: createPlayerStatusMap(nextPlayers, current.playerStatuses),
+            playerStatuses: createPlayerStatusMap(
+              nextPlayers,
+              current.playerStatuses,
+              current.date,
+              nextInjuriesByPlayerId,
+              !isEditing,
+            ),
           }));
         }
       })
       .catch((error: unknown) => {
         console.warn('Failed to load players for event wizard', error);
-        Alert.alert('Could not load players', 'You can still plan the event details.');
+        Alert.alert(t('training.errors.load_players.title'), t('training.errors.load_players.message'));
       });
 
     return () => {
       isMounted = false;
     };
-  }, [visible]);
+  }, [initialForm, isEditing, t, visible]);
 
   function handleClose() {
     if (!isSaving) {
@@ -96,26 +118,25 @@ export function EventWizard({
     }
   }
 
-  function handleSelectType(type: EventType) {
-    const defaultTitles = ['Training', 'Match'];
-
-    setForm((current) => ({
-      ...current,
-      type,
-      title:
-        !current.title || defaultTitles.includes(current.title)
-          ? getDefaultTitleForEventType(type)
-          : current.title,
-      location: getLocationForSelectedType(type, current.location),
-    }));
-  }
-
   function goToNextStep() {
-    if (!validateWizardStep(wizardStep, form)) {
+    if (!validateWizardStep(wizardStep, form, t)) {
       return;
     }
 
-    setWizardStep((current) => Math.min(current + 1, 3) as EventWizardStep);
+    if (wizardStep === 0 && !isEditing) {
+      setForm((current) => ({
+        ...current,
+        playerStatuses: createPlayerStatusMap(
+          players,
+          {},
+          current.date,
+          injuriesByPlayerId,
+          true,
+        ),
+      }));
+    }
+
+    setWizardStep((current) => Math.min(current + 1, 2) as EventWizardStep);
   }
 
   function goToPreviousStep() {
@@ -123,8 +144,8 @@ export function EventWizard({
   }
 
   async function handleSave() {
-    if (!validateWizardStep(1, form)) {
-      setWizardStep(1);
+    if (!validateWizardStep(0, form, t)) {
+      setWizardStep(0);
       return;
     }
 
@@ -141,7 +162,10 @@ export function EventWizard({
 
   function resetWizard() {
     setWizardStep(0);
-    setForm(initialForm ?? createEmptyEventWizardFormState());
+    setForm(
+      initialForm ??
+        createEmptyEventWizardFormState(t('training.add_training.details.title_placeholder')),
+    );
   }
 
   return (
@@ -150,18 +174,21 @@ export function EventWizard({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.modalOverlay}>
         <Pressable style={styles.modalBackdrop} onPress={handleClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
-              <ThemedText type="default">{title}</ThemedText>
+              <ThemedText type="default">{displayedTitle}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                Step {wizardStep + 1} of {EventWizardStepLabels.length}:{' '}
-                {EventWizardStepLabels[wizardStep]}
+                {t('training.add_training.progress', {
+                  current: wizardStep + 1,
+                  total: EventWizardStepLabels.length,
+                  step: stepLabels[wizardStep],
+                })}
               </ThemedText>
             </ThemedView>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Close"
+              accessibilityLabel={t('common.close')}
               onPress={handleClose}
               style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
               <SymbolView
@@ -173,7 +200,7 @@ export function EventWizard({
           </ThemedView>
 
           <ThemedView style={styles.stepIndicator}>
-            {EventWizardStepLabels.map((step, index) => (
+            {stepLabels.map((step, index) => (
               <ThemedView
                 key={step}
                 style={[styles.stepDot, index <= wizardStep && styles.stepDotActive]}
@@ -182,7 +209,13 @@ export function EventWizard({
           </ThemedView>
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.wizardScroll}>
-            {renderWizardStep(wizardStep, form, setForm, players, handleSelectType)}
+            {renderWizardStep(
+              wizardStep,
+              form,
+              setForm,
+              injuriesByPlayerId,
+              players,
+            )}
           </ScrollView>
 
           <ThemedView style={styles.formActions}>
@@ -195,19 +228,21 @@ export function EventWizard({
                 pressed && styles.pressed,
                 wizardStep === 0 && styles.disabledButton,
               ]}>
-              <ThemedText type="smallBold">Back</ThemedText>
+              <ThemedText type="smallBold">{t('common.back')}</ThemedText>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               disabled={isSaving}
-              onPress={wizardStep === 3 ? handleSave : goToNextStep}
+              onPress={wizardStep === 2 ? handleSave : goToNextStep}
               style={({ pressed }) => [
                 styles.primaryButton,
                 pressed && styles.pressed,
                 isSaving && styles.disabledButton,
               ]}>
               <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                {wizardStep === 3 ? (isSaving ? 'Saving...' : saveButtonLabel) : 'Next'}
+                {wizardStep === 2
+                  ? (isSaving ? t('training.actions.saving') : displayedSaveButtonLabel)
+                  : t('common.next')}
               </ThemedText>
             </Pressable>
           </ThemedView>
@@ -221,76 +256,89 @@ function renderWizardStep(
   wizardStep: EventWizardStep,
   form: EventWizardFormState,
   setForm: Dispatch<SetStateAction<EventWizardFormState>>,
-  players: Player[],
-  handleSelectType: (type: EventType) => void
+  injuriesByPlayerId: Map<number, PlayerInjury[]>,
+  players: Player[]
 ) {
   switch (wizardStep) {
     case 0:
-      return <EventTypeStep selectedType={form.type} onSelectType={handleSelectType} />;
-    case 1:
       return <EventDetailsStep form={form} onChangeForm={setForm} />;
+    case 1:
+      return (
+        <EventPlayersStep
+          players={players}
+          form={form}
+          injuriesByPlayerId={injuriesByPlayerId}
+          onChangeForm={setForm}
+        />
+      );
     case 2:
-      return <EventPlayersStep players={players} form={form} onChangeForm={setForm} />;
-    case 3:
       return <EventReviewStep players={players} form={form} />;
   }
 }
 
 function createPlayerStatusMap(
   players: Player[],
-  currentPlayerStatuses: EventWizardFormState['playerStatuses']
+  currentPlayerStatuses: EventWizardFormState['playerStatuses'],
+  eventDate: string,
+  injuriesByPlayerId: Map<number, PlayerInjury[]>,
+  defaultInjuredPlayersOut: boolean,
 ) {
   return Object.fromEntries(
-    players.map((player) => [player.id, currentPlayerStatuses[player.id] ?? 'unknown'])
+    players.map((player) => [
+      player.id,
+      currentPlayerStatuses[player.id] ??
+        (defaultInjuredPlayersOut &&
+        isPlayerInjuredOnDate(player, eventDate, injuriesByPlayerId)
+          ? 'unavailable'
+          : 'available'),
+    ])
   );
 }
 
-function validateWizardStep(wizardStep: EventWizardStep, form: EventWizardFormState) {
-  if (wizardStep === 0 && !form.type) {
-    Alert.alert('Choose an event type', 'Select training, match, or other.');
-    return false;
+function groupInjuriesByPlayerId(injuries: PlayerInjury[]) {
+  const grouped = new Map<number, PlayerInjury[]>();
+  for (const injury of injuries) {
+    grouped.set(injury.playerId, [
+      ...(grouped.get(injury.playerId) ?? []),
+      injury,
+    ]);
   }
+  return grouped;
+}
 
-  if (wizardStep === 1) {
+function validateWizardStep(
+  wizardStep: EventWizardStep,
+  form: EventWizardFormState,
+  t: ReturnType<typeof useI18n>['t'],
+) {
+  if (wizardStep === 0) {
     if (!form.title.trim()) {
-      Alert.alert('Missing title', 'Add a title for this event.');
+      Alert.alert(
+        t('training.add_training.validation.missing_title.title'),
+        t('training.add_training.validation.missing_title.message'),
+      );
       return false;
     }
 
     if (!isValidDisplayDate(form.date)) {
-      Alert.alert('Invalid date', 'Use DD-MM-YYYY, for example 12-07-2026.');
+      Alert.alert(
+        t('training.add_training.validation.invalid_date.title'),
+        t('training.add_training.validation.invalid_date.message'),
+      );
       return false;
     }
 
     if (form.startTime.trim() && !isValidDisplayTime(form.startTime)) {
-      Alert.alert('Invalid start time', 'Use HH:MM, for example 18:30.');
+      Alert.alert(
+        t('training.add_training.validation.invalid_start_time.title'),
+        t('training.add_training.validation.invalid_start_time.message'),
+      );
       return false;
     }
 
-    if (form.type === 'match' && !isMatchLocation(form.location)) {
-      Alert.alert('Choose match location', 'Select whether the match is home or away.');
-      return false;
-    }
-
-    if (form.type === 'match' && !form.opponent.trim()) {
-      Alert.alert('Missing opponent', 'Add the opponent for this match.');
-      return false;
-    }
   }
 
   return true;
-}
-
-function getLocationForSelectedType(type: EventType, currentLocation: string) {
-  if (type === 'match') {
-    return isMatchLocation(currentLocation) ? currentLocation : '';
-  }
-
-  return isMatchLocation(currentLocation) ? '' : currentLocation;
-}
-
-function isMatchLocation(value: string): value is MatchLocation {
-  return value === 'home' || value === 'away';
 }
 
 function isValidDisplayDate(value: string) {

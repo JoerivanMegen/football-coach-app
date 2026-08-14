@@ -8,11 +8,12 @@ import { ThemedView } from '@/components/themed-view';
 import { eventWizardStyles as styles } from '@/features/events/components/event-wizard/event-wizard-styles';
 import { MatchLocations } from '@/features/events/components/event-wizard/event-wizard-types';
 import type {
-  EventType,
   EventWizardFormState,
   MatchLocation,
 } from '@/features/events/components/event-wizard/event-wizard-types';
 import { useTheme } from '@/hooks/use-theme';
+import { useI18n } from '@/i18n/i18n-provider';
+import type { TranslationKey } from '@/i18n/generated/translations';
 
 type EventDetailsStepProps = {
   form: EventWizardFormState;
@@ -20,10 +21,12 @@ type EventDetailsStepProps = {
 };
 
 export function EventDetailsStep({ form, onChangeForm }: EventDetailsStepProps) {
+  const { t } = useI18n();
+
   return (
     <ThemedView style={styles.stepContent}>
       <EventTextInput
-        label="Title"
+        label={t('training.add_training.details.title')}
         required
         value={form.title}
         onChangeText={(title) => onChangeForm({ ...form, title })}
@@ -31,8 +34,8 @@ export function EventDetailsStep({ form, onChangeForm }: EventDetailsStepProps) 
 
       {Platform.OS === 'web' ? (
         <EventTextInput
-          label="Date"
-          placeholder="DD-MM-YYYY"
+          label={t('training.add_training.details.date')}
+          placeholder={t('common.fields.date.placeholder')}
           required
           value={form.date}
           onChangeText={(date) => onChangeForm({ ...form, date })}
@@ -46,8 +49,8 @@ export function EventDetailsStep({ form, onChangeForm }: EventDetailsStepProps) 
 
       {Platform.OS === 'web' ? (
         <EventTextInput
-          label="Start time"
-          placeholder="HH:MM"
+          label={t('training.add_training.details.start_time')}
+          placeholder={t('common.fields.time.placeholder')}
           value={form.startTime}
           onChangeText={(startTime) => onChangeForm({ ...form, startTime })}
         />
@@ -65,21 +68,21 @@ export function EventDetailsStep({ form, onChangeForm }: EventDetailsStepProps) 
         />
       ) : (
         <EventTextInput
-          label="Location"
+          label={t('training.add_training.details.location')}
           value={form.location}
           onChangeText={(location) => onChangeForm({ ...form, location })}
         />
       )}
       {form.type === 'match' ? (
         <EventTextInput
-          label="Opponent"
+          label={t('training.add_training.details.opponent')}
           required
           value={form.opponent}
           onChangeText={(opponent) => onChangeForm({ ...form, opponent })}
         />
       ) : null}
       <EventTextInput
-        label="Notes"
+        label={t('training.add_training.details.notes')}
         multiline
         value={form.notes}
         onChangeText={(notes) => onChangeForm({ ...form, notes })}
@@ -140,6 +143,7 @@ type EventDatePickerFieldProps = {
 
 function EventDatePickerField({ value, onChange }: EventDatePickerFieldProps) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const selectedDate = parseDisplayDateToDate(value) ?? new Date();
 
@@ -159,10 +163,10 @@ function EventDatePickerField({ value, onChange }: EventDatePickerFieldProps) {
 
   return (
     <ThemedView style={styles.fieldGroup}>
-      <ThemedText type="smallBold">Date *</ThemedText>
+      <ThemedText type="smallBold">{t('training.add_training.details.date')} *</ThemedText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Open event date picker"
+        accessibilityLabel={t('training.add_training.details.open_date_picker')}
         onPress={() => setIsOpen(true)}
         style={({ pressed }) => [
           styles.datePickerButton,
@@ -174,7 +178,7 @@ function EventDatePickerField({ value, onChange }: EventDatePickerFieldProps) {
           tintColor={theme.text}
           size={18}
         />
-        <ThemedText type="smallBold">{value || 'Choose date'}</ThemedText>
+        <ThemedText type="smallBold">{value || t('common.fields.date.choose')}</ThemedText>
       </Pressable>
 
       {isOpen ? (
@@ -200,6 +204,7 @@ type EventTimePickerFieldProps = {
 
 function EventTimePickerField({ value, onChange }: EventTimePickerFieldProps) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const selectedTime = parseDisplayTimeToDate(value) ?? new Date();
 
@@ -219,10 +224,10 @@ function EventTimePickerField({ value, onChange }: EventTimePickerFieldProps) {
 
   return (
     <ThemedView style={styles.fieldGroup}>
-      <ThemedText type="smallBold">Start time</ThemedText>
+      <ThemedText type="smallBold">{t('training.add_training.details.start_time')}</ThemedText>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Open event time picker"
+        accessibilityLabel={t('training.add_training.details.open_time_picker')}
         onPress={() => setIsOpen(true)}
         style={({ pressed }) => [
           styles.datePickerButton,
@@ -234,7 +239,7 @@ function EventTimePickerField({ value, onChange }: EventTimePickerFieldProps) {
           tintColor={theme.text}
           size={18}
         />
-        <ThemedText type="smallBold">{value || 'Choose time'}</ThemedText>
+        <ThemedText type="smallBold">{value || t('common.fields.time.choose')}</ThemedText>
       </Pressable>
 
       {isOpen ? (
@@ -254,10 +259,12 @@ function EventTimePickerField({ value, onChange }: EventTimePickerFieldProps) {
 }
 
 function PickerDoneButton({ onPress }: { onPress: () => void }) {
+  const { t } = useI18n();
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Confirm picker value"
+      accessibilityLabel={t('training.add_training.details.confirm_picker')}
       onPress={onPress}
       style={({ pressed }) => [
         styles.primaryButton,
@@ -265,7 +272,7 @@ function PickerDoneButton({ onPress }: { onPress: () => void }) {
         pressed && styles.pressed,
       ]}>
       <ThemedText type="smallBold" style={styles.primaryButtonText}>
-        Done
+        {t('common.done')}
       </ThemedText>
     </Pressable>
   );
@@ -277,9 +284,11 @@ type MatchLocationFieldProps = {
 };
 
 function MatchLocationField({ value, onChange }: MatchLocationFieldProps) {
+  const { t } = useI18n();
+
   return (
     <ThemedView style={styles.fieldGroup}>
-      <ThemedText type="smallBold">Location *</ThemedText>
+      <ThemedText type="smallBold">{t('training.add_training.details.location')} *</ThemedText>
       <ThemedView style={styles.segmentedControl}>
         {MatchLocations.map((location) => {
           const isSelected = value === location;
@@ -296,7 +305,7 @@ function MatchLocationField({ value, onChange }: MatchLocationFieldProps) {
                 pressed && styles.pressed,
               ]}>
               <ThemedText type="smallBold" style={isSelected && styles.segmentedOptionTextSelected}>
-                {getMatchLocationLabel(location)}
+                {getMatchLocationLabel(location, t)}
               </ThemedText>
             </Pressable>
           );
@@ -304,17 +313,6 @@ function MatchLocationField({ value, onChange }: MatchLocationFieldProps) {
       </ThemedView>
     </ThemedView>
   );
-}
-
-export function getDefaultTitleForEventType(type: EventType) {
-  switch (type) {
-    case 'training':
-      return 'Training';
-    case 'match':
-      return 'Match';
-    case 'other':
-      return '';
-  }
 }
 
 function parseDisplayDateToDate(value: string) {
@@ -380,11 +378,14 @@ export function formatTimeForDisplay(date: Date) {
   ].join(':');
 }
 
-export function getMatchLocationLabel(location: MatchLocation) {
+export function getMatchLocationLabel(
+  location: MatchLocation,
+  t: (key: TranslationKey) => string,
+) {
   switch (location) {
     case 'home':
-      return 'Home';
+      return t('training.add_training.details.locations.home');
     case 'away':
-      return 'Away';
+      return t('training.add_training.details.locations.away');
   }
 }

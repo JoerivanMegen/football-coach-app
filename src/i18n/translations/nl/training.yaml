@@ -1,0 +1,136 @@
+overview:
+  title: Training
+  subtitle: Plan je training en hou de statistieken van je spelers bij.
+  add_training: Nieuwe training
+  create_match: Wedstrijd maken in Wedstrijddag
+sections:
+  upcoming:
+    title: Aankomend
+    description: Toekomstige trainingen verschijnen hier.
+  needs_attendance:
+    title: Aanwezigheid nodig
+    description: Eerdere trainingen zonder aanwezigheid verschijnen hier.
+  completed:
+    title: Afgerond
+    description: Trainingen met geregistreerde aanwezigheid verschijnen hier.
+  empty: Nog geen trainingen gepland.
+  count: "{{count}} training"
+  count_plural: "{{count}} trainingen"
+card:
+  title: Training
+  signup_summary: "{{available}} beschikbaar · {{unavailable}} afwezig · {{unknown}} onbekend"
+  action_for: "{{action}} voor {{title}}"
+  edit_attendance_for: "Aanwezigheid bewerken voor {{title}}"
+  edit_for: "{{title}} bewerken"
+  cancel_for: "{{title}} annuleren"
+add_training:
+  title: Training toevoegen
+  progress: "Stap {{current}} van {{total}}: {{step}}"
+  steps:
+    type: Activiteitstype
+    details: Trainingsgegevens
+    players: Spelersbeschikbaarheid
+    review: Controleren
+  details:
+    title: Titel
+    title_placeholder: Training
+    date: Datum
+    start_time: Starttijd
+    location: Locatie
+    opponent: Tegenstander
+    notes: Notities
+    open_date_picker: Open de datumkiezer voor de training
+    open_time_picker: Open de tijdkiezer voor de training
+    confirm_picker: Bevestig de gekozen waarde
+    locations:
+      home: Thuis
+      away: Uit
+  types:
+    training:
+      label: Training
+      description: Training of oefensessie.
+    match:
+      label: Wedstrijd
+      description: Competitie-, oefen- of toernooiwedstrijd.
+    other:
+      label: Overig
+      description: Teamavond, vergadering of andere activiteit.
+  players:
+    title: Spelersbeschikbaarheid
+    empty: Voeg eerst spelers toe om beschikbaarheid te plannen.
+    available: Beschikbaar
+    out: Afwezig
+    unknown: Onbekend
+    injured: Geblesseerd
+    injury_override:
+      title: Geblesseerde speler
+      message: Deze speler is geblesseerd. Wil je deze speler toch aan de training toevoegen?
+      action: Toch toevoegen
+  review:
+    type: Type
+    title: Titel
+    date: Datum
+    start_time: Starttijd
+    location: Locatie
+    opponent: Tegenstander
+    players_tracked: Aantal spelers
+    available_players: Beschikbare spelers
+    no_available_players: Nog geen spelers als beschikbaar gemarkeerd.
+  validation:
+    missing_title:
+      title: Titel ontbreekt
+      message: Voeg een titel voor deze training toe.
+    invalid_date:
+      title: Ongeldige datum
+      message: Gebruik DD-MM-JJJJ, bijvoorbeeld 12-07-2026.
+    invalid_start_time:
+      title: Ongeldige starttijd
+      message: Gebruik UU:MM, bijvoorbeeld 18:30.
+attendance:
+  add: Aanwezigheid toevoegen
+  edit: Aanwezigheid bewerken
+  not_marked: De aanwezigheid voor deze training is nog niet geregistreerd.
+  loading: Aanwezigheid laden...
+  attended: Aanwezig
+  none: Geen
+  empty: Voeg eerst spelers toe om aanwezigheid te registreren.
+  columns:
+    name: Naam
+    minutes: Min
+    rating: Beoordeling
+  fields:
+    late: Te laat
+    minutes_played: Gespeelde minuten
+    match_rating: Wedstrijdbeoordeling
+  validation:
+    invalid_minutes:
+      title: Ongeldige minuten
+      message: Gebruik hele minuten van 0 tot 300.
+    invalid_rating:
+      title: Ongeldige beoordeling
+      message: Gebruik een wedstrijdbeoordeling van 1 tot 10.
+actions:
+  edit: Training bewerken
+  cancel: Training annuleren
+  keep: Training behouden
+  save: Training opslaan
+  save_changes: Wijzigingen opslaan
+  saving: Opslaan...
+confirm:
+  cancel:
+    title: Training annuleren
+    message: "‘{{title}}’ annuleren? Hiermee verwijder je de training en de bijbehorende aanwezigheidsgegevens."
+errors:
+  load:
+    title: Trainingen konden niet worden geladen
+    message: Probeer het opnieuw.
+  load_players:
+    title: Spelers konden niet worden geladen
+    message: Je kunt de trainingsgegevens wel alvast plannen.
+  save:
+    title: Training kon niet worden opgeslagen
+    message: Controleer de trainingsgegevens en probeer het opnieuw.
+  edit: Training kon niet worden bewerkt
+  cancel: Training kon niet worden geannuleerd
+  load_attendance: Aanwezigheid kon niet worden geladen
+  save_attendance: Aanwezigheid kon niet worden opgeslagen

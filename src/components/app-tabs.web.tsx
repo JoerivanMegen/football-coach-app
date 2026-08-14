@@ -1,3 +1,5 @@
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
   Tabs,
   TabList,
@@ -14,48 +16,46 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { useI18n } from '@/i18n/i18n-provider';
+import type { TranslationKey } from '@/i18n/generated/translations';
 
 type AppTab = {
   name: string;
   href: Href;
-  label: string;
-  iconName: SymbolViewProps['name'];
+  labelKey: TranslationKey;
+  iconName?: SymbolViewProps['name'];
+  iconType?: 'training';
 };
 
 const appTabs = [
   {
     name: 'home',
     href: '/',
-    label: 'Home',
+    labelKey: 'navigation.home',
     iconName: { ios: 'house.fill', web: 'home' },
   },
   {
     name: 'players',
     href: '/players',
-    label: 'Players',
+    labelKey: 'navigation.players',
     iconName: { ios: 'person.3.fill', web: 'groups' },
   },
   {
     name: 'events',
     href: '/events',
-    label: 'Events',
-    iconName: { ios: 'calendar', web: 'calendar_month' },
+    labelKey: 'navigation.training',
+    iconType: 'training',
   },
   {
     name: 'match-day',
     href: '/match-day',
-    label: 'Match Day',
+    labelKey: 'navigation.matchDay',
     iconName: { ios: 'sportscourt.fill', web: 'sports_soccer' },
-  },
-  {
-    name: 'settings',
-    href: '/settings',
-    label: 'Settings',
-    iconName: { ios: 'gearshape.fill', web: 'settings' },
   },
 ] satisfies AppTab[];
 
 export default function AppTabs() {
+  const { t } = useI18n();
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
@@ -63,7 +63,9 @@ export default function AppTabs() {
         <CustomTabList>
           {appTabs.map((tab) => (
             <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
-              <TabButton iconName={tab.iconName}>{tab.label}</TabButton>
+              <TabButton iconName={tab.iconName} iconType={tab.iconType}>
+                {t(tab.labelKey)}
+              </TabButton>
             </TabTrigger>
           ))}
         </CustomTabList>
@@ -73,23 +75,29 @@ export default function AppTabs() {
 }
 
 type TabButtonProps = TabTriggerSlotProps & {
-  iconName: SymbolViewProps['name'];
+  iconName?: SymbolViewProps['name'];
+  iconType?: 'training';
 };
 
-export function TabButton({ children, iconName, isFocused, ...props }: TabButtonProps) {
+export function TabButton({ children, iconName, iconType, isFocused, ...props }: TabButtonProps) {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const iconColor = isFocused ? colors.text : colors.textSecondary;
 
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
       <ThemedView
         type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
         style={styles.tabButtonView}>
-        <SymbolView
-          tintColor={isFocused ? colors.text : colors.textSecondary}
-          name={iconName}
-          size={18}
-        />
+        {iconType === 'training' ? (
+          <TrainingTabIcon color={iconColor} />
+        ) : iconName ? (
+          <SymbolView
+            tintColor={iconColor}
+            name={iconName}
+            size={18}
+          />
+        ) : null}
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>
@@ -98,14 +106,29 @@ export function TabButton({ children, iconName, isFocused, ...props }: TabButton
   );
 }
 
+function TrainingTabIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.trainingIcon}>
+      <MaterialCommunityIcons
+        name="traffic-cone"
+        color="#FF7A1A"
+        size={20}
+        style={styles.trainingConeIcon}
+      />
+      <FontAwesome6
+        name="soccer-ball"
+        color={color}
+        size={10}
+        style={styles.trainingBallIcon}
+      />
+    </View>
+  );
+}
+
 export function CustomTabList(props: TabListProps) {
   return (
     <View {...props} style={styles.tabListContainer}>
       <ThemedView type="backgroundElement" style={styles.innerContainer}>
-        <ThemedText type="smallBold" style={styles.brandText}>
-          Football Coach
-        </ThemedText>
-
         {props.children}
       </ThemedView>
     </View>
@@ -114,6 +137,7 @@ export function CustomTabList(props: TabListProps) {
 
 const styles = StyleSheet.create({
   tabListContainer: {
+    bottom: 0,
     position: 'absolute',
     width: '100%',
     padding: Spacing.three,
@@ -131,9 +155,6 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     maxWidth: MaxContentWidth,
   },
-  brandText: {
-    marginRight: 'auto',
-  },
   pressed: {
     opacity: 0.7,
   },
@@ -144,5 +165,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     paddingHorizontal: Spacing.two,
     borderRadius: Spacing.three,
+  },
+  trainingIcon: {
+    height: 20,
+    position: 'relative',
+    width: 22,
+  },
+  trainingConeIcon: {
+    left: 0,
+    position: 'absolute',
+    top: -1,
+  },
+  trainingBallIcon: {
+    bottom: 1,
+    position: 'absolute',
+    right: 0,
   },
 });

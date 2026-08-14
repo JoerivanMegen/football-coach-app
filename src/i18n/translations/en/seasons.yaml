@@ -1,0 +1,94 @@
+overview:
+  title: Seasons
+  subtitle: Look back at results, player statistics and season highlights.
+  current:
+    title: Current season
+    view_statistics: View current statistics
+  history:
+    title: Season history
+    completed: completed
+    view_summary: View summary ›
+    empty:
+      title: No completed seasons yet
+      description: After ending your first season in Settings, its summary and top threes will appear here.
+    count: "{{count}} completed season"
+    count_plural: "{{count}} completed seasons"
+    view_accessibility: "View {{season}} season summary"
+  end_season:
+    title: End season
+    description: Archive {{season}}, create its final summary, and start the next season. Players and settings will carry over.
+    action: End current season
+summary:
+  title: Season summary
+  season_title: "Season {{season}}"
+  current_season: Current season
+  team_overview: Team overview
+  player_highlights: Player highlights
+  player_overview: Player overview
+  no_data: No data yet
+  no_match: No match
+  card_points_help: Yellow = 1, red = 3
+  minimum_appearances: Minimum 3 appearances
+  minutes_short: "{{count}} min"
+  match_location:
+    home: vs
+    away: at
+  team_stats:
+    matches: Matches
+    wins: Wins
+    draws: Draws
+    losses: Losses
+    goals_for: Goals for
+    goals_against: Goals against
+    trainings: Trainings
+    fine_amount: Final Fine Jar amount
+  player_columns:
+    player: Player
+    training: Training
+    match: Match
+    late: Late
+    starts: Starts
+    average_minutes: Avg min
+    goals: Goals
+    assists: Assists
+    yellow_cards: YC
+    red_cards: RC
+    clean_sheets: CS
+    rating: Rating
+    duties: Duties
+  highlights:
+    most_goals: Most goals
+    most_assists: Most assists
+    most_card_points: Most card points
+    highest_average_minutes: Highest average minutes
+    best_training_attendance: Best training attendance
+    highest_lateness_percentage: Highest lateness percentage
+    minutes_per_training: Match minutes per attended training
+    most_fines: Most fines
+    biggest_win: Biggest win
+    biggest_loss: Biggest loss
+  fine_count: "{{count}} fine"
+  fine_count_plural: "{{count}} fines"
+errors:
+  load:
+    title: Could not check season
+    message: Please try again.
+  not_ended:
+    title: Season not ended
+    message: Your data has not been changed. Please try again.
+  summary_not_found: Season summary could not be found.
+confirm_end:
+  title: "End season {{season}}?"
+  unfinished_matches: "{{count}} match result"
+  unfinished_matches_plural: "{{count}} match results"
+  unfinished_trainings: "{{count}} training attendance record"
+  unfinished_trainings_plural: "{{count}} training attendance records"
+  unfinished_warning: "There are still {{items}} unfinished. They will be archived as they are.\n\n"
+  message: This creates a permanent season summary and starts a new season. Your players and settings will carry over.
+  action: End season
+  join: " and "
+  unpaid_fines:
+    title: Unpaid fines
+    message: "There are {{count}} unpaid fines worth {{amount}}. Paid fines will be archived. Would you like to carry the unpaid fines into the new season or write them off?"
+    carry: Carry into new season
+    write_off: Write off

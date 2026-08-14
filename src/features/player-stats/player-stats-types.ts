@@ -1,4 +1,4 @@
-import type { PlayerPosition } from '@/features/players/player-types';
+import type { PlayerPosition } from "@/features/players/player-types";
 
 export type RecentMatchRating = {
   eventId: number;
@@ -18,9 +18,27 @@ export type PlayerAttendanceStats = {
   trainingEvents: number;
   trainingAttended: number;
   trainingAttendancePercentage: number | null;
+  recentTrainingEvents: number;
+  recentTrainingAttended: number;
+  recentTrainingAttendancePercentage: number | null;
   matchEvents: number;
   matchAttended: number;
   matchAttendancePercentage: number | null;
+  matchAppearances: number;
+  matchStarts: number;
+  matchStarterPercentage: number | null;
+  matchGoals: number;
+  matchAssists: number;
+  matchYellowCards: number;
+  matchRedCards: number;
+  matchCleanSheets: number;
+  matchGoalsPer90: number | null;
+  matchAssistsPer90: number | null;
+  matchDutiesAssigned: number;
+  matchDutiesFulfilled: number;
+  matchDutyFulfillmentPercentage: number | null;
+  fineCount: number;
+  fineAmountCents: number;
   teamEvents: number;
   teamEventsAttended: number;
   teamEventAttendancePercentage: number | null;

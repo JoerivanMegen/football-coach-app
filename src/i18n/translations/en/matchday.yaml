@@ -1,0 +1,249 @@
+overview:
+  title: Match Day
+  subtitle: Prepare the team sheet, build lineups, and capture match moments.
+  add_match: Add match
+  sections:
+    unfinished: Unfinished matches
+    completed: Completed matches
+  empty:
+    title: No saved matches yet
+    description: Add a match to save the lineup and substitutes here.
+  actions:
+    edit: Edit match
+    delete: Delete match
+    add_result: Add result
+    edit_result: Edit result
+    share: Share
+  result:
+    title: Result
+    stats_logged: "{{count}} player stats logged"
+  card:
+    date_time: "{{date}} at {{time}}"
+    location:
+      home: Home
+      away: Away
+    category:
+      league: League match
+      cup: Cup match
+      friendly: Friendly match
+add_match:
+  title: Add match
+  edit_title: Edit match
+  close: Close match setup
+  progress: "Step {{step}} of {{total}}: {{label}}"
+  steps:
+    match_details: Match details
+    player_availability: Player availability
+    lineup: Lineup
+    review: Review
+  match_details:
+    opponent: Opponent
+    date: Date
+    time: Time
+    location:
+      label: Location
+      home: Home
+      away: Away
+    type:
+      label: Match type
+      league: League
+      cup: Cup
+      friendly: Friendly
+  availability:
+    title: Player availability
+    description: Only players marked available will appear in the formation builder.
+    empty: Add players first to choose match availability.
+    available: Available
+    out: Out
+    injured: Injured
+    guest: Guest
+    no_kit_number: No kit number
+    injury_override:
+      title: Injured player
+      message: "{{name}} is marked as injured for this match date. Do you want to make them available anyway?"
+      action: Make available
+  roles:
+    title: Match roles
+    captain: Captain
+    captain_required: Captain *
+    match_duty: Match chores
+    no_available_players: Mark players available first.
+    instructions:
+      captain: Choose one captain for this match.
+      captain_and_duty: Choose one captain and up to two players for match chores.
+  guest_players:
+    title: Add guest player
+    description: Add a new name or reuse a previous guest.
+    name: Guest player name
+    name_placeholder: Player name
+    position: Position
+    previous: Previous guest players
+    empty: No previous guest players yet.
+    added: Added
+    error:
+      title: Could not add guest player
+    limit:
+      title: Guest player limit reached
+      message: You can add up to 10 guest players, using kit numbers 70 to 79.
+  lineup:
+    formation: Formation
+    select_formation: Select formation
+    substitutes: Substitutes
+    no_substitutes: No substitutes selected.
+    add_players_first: Add players first to build a lineup.
+    remove_player: Remove from position
+    choose_player: Choose player
+    change_player: Change player
+    position: Position
+    close_picker: Close player picker
+    add_substitute: "Add substitute {{label}}"
+    substitute_prefix: SUB
+  review:
+    date_time: "{{date}} at {{time}}"
+    location: "{{location}} match"
+  actions:
+    go_back: Go back
+    continue_anyway: Continue anyway
+    review: Review
+    update: Update
+  validation:
+    opponent:
+      title: Opponent required
+      message: Add the opponent name before continuing.
+    date:
+      title: Invalid date
+      message: Use a valid date in DD-MM-YYYY format.
+    time:
+      title: Invalid time
+      message: Use a valid time in HH:MM format.
+    result_date:
+      title: Invalid result date
+      message: A match with a saved result cannot be moved to a future date.
+    availability:
+      title: Choose available players
+      message: Mark at least one player as available before building the lineup.
+    low_availability:
+      title: Less than 11 available players
+      message: You have selected less than 11 available players!
+    lineup:
+      title: Complete lineup
+      message: Add 11 players to the pitch before continuing.
+    captain:
+      title: Captain required
+      message: Choose a captain before continuing with the match setup.
+    match_duty:
+      title: Match chores full
+      message: You can select up to two players for match chores.
+result:
+  title: Match result
+  actions:
+    save_and_share: Save and share
+    saving: Saving...
+  score:
+    your_team: Your team score
+    opponent: Opponent score
+    unknown_opponent: Opponent
+  outcome:
+    won: Won
+    drawn: Draw
+    lost: Lost
+  steps:
+    result: Result
+    performance: Player performance
+    review: Review
+  player_performance:
+    description: Tap a player on the lineup to add their stats. Starters default to {{minutes}} minutes and substitutes default to 0. Player goals cannot exceed the {{score}} score.
+    edit_player: "Add statistics for {{player}}"
+    empty: Add players to the lineup before logging player performance.
+    goals: Goals
+    assists: Assists
+    rating: Rating
+    minutes_played: Minutes played
+    attendance:
+      label: Attendance
+      present: Present
+      late: Late
+      no_show: No-show
+    card:
+      label: Card
+      none: None
+    cards: Cards
+    yellow: Yellow
+    red: Red
+    notes: Notes
+    match_duty_fulfilled: Match chores fulfilled
+    match_duty_help: This player was assigned match chores.
+    role:
+      starter: Starter
+      substitute: Substitute
+    summary: "{{minutes}} min · {{goals}}G · {{assists}}A · {{rating}} · {{attendance}}{{card}}"
+  review:
+    no_match: Select a match before reviewing the result.
+  validation:
+    limit_reached: Limit reached
+    scoring_limit: "You've already added {{score}} goals scored!"
+    goals_mismatch:
+      title: Goals don't match
+      message: The number of goals doesn't match with the result! Were the remaining ones own goals?
+  controls:
+    decrease: "Decrease {{label}}"
+    increase: "Increase {{label}}"
+share:
+  title: Share match image
+  description: Preview the lineup graphic before exporting.
+  background: Background
+  backgrounds:
+    day: Day
+    night: Night
+    stadium-day: Stadium day
+    stadium-night: Stadium night
+  overlay: Overlay
+  overlays:
+    classic: Classic
+    broadcast: Broadcast
+  close_preview: Close share preview
+  export: Export
+  exporting: Exporting...
+  poster:
+    opponent: OPPONENT
+    home_match: Home match
+    away_match: Away match
+    subs: SUBS
+    substitutes: "SUBSTITUTES:"
+  colors:
+    title: Colors
+    description: Tweak panel and text colors for this image.
+    panel: Panel
+    text: Text
+    text_icons: Text & icons
+    team_section: Team, home score & subs title
+    opponent_section: Opponent, away score & subs
+    info_section: Location, date & accents
+  errors:
+    no_image:
+      title: No image ready
+      message: Open a match preview before exporting.
+    export:
+      title: Export failed
+      message: Something went wrong while creating the match image.
+  success:
+    title: Image created
+    message: "The image was created here:\n{{uri}}"
+player_stats:
+  form: Form
+  no_ratings: No ratings yet
+  training: Training
+  recent_period: past 5 weeks
+  average_minutes: Avg mins
+errors:
+  load:
+    title: Could not load matches
+    message: Please try again.
+  save_match:
+    title: Could not save match
+    message: Please check the match details and try again.
+  save_result: Could not save result
+  delete: Could not delete match
+confirm:
+  delete_title: Delete match?
+  delete_message: "This will permanently delete the saved match against {{opponent}}."

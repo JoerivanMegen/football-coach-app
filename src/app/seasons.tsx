@@ -1,0 +1,343 @@
+import { useFocusEffect, useRouter } from "expo-router";
+import { SymbolView } from "expo-symbols";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { AppHeaderHeight, BottomTabInset, CompactScreenTopMargin, MaxContentWidth, PageTopPadding, Spacing } from "@/constants/theme";
+import {
+  endActiveSeasonAsync,
+  getActiveSeasonAsync,
+  getSeasonCompletionStatusAsync,
+  listEndedSeasonsAsync,
+} from "@/features/seasons/season-repository";
+import type {
+  Season,
+  SeasonCompletionStatus,
+  UnpaidFineResolution,
+} from "@/features/seasons/season-types";
+import { getTeamSettingsAsync } from "@/features/settings/team-settings-repository";
+import type { FineJarCurrency } from "@/features/settings/team-settings-types";
+import { useTheme } from "@/hooks/use-theme";
+import { useI18n } from "@/i18n/i18n-provider";
+
+export default function SeasonsScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+  const { locale, t } = useI18n();
+  const safeAreaInsets = useSafeAreaInsets();
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null);
+  const [endedSeasons, setEndedSeasons] = useState<Season[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEndingSeason, setIsEndingSeason] = useState(false);
+  const [fineJarCurrency, setFineJarCurrency] = useState<FineJarCurrency>(
+    locale === "nl" ? "EUR" : "GBP",
+  );
+  const insets = {
+    ...safeAreaInsets,
+    bottom: safeAreaInsets.bottom + BottomTabInset + Spacing.three,
+  };
+  const contentPlatformStyle = Platform.select({
+    android: {
+      paddingTop: insets.top,
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
+      paddingBottom: insets.bottom,
+    },
+    web: {
+      paddingTop: PageTopPadding,
+      paddingBottom: Spacing.five,
+    },
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      let isFocused = true;
+
+      Promise.all([
+        getActiveSeasonAsync(),
+        listEndedSeasonsAsync(),
+        getTeamSettingsAsync(),
+      ])
+        .then(([current, history, settings]) => {
+          if (!isFocused) return;
+          setActiveSeason(current);
+          setEndedSeasons(history);
+          setFineJarCurrency(
+            settings?.fineJarCurrency ?? (locale === "nl" ? "EUR" : "GBP"),
+          );
+        })
+        .catch((error: unknown) => {
+          console.warn("Failed to load seasons", error);
+        })
+        .finally(() => {
+          if (isFocused) setIsLoading(false);
+        });
+
+      return () => {
+        isFocused = false;
+      };
+    }, [locale]),
+  );
+
+  function openSummary(season: Season) {
+    router.push({
+      pathname: "/season-summary",
+      params: { seasonId: String(season.id) },
+    });
+  }
+
+  async function confirmEndSeason() {
+    if (!activeSeason || isEndingSeason) return;
+
+    try {
+      const status = await getSeasonCompletionStatusAsync(activeSeason.id);
+      const unfinished: string[] = [];
+      if (status.matchesWithoutResults) {
+        unfinished.push(t(
+          status.matchesWithoutResults === 1
+            ? "seasons.confirm_end.unfinished_matches"
+            : "seasons.confirm_end.unfinished_matches_plural",
+          { count: status.matchesWithoutResults },
+        ));
+      }
+      if (status.trainingsWithoutAttendance) {
+        unfinished.push(t(
+          status.trainingsWithoutAttendance === 1
+            ? "seasons.confirm_end.unfinished_trainings"
+            : "seasons.confirm_end.unfinished_trainings_plural",
+          { count: status.trainingsWithoutAttendance },
+        ));
+      }
+      const warning = unfinished.length
+        ? t("seasons.confirm_end.unfinished_warning", {
+            items: unfinished.join(t("seasons.confirm_end.join")),
+          })
+        : "";
+
+      Alert.alert(
+        t("seasons.confirm_end.title", { season: activeSeason.name }),
+        `${warning}${t("seasons.confirm_end.message")}`,
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("seasons.confirm_end.action"),
+            style: "destructive",
+            onPress: () => {
+              if (status.unpaidFineCount > 0) {
+                confirmUnpaidFineResolution(status);
+              } else {
+                void handleEndSeason("write_off");
+              }
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      console.warn("Failed to check season", error);
+      Alert.alert(t("seasons.errors.load.title"), t("seasons.errors.load.message"));
+    }
+  }
+
+  function confirmUnpaidFineResolution(status: SeasonCompletionStatus) {
+    const amount = new Intl.NumberFormat(
+      locale === "nl" ? "nl-NL" : "en-GB",
+      {
+        style: "currency",
+        currency: fineJarCurrency,
+        currencyDisplay: "narrowSymbol",
+      },
+    ).format(status.unpaidFineAmountCents / 100);
+
+    Alert.alert(
+      t("seasons.confirm_end.unpaid_fines.title"),
+      t("seasons.confirm_end.unpaid_fines.message", {
+        count: status.unpaidFineCount,
+        amount,
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("seasons.confirm_end.unpaid_fines.write_off"),
+          style: "destructive",
+          onPress: () => void handleEndSeason("write_off"),
+        },
+        {
+          text: t("seasons.confirm_end.unpaid_fines.carry"),
+          onPress: () => void handleEndSeason("carry"),
+        },
+      ],
+    );
+  }
+
+  async function handleEndSeason(unpaidFineResolution: UnpaidFineResolution) {
+    setIsEndingSeason(true);
+    try {
+      const endedSeason = await endActiveSeasonAsync(unpaidFineResolution);
+      const [nextSeason, history] = await Promise.all([
+        getActiveSeasonAsync(),
+        listEndedSeasonsAsync(),
+      ]);
+      setActiveSeason(nextSeason);
+      setEndedSeasons(history);
+      openSummary(endedSeason);
+    } catch (error) {
+      console.warn("Failed to end season", error);
+      Alert.alert(t("seasons.errors.not_ended.title"), t("seasons.errors.not_ended.message"));
+    } finally {
+      setIsEndingSeason(false);
+    }
+  }
+
+  return (
+    <ScrollView
+      style={{ backgroundColor: theme.background }}
+      contentInset={insets}
+      contentContainerStyle={[styles.screen, contentPlatformStyle]}
+    >
+      <ThemedView style={styles.container}>
+        <View style={styles.heading}>
+          <ThemedText type="subtitle">{t("seasons.overview.title")}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t("seasons.overview.subtitle")}
+          </ThemedText>
+        </View>
+
+        {isLoading ? (
+          <ActivityIndicator color="#1C7C54" />
+        ) : (
+          <>
+            {activeSeason ? (
+              <ThemedView type="backgroundElement" style={styles.currentCard}>
+                <View style={styles.cardTitleRow}>
+                  <SymbolView
+                    name={{ ios: "calendar", android: "event", web: "event" }}
+                    size={22}
+                    tintColor="#1C7C54"
+                  />
+                  <View style={styles.cardText}>
+                    <ThemedText type="smallBold">{t("seasons.overview.current.title")}</ThemedText>
+                    <ThemedText type="default">{activeSeason.name}</ThemedText>
+                  </View>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => openSummary(activeSeason)}
+                  style={({ pressed }) => [styles.outlineButton, pressed && styles.pressed]}
+                >
+                  <ThemedText type="smallBold" style={styles.greenText}>
+                    {t("seasons.overview.current.view_statistics")}
+                  </ThemedText>
+                </Pressable>
+              </ThemedView>
+            ) : null}
+
+            <View style={styles.historyHeading}>
+              <ThemedText type="default">{t("seasons.overview.history.title")}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {t(
+                  endedSeasons.length === 1
+                    ? "seasons.overview.history.count"
+                    : "seasons.overview.history.count_plural",
+                  { count: endedSeasons.length },
+                )}
+              </ThemedText>
+            </View>
+
+            {endedSeasons.length ? (
+              endedSeasons.map((season) => (
+                <Pressable
+                  key={season.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(
+                    "seasons.overview.history.view_accessibility",
+                    { season: season.name },
+                  )}
+                  onPress={() => openSummary(season)}
+                  style={({ pressed }) => [pressed && styles.pressed]}
+                >
+                  <ThemedView type="backgroundElement" style={styles.seasonCard}>
+                    <View style={styles.cardText}>
+                      <ThemedText type="default">{season.name}</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {formatDate(season.startDate)} – {season.endDate ? formatDate(season.endDate) : ""}
+                      </ThemedText>
+                    </View>
+                    <ThemedText type="smallBold" style={styles.greenText}>
+                      {t("seasons.overview.history.view_summary")}
+                    </ThemedText>
+                  </ThemedView>
+                </Pressable>
+              ))
+            ) : (
+              <ThemedView type="backgroundElement" style={styles.emptyCard}>
+                <ThemedText type="smallBold">{t("seasons.overview.history.empty.title")}</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {t("seasons.overview.history.empty.description")}
+                </ThemedText>
+              </ThemedView>
+            )}
+
+            <ThemedView type="backgroundElement" style={styles.endSeasonCard}>
+              <ThemedText type="default">{t("seasons.overview.end_season.title")}</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {t("seasons.overview.end_season.description", { season: activeSeason?.name ?? "" })}
+              </ThemedText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t("seasons.overview.end_season.action")}
+                disabled={!activeSeason || isEndingSeason}
+                onPress={() => void confirmEndSeason()}
+                style={({ pressed }) => [
+                  styles.endSeasonButton,
+                  pressed && styles.pressed,
+                  isEndingSeason && styles.disabled,
+                ]}
+              >
+                <ThemedText type="smallBold" style={styles.dangerText}>
+                  {isEndingSeason ? t("common.loading") : t("seasons.overview.end_season.action")}
+                </ThemedText>
+              </Pressable>
+            </ThemedView>
+          </>
+        )}
+      </ThemedView>
+    </ScrollView>
+  );
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${day}-${month}-${year}` : value;
+}
+
+const styles = StyleSheet.create({
+  screen: { alignItems: "center", paddingHorizontal: Spacing.four },
+  container: {
+    gap: Spacing.three,
+    marginTop: CompactScreenTopMargin,
+    maxWidth: MaxContentWidth,
+    paddingTop:
+      Platform.select({
+        web: AppHeaderHeight + PageTopPadding,
+        default: AppHeaderHeight + Spacing.two,
+      }) ?? AppHeaderHeight + Spacing.two,
+    width: "100%",
+  },
+  heading: { gap: Spacing.one },
+  currentCard: { borderColor: "#1C7C54", borderRadius: Spacing.three, borderWidth: 1, gap: Spacing.three, padding: Spacing.three },
+  cardTitleRow: { alignItems: "center", flexDirection: "row", gap: Spacing.three },
+  cardText: { flex: 1, gap: Spacing.one },
+  outlineButton: { alignItems: "center", borderColor: "#1C7C54", borderRadius: Spacing.two, borderWidth: 1, justifyContent: "center", minHeight: 44 },
+  greenText: { color: "#1C7C54" },
+  historyHeading: { gap: Spacing.one, marginTop: Spacing.one },
+  seasonCard: { alignItems: "center", borderRadius: Spacing.three, flexDirection: "row", gap: Spacing.three, minHeight: 78, padding: Spacing.three },
+  emptyCard: { borderRadius: Spacing.three, gap: Spacing.one, padding: Spacing.three },
+  endSeasonCard: { borderRadius: Spacing.three, gap: Spacing.two, marginTop: Spacing.three, padding: Spacing.three },
+  endSeasonButton: { alignItems: "center", borderColor: "#DC2626", borderRadius: Spacing.two, borderWidth: 1, justifyContent: "center", minHeight: 48, width: "100%" },
+  dangerText: { color: "#DC2626" },
+  disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.65 },
+});

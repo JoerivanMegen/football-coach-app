@@ -1,0 +1,78 @@
+header:
+  title: Team dashboard
+  subtitle: Jump straight into the next thing your team needs.
+  injuries: "{{count}} injured player"
+  injuries_plural: "{{count}} injured players"
+next_match:
+  preparation: "Ready for your match against {{opponent}}? Plan your trainings to prepare!"
+  good_luck: "Good luck against {{opponent}}!"
+  open_training: Open Training to prepare for the upcoming match
+recent_win:
+  message: Congrats on your win!
+  result: "{{score}} against {{opponent}}"
+  share: Share
+  share_accessibility: "Share the win against {{opponent}}"
+actions:
+  title: Actions
+  setup_team:
+    title: Set up your team
+    description: Before you start managing your team, you will need to set up the app!
+  add_first_players:
+    title: Add your first players!
+    description: Build your squad before planning events.
+  players:
+    title: Players
+    description: Manage your squad, positions, and player details.
+  add_training:
+    title: Add a training
+    description: Plan a training session and track attendance.
+  add_match:
+    title: Add a match
+    description: Set up your next match and prepare the lineup.
+  add_match_result:
+    title: Add match result
+    title_plural: Add match results
+    description: Record how your match went.
+    waiting_description: A finished match is waiting for its result and player stats.
+    waiting_description_plural: "{{count}} finished matches are waiting for results and player stats."
+  add_training_attendance:
+    title: Add training attendance
+    title_plural: Add training attendances
+    description: A finished training is waiting for its attendance.
+    description_plural: "{{count}} finished trainings are waiting for attendance."
+  shortcuts:
+    training: Training
+    match_day: Match Day
+    team_stats: Team Stats
+setup:
+  header:
+    step_progress: "Step {{step}} of {{total}}"
+  team_details:
+    title: Team details
+    team_name: Team name
+    team_name_placeholder: Example FC
+    club_location: Club location (optional)
+    club_location_help: Used as the default location for home matches and trainings.
+    club_location_placeholder: Sports park, clubhouse, or address
+  kit:
+    title: Kit design
+    third_colour: Third colour
+    number_colour: Kit number colour
+  preferences:
+    match_minutes: Match minutes
+    match_minutes_help: Use this for youth teams or competitions with shorter matches.
+    nicknames: Nicknames
+    first_names: First names
+    fine_jar_on: Use fine jar
+    fine_jar_off: Skip for now
+    match_duties_on: Use match duties
+    match_duties_off: No match duties
+  actions:
+    continue_team_settings: Continue team settings setup
+    back_to_kit: Back to kit settings
+    save: Save team settings
+    saving: Saving...
+  errors:
+    team_name_required: Team name is required.
+    invalid_match_minutes: Match minutes must be between 1 and 120.
+    invalid_values: Please check your team name and colour values.

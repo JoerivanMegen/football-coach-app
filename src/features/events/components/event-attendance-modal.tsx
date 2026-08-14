@@ -26,6 +26,7 @@ import type {
   EventAttendancePlayer,
 } from "@/features/events/event-types";
 import { useTheme } from "@/hooks/use-theme";
+import { useI18n } from "@/i18n/i18n-provider";
 
 type EventAttendanceModalProps = {
   event: CoachEvent | null;
@@ -41,6 +42,7 @@ export function EventAttendanceModal({
   onSaved,
 }: EventAttendanceModalProps) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [players, setPlayers] = useState<EventAttendancePlayer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -158,7 +160,7 @@ export function EventAttendanceModal({
         style={styles.modalOverlay}
       >
         <Pressable style={styles.modalBackdrop} onPress={handleClose} />
-        <ThemedView style={styles.modalSheet}>
+        <ThemedView type="modalBackground" style={styles.modalSheet}>
           <ThemedView style={styles.modalHeader}>
             <ThemedView style={styles.modalTitleGroup}>
               <ThemedText type="default">Add attendance</ThemedText>
@@ -211,7 +213,7 @@ export function EventAttendanceModal({
                       style={styles.attendanceGroup}
                     >
                       <ThemedText type="smallBold">
-                        {getSignupStatusLabel(signupStatus)}
+                        {getSignupStatusLabel(signupStatus, t)}
                       </ThemedText>
                       {groupPlayers.map((player) => (
                         <ThemedView
@@ -223,7 +225,10 @@ export function EventAttendanceModal({
                             type="backgroundElement"
                             style={styles.playerNameGroup}
                           >
-                            <ThemedText type="default" style={styles.playerName}>
+                            <ThemedText
+                              type="default"
+                              style={styles.playerName}
+                            >
                               {player.firstName} {player.lastName}
                             </ThemedText>
                           </ThemedView>

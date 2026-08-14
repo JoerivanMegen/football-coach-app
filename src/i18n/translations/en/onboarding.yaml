@@ -1,0 +1,38 @@
+language_selection:
+  heading_english: Choose your language!
+  heading_dutch: Kies je taal!
+  dutch_flag: 🇳🇱
+  dutch_code: NL
+  dutch_name: Nederlands
+  english_flag: 🇬🇧
+  english_code: EN
+  english_name: English
+  logo_label: Assistant Coach
+slides:
+  welcome:
+    eyebrow: Players
+    title: Welcome to Assistant Coach
+    description: Build your squad with positions, kit numbers and player details. Their statistics will grow as you use the app.
+  training:
+    eyebrow: Training
+    title: Keep attendance effortless
+    description: Schedule training sessions, record who attended and follow participation throughout the season.
+  matchday:
+    eyebrow: Match Day
+    title: Prepare every match
+    description: Set availability, build your lineup and record the result, minutes, goals, assists, cards and ratings.
+  sharing:
+    eyebrow: Share
+    title: Turn lineups into images
+    description: Create polished lineup and result images to share with players, supporters and your club community.
+  privacy:
+    eyebrow: Your data
+    title: Your data stays with you
+    description: We do not store your coaching data. It is kept locally on your phone, so uninstalling the app can permanently remove it. Before switching phones, export a backup from Settings and save it somewhere safe.
+  settings:
+    eyebrow: Settings
+    title: Make it your team
+    description: Choose your kit, match duration and preferences. You can also export a complete data backup whenever needed.
+actions:
+  skip: Skip tutorial
+  finish: Set up your team

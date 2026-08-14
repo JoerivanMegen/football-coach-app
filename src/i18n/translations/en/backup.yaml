@@ -1,0 +1,38 @@
+section:
+  title: Data backup
+  description: Export all players, trainings, matches, statistics, and settings. Choose Files, iCloud Drive, Google Drive, or another available location when the share sheet opens. You can restore that file on this or a new phone later.
+export:
+  action: Export data backup
+  preparing: Preparing backup...
+  error:
+    title: Backup failed
+    message: The backup file could not be created. Please try again.
+restore:
+  action: Restore data backup
+  restoring: Restoring...
+  confirm:
+    title: Restore this backup?
+    message: This replaces all current Assistant Coach data with the contents of the selected backup.
+    file_message: "Restoring “{{name}}” will replace all players, trainings, matches, statistics, guest players, and settings currently in the app. This cannot be undone."
+    action: Restore backup
+  file_picker_error:
+    title: Could not open files
+    message: The file picker could not be opened. Please try again.
+  success:
+    title: Backup restored
+    message: Your Assistant Coach data has been restored successfully. The app will now reload.
+    continue: Continue
+  error:
+    title: Backup could not be restored
+    message: Check that you selected a valid Assistant Coach backup and try again.
+delete:
+  title: Delete app data
+  description: Return the app to a completely empty state. This cannot be undone without a backup.
+  action: Delete all app data
+  confirm:
+    title: Delete all app data?
+    message: This permanently deletes your players, trainings, matches, statistics, guest players, and team settings. Export a backup first if you may need this data again.
+    action: Delete everything
+  error:
+    title: Delete failed
+    message: Your data could not be deleted. Please try again.
