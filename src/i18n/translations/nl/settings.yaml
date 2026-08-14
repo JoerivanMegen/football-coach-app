@@ -47,8 +47,8 @@ match_preferences:
   fine_jar:
     title: Boetepot
     description: Je kunt dit later gebruiken voor boetes, herinneringen en teamregels.
-    enabled: Boetepot gebruiken
-    disabled: Voorlopig overslaan
+    enabled: Boetepot aan
+    disabled: Boetepot uit
     currency:
       title: Valuta van de boetepot
       description: Kies de valuta voor boetetypes en totalen.

@@ -288,7 +288,7 @@ export default function PlayersScreen() {
     if (findDuplicatePlayer(firstName, lastName, players, editingPlayerId)) {
       confirmDuplicatePlayer(`${firstName} ${lastName}`, () => {
         continueWithKitNumberCheck();
-      });
+      }, t);
       return;
     }
 
@@ -318,7 +318,10 @@ export default function PlayersScreen() {
       editingPlayerId,
     );
     const conflictingName = conflictingPlayer.firstName;
-    const message = `${conflictingName} already has this kit number. Do you want to change theirs to ${nextAvailableNumber}?`;
+    const message = t("players.form.duplicate.kit_number_message", {
+      name: conflictingName,
+      number: nextAvailableNumber,
+    });
     const confirmReassignment = () => {
       void savePlayer(playerInput, {
         playerId: conflictingPlayer.id,
@@ -333,7 +336,10 @@ export default function PlayersScreen() {
 
     Alert.alert(t("players.form.duplicate.kit_number_title"), message, [
       { text: t("common.cancel"), style: "cancel" },
-      { text: "Change number", onPress: confirmReassignment },
+      {
+        text: t("players.form.duplicate.change_number"),
+        onPress: confirmReassignment,
+      },
     ]);
   }
 
@@ -671,8 +677,14 @@ export default function PlayersScreen() {
   );
 }
 
-function confirmDuplicatePlayer(playerName: string, onConfirm: () => void) {
-  const message = `"${playerName}" already exists. Are you sure you want to add another one?`;
+function confirmDuplicatePlayer(
+  playerName: string,
+  onConfirm: () => void,
+  t: ReturnType<typeof useI18n>["t"],
+) {
+  const message = t("players.form.duplicate.player_message", {
+    name: playerName,
+  });
 
   if (Platform.OS === "web") {
     if (globalThis.confirm(message)) {
@@ -681,13 +693,13 @@ function confirmDuplicatePlayer(playerName: string, onConfirm: () => void) {
     return;
   }
 
-  Alert.alert("Possible duplicate player", message, [
+  Alert.alert(t("players.form.duplicate.player_title"), message, [
     {
-      text: "Cancel",
+      text: t("common.cancel"),
       style: "cancel",
     },
     {
-      text: "Add anyway",
+      text: t("players.form.duplicate.add_anyway"),
       style: "default",
       onPress: onConfirm,
     },

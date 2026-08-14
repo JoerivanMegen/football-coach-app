@@ -22,6 +22,7 @@ export async function scheduleMatchResultReminderAsync(
   matchId: number,
   matchDate: string,
   startTime: string,
+  locale: AppLocale,
 ) {
   if (Platform.OS === "web") return;
 
@@ -33,12 +34,13 @@ export async function scheduleMatchResultReminderAsync(
 
     const reminderDate = getMatchResultReminderDate(matchDate, startTime);
     if (!reminderDate) return;
+    const notificationText = translations[locale].notifications.match_result;
 
     await Notifications.scheduleNotificationAsync({
       identifier,
       content: {
-        title: "How did your match go?",
-        body: "Fill in your result!",
+        title: notificationText.title,
+        body: notificationText.body,
         data: { url: "/match-day" },
         sound: "default",
       },

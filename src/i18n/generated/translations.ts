@@ -722,8 +722,11 @@ export const translations = {
         },
         "duplicate": {
           "player_title": "Possible duplicate player",
+          "player_message": "\"{{name}}\" already exists. Are you sure you want to add another one?",
+          "add_anyway": "Add anyway",
           "kit_number_title": "Kit number already taken",
-          "kit_number_message": "{{name}} already has this kit number. Do you want to change theirs to {{number}}?"
+          "kit_number_message": "{{name}} already has this kit number. Do you want to change theirs to {{number}}?",
+          "change_number": "Change number"
         }
       },
       "stats": {
@@ -962,8 +965,8 @@ export const translations = {
       },
       "kit": {
         "title": "Kit design",
-        "player_primary": "Player primary color",
-        "player_secondary": "Player secondary color",
+        "player_primary": "Primary color",
+        "player_secondary": "Secondary color",
         "goalkeeper_primary": "Goalkeeper primary color",
         "goalkeeper_secondary": "Goalkeeper secondary color",
         "third": "Third color",
@@ -1440,8 +1443,8 @@ export const translations = {
           "match_minutes_help": "Gebruik dit voor jeugdteams of competities met kortere wedstrijden.",
           "nicknames": "Bijnamen",
           "first_names": "Voornamen",
-          "fine_jar_on": "Boetepot gebruiken",
-          "fine_jar_off": "Voorlopig overslaan",
+          "fine_jar_on": "Boetepot aan",
+          "fine_jar_off": "Boetepot uit",
           "match_duties_on": "Corvee gebruiken",
           "match_duties_off": "Geen corvee"
         },
@@ -1764,10 +1767,10 @@ export const translations = {
           "stadium-day": "Stadion overdag",
           "stadium-night": "Stadion 's nachts"
         },
-        "overlay": "Overlay",
+        "overlay": "Design",
         "overlays": {
           "classic": "Klassiek",
-          "broadcast": "Uitzending"
+          "broadcast": "Broadcast"
         },
         "close_preview": "Deelvoorbeeld sluiten",
         "export": "Downloaden",
@@ -1979,8 +1982,11 @@ export const translations = {
         },
         "duplicate": {
           "player_title": "Mogelijk dubbele speler",
+          "player_message": "\"{{name}}\" bestaat al. Weet je zeker dat je nog een speler met deze naam wilt toevoegen?",
+          "add_anyway": "Toch toevoegen",
           "kit_number_title": "Rugnummer is al bezet",
-          "kit_number_message": "{{name}} heeft dit rugnummer al. Wil je diens nummer wijzigen naar {{number}}?"
+          "kit_number_message": "{{name}} heeft dit rugnummer al. Wil je diens nummer wijzigen naar {{number}}?",
+          "change_number": "Nummer wijzigen"
         }
       },
       "stats": {
@@ -2249,8 +2255,8 @@ export const translations = {
         "fine_jar": {
           "title": "Boetepot",
           "description": "Je kunt dit later gebruiken voor boetes, herinneringen en teamregels.",
-          "enabled": "Boetepot gebruiken",
-          "disabled": "Voorlopig overslaan",
+          "enabled": "Boetepot aan",
+          "disabled": "Boetepot uit",
           "currency": {
             "title": "Valuta van de boetepot",
             "description": "Kies de valuta voor boetetypes en totalen.",
@@ -2918,8 +2924,11 @@ export type TranslationKey =
   | "players.errors.save.title"
   | "players.form.add_title"
   | "players.form.birth_date"
+  | "players.form.duplicate.add_anyway"
+  | "players.form.duplicate.change_number"
   | "players.form.duplicate.kit_number_message"
   | "players.form.duplicate.kit_number_title"
+  | "players.form.duplicate.player_message"
   | "players.form.duplicate.player_title"
   | "players.form.edit_title"
   | "players.form.first_name"

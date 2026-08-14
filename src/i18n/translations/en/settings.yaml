@@ -20,8 +20,8 @@ team:
   club_location_placeholder: Sports park, clubhouse, or address
 kit:
   title: Kit design
-  player_primary: Player primary color
-  player_secondary: Player secondary color
+  player_primary: Primary color
+  player_secondary: Secondary color
   goalkeeper_primary: Goalkeeper primary color
   goalkeeper_secondary: Goalkeeper secondary color
   third: Third color

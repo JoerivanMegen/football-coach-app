@@ -179,7 +179,7 @@ function createSavedMatchSharePreview(
 }
 
 export default function MatchDayScreen() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const router = useRouter();
   const { shareMatchId } = useLocalSearchParams<{ shareMatchId?: string }>();
   const safeAreaInsets = useSafeAreaInsets();
@@ -508,6 +508,7 @@ export default function MatchDayScreen() {
           savedMatchId,
           matchInput.matchDate,
           matchInput.startTime,
+          locale,
         );
       }
 

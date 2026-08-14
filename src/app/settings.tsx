@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 import { StepperArrowButton } from "@/components/stepper-arrow-button";
+import { OutlinedText } from "@/components/outlined-text";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -347,6 +348,7 @@ export default function SettingsScreen() {
               match.id,
               match.matchDate,
               match.startTime,
+              locale,
             ),
           ),
         ...restoredEvents
@@ -1528,18 +1530,15 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
             strokeWidth={5}
           />
         </Svg>
-        <ThemedText
+        <OutlinedText
+          color={form.kitNumberColor}
+          outlineColor={getKitNumberOutlineColor(form.kitNumberColor)}
+          outlineWidth={1}
           type="smallBold"
-          style={[
-            styles.kitPreviewNumber,
-            {
-              color: form.kitNumberColor,
-              textShadowColor: getKitNumberOutlineColor(form.kitNumberColor),
-            },
-          ]}
+          style={styles.kitPreviewNumber}
         >
           10
-        </ThemedText>
+        </OutlinedText>
       </ThemedView>
     </ThemedView>
   );
@@ -1704,8 +1703,6 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
     marginTop: 10,
-    textShadowOffset: { height: 0, width: 0 },
-    textShadowRadius: 4,
     zIndex: 2,
   },
   swatchRow: {
@@ -1717,8 +1714,8 @@ const styles = StyleSheet.create({
     borderColor: "#D1D5DB",
     borderRadius: Spacing.one,
     borderWidth: 1,
-    height: 28,
-    width: 28,
+    height: 27,
+    width: 27,
   },
   swatchSelected: {
     borderColor: "#111827",

@@ -3,6 +3,7 @@ import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -16,6 +17,7 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 import { LanguageSelectionModal } from "@/components/language-selection-modal";
 import { OnboardingTutorial } from "@/components/onboarding-tutorial";
+import { OutlinedText } from "@/components/outlined-text";
 import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -130,6 +132,8 @@ export default function HomeScreen() {
   const [isTutorialVisible, setIsTutorialVisible] = useState(false);
   const [isLanguageSelectionVisible, setIsLanguageSelectionVisible] =
     useState(false);
+  const [isInitialHomeStateLoaded, setIsInitialHomeStateLoaded] =
+    useState(false);
   const [overdueMatchResultCount, setOverdueMatchResultCount] = useState(0);
   const [hasTraining, setHasTraining] = useState(false);
   const [hasMatch, setHasMatch] = useState(false);
@@ -231,6 +235,10 @@ export default function HomeScreen() {
           });
         } catch (error) {
           console.warn("Failed to load home data", error);
+        } finally {
+          if (isFocused) {
+            setIsInitialHomeStateLoaded(true);
+          }
         }
       }
 
@@ -658,6 +666,14 @@ export default function HomeScreen() {
           setIsTutorialVisible(true);
         }}
       />
+      <Modal
+        animationType="none"
+        visible={!isInitialHomeStateLoaded}
+      >
+        <ThemedView type="modalBackground" style={styles.startupGate}>
+          <ActivityIndicator color={ActionColors.primary} size="large" />
+        </ThemedView>
+      </Modal>
       <TeamSettingsSetupModal
         error={settingsError}
         form={settingsForm}
@@ -1471,18 +1487,15 @@ function KitDesignPreview({ form }: { form: SaveTeamSettingsInput }) {
             strokeWidth={5}
           />
         </Svg>
-        <ThemedText
+        <OutlinedText
+          color={form.kitNumberColor}
+          outlineColor={getKitNumberOutlineColor(form.kitNumberColor)}
+          outlineWidth={1}
           type="smallBold"
-          style={[
-            styles.kitPreviewNumber,
-            {
-              color: form.kitNumberColor,
-              textShadowColor: getKitNumberOutlineColor(form.kitNumberColor),
-            },
-          ]}
+          style={styles.kitPreviewNumber}
         >
           10
-        </ThemedText>
+        </OutlinedText>
       </ThemedView>
     </ThemedView>
   );
@@ -1557,6 +1570,11 @@ const styles = StyleSheet.create({
   },
   intro: {
     maxWidth: 560,
+  },
+  startupGate: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
   },
   injurySummary: {
     alignItems: "center",
@@ -1645,6 +1663,7 @@ const styles = StyleSheet.create({
   },
   shortcutIcon: {
     alignItems: "center",
+    backgroundColor: ActionColors.primary,
     borderRadius: Spacing.three,
     height: 52,
     justifyContent: "center",
@@ -1666,6 +1685,7 @@ const styles = StyleSheet.create({
   },
   wideShortcutIcon: {
     alignItems: "center",
+    backgroundColor: ActionColors.primary,
     borderRadius: Spacing.two,
     height: 42,
     justifyContent: "center",
@@ -1793,8 +1813,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
     marginTop: 8,
-    textShadowOffset: { height: 0, width: 0 },
-    textShadowRadius: 2,
     zIndex: 2,
   },
   settingsTextInput: {

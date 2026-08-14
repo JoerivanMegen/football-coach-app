@@ -67,8 +67,11 @@ form:
       message: Choose a valid date. A recovery date cannot be earlier than the injury start date.
   duplicate:
     player_title: Possible duplicate player
+    player_message: '"{{name}}" already exists. Are you sure you want to add another one?'
+    add_anyway: Add anyway
     kit_number_title: Kit number already taken
     kit_number_message: "{{name}} already has this kit number. Do you want to change theirs to {{number}}?"
+    change_number: Change number
 stats:
   player_title: Player statistics
   player_subtitle: Compare player attendance, match minutes, and recent form.

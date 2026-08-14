@@ -1241,18 +1241,12 @@ export const matchDayStyles = StyleSheet.create({
     width: "100%",
   },
   jerseyNumber: {
-    color: "#111827",
     fontSize: 24,
     lineHeight: 28,
     marginTop: 10,
-    textShadowColor: "#ffffff",
-    textShadowOffset: { height: 0, width: 0 },
-    textShadowRadius: 2,
-    zIndex: 3,
   },
-  goalkeeperJerseyNumber: {
-    color: "#ffffff",
-    textShadowColor: "#111827",
+  jerseyNumberLayer: {
+    zIndex: 3,
   },
   jerseyNumberCompact: {
     fontSize: 16,

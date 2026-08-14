@@ -63,8 +63,8 @@ setup:
     match_minutes_help: Gebruik dit voor jeugdteams of competities met kortere wedstrijden.
     nicknames: Bijnamen
     first_names: Voornamen
-    fine_jar_on: Boetepot gebruiken
-    fine_jar_off: Voorlopig overslaan
+    fine_jar_on: Boetepot aan
+    fine_jar_off: Boetepot uit
     match_duties_on: Corvee gebruiken
     match_duties_off: Geen corvee
   actions:

@@ -50,6 +50,7 @@ type MatchDayStatsRow = {
   match_date: string;
   start_time: string;
   opponent_score: number;
+  player_statuses_json: string;
   lineup_assignments_json: string;
   player_result_stats_json: string | null;
   match_duty_player_ids_json: string | null;
@@ -67,6 +68,7 @@ type MatchDayPlayerStat = {
 
 type MatchDayPlayerAggregate = {
   squadMatches: number;
+  attendedMatches: number;
   appearances: number;
   starts: number;
   lateCount: number;
@@ -257,10 +259,16 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
          SELECT 1
          FROM match_day_matches season_match
          WHERE season_match.season_id = ?
-           AND json_extract(
-             COALESCE(season_match.player_result_stats_json, '{}'),
-             '$."' || players.id || '"'
-           ) IS NOT NULL
+           AND (
+             json_extract(
+               COALESCE(season_match.player_result_stats_json, '{}'),
+               '$."' || players.id || '"'
+             ) IS NOT NULL
+             OR json_extract(
+               COALESCE(season_match.player_statuses_json, '{}'),
+               '$."' || players.id || '"'
+             ) IS NOT NULL
+           )
        )
     GROUP BY players.id
     ORDER BY players.last_name COLLATE NOCASE, players.first_name COLLATE NOCASE
@@ -307,6 +315,7 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
         match_date,
         start_time,
         opponent_score,
+        player_statuses_json,
         lineup_assignments_json,
         player_result_stats_json,
         match_duty_player_ids_json,
@@ -356,6 +365,8 @@ function mapPlayerAttendanceStatsRow(
   const recentTrainingAttended = Number(row.recent_training_attended);
   const matchEvents = matchDayStats?.squadMatches ?? Number(row.match_events);
   const matchAttended = Number(row.match_attended);
+  const resolvedMatchAttended =
+    matchDayStats?.attendedMatches ?? matchAttended;
   const matchAppearances = matchDayStats?.appearances ?? matchAttended;
   const matchStarts = matchDayStats?.starts ?? 0;
   const teamEvents = Number(row.team_events);
@@ -367,7 +378,7 @@ function mapPlayerAttendanceStatsRow(
     ? trainingEvents + matchEvents
     : totalEvents;
   const resolvedAttendedEvents = matchDayStats
-    ? trainingAttended + matchAppearances
+    ? trainingAttended + resolvedMatchAttended
     : attendedEvents;
   const averageMatchMinutes =
     matchDayStats && matchDayStats.appearances > 0
@@ -404,9 +415,9 @@ function mapPlayerAttendanceStatsRow(
       recentTrainingEvents,
     ),
     matchEvents,
-    matchAttended: matchAppearances,
+    matchAttended: resolvedMatchAttended,
     matchAttendancePercentage: calculatePercentage(
-      matchAppearances,
+      resolvedMatchAttended,
       matchEvents,
     ),
     matchAppearances,
@@ -466,6 +477,9 @@ function aggregateMatchDayStatsByPlayerId(
     const playerStats = parseMatchDayPlayerStats(
       row.player_result_stats_json ?? "{}",
     );
+    const playerStatuses = parseMatchDayPlayerStatuses(
+      row.player_statuses_json,
+    );
     const matchDutyPlayerIds = parseJsonNumberArray(
       row.match_duty_player_ids_json ?? "[]",
     );
@@ -487,7 +501,12 @@ function aggregateMatchDayStatsByPlayerId(
         : 0;
     }
 
-    for (const [playerId, stat] of Object.entries(playerStats)) {
+    const recordedPlayerIds = new Set([
+      ...Object.keys(playerStatuses),
+      ...Object.keys(playerStats),
+    ]);
+
+    for (const playerId of recordedPlayerIds) {
       const numericPlayerId = Number(playerId);
 
       if (!Number.isInteger(numericPlayerId)) {
@@ -509,8 +528,18 @@ function aggregateMatchDayStatsByPlayerId(
         numericPlayerId,
       );
       currentStats.squadMatches += 1;
+      const stat = playerStats[playerId];
+      const wasAvailable = playerStatuses[playerId] !== "unavailable";
+      if (wasAvailable && stat && stat.attendance !== "no-show") {
+        currentStats.attendedMatches += 1;
+        currentStats.lateCount += stat.attendance === "late" ? 1 : 0;
+      }
 
-      if (stat.minutesPlayed <= 0) {
+      if (
+        !stat ||
+        stat.attendance === "no-show" ||
+        stat.minutesPlayed <= 0
+      ) {
         continue;
       }
 
@@ -518,7 +547,6 @@ function aggregateMatchDayStatsByPlayerId(
 
       currentStats.appearances += 1;
       currentStats.starts += isStarter ? 1 : 0;
-      currentStats.lateCount += stat.attendance === "late" ? 1 : 0;
       currentStats.goals += stat.goals;
       currentStats.assists += stat.assists;
       currentStats.yellowCards += stat.card === "yellow" ? 1 : 0;
@@ -579,6 +607,7 @@ function getOrCreateMatchDayPlayerAggregate(
 
   const nextStats: MatchDayPlayerAggregate = {
     squadMatches: 0,
+    attendedMatches: 0,
     appearances: 0,
     starts: 0,
     lateCount: 0,
@@ -696,6 +725,32 @@ function parseMatchDayPlayerStats(value: string) {
         ];
       }),
     ) as Record<string, MatchDayPlayerStat>;
+  } catch {
+    return {};
+  }
+}
+
+function parseMatchDayPlayerStatuses(value: string) {
+  try {
+    const parsedValue = JSON.parse(value) as unknown;
+
+    if (
+      !parsedValue ||
+      typeof parsedValue !== "object" ||
+      Array.isArray(parsedValue)
+    ) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsedValue).filter(
+        ([playerId, status]) =>
+          Number.isInteger(Number(playerId)) &&
+          (status === "available" ||
+            status === "unavailable" ||
+            status === "unknown"),
+      ),
+    ) as Record<string, "available" | "unavailable" | "unknown">;
   } catch {
     return {};
   }

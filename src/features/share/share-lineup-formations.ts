@@ -43,7 +43,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-3-3 attacking": [
     createShareLineupSlot(1, "LW", 23, 24),
@@ -56,7 +56,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-3-3 defensive": [
     createShareLineupSlot(1, "LW", 23, 24),
@@ -69,7 +69,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-4-2": [
     createShareLineupSlot(1, "ST", 38, 19),
@@ -82,7 +82,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "3-5-2": [
     createShareLineupSlot(1, "ST", 38, 19),
@@ -95,7 +95,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 30, 67),
     createShareLineupSlot(9, "CB", 50, 66),
     createShareLineupSlot(10, "CB", 70, 67),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "5-3-2": [
     createShareLineupSlot(1, "ST", 38, 19),
@@ -108,7 +108,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 50, 66),
     createShareLineupSlot(9, "CB", 70, 67),
     createShareLineupSlot(10, "RWB", 90, 60),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-2-3-1": [
     createShareLineupSlot(1, "ST", 50, 19),
@@ -121,7 +121,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-1-2-1-2": [
     createShareLineupSlot(1, "ST", 38, 19),
@@ -134,7 +134,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-3-1-2": [
     createShareLineupSlot(1, "ST", 38, 19),
@@ -147,7 +147,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
   "4-1-3-2": [
     createShareLineupSlot(1, "ST", 38, 19),
@@ -160,7 +160,7 @@ export const shareLineupFormationSlots = {
     createShareLineupSlot(8, "CB", 38, 69),
     createShareLineupSlot(9, "CB", 62, 69),
     createShareLineupSlot(10, "RB", 83, 64),
-    createShareLineupSlot(11, "GK", 50, 85, true),
+    createShareLineupSlot(11, "GK", 50, 86, true),
   ],
 } satisfies Record<ShareLineupFormation, ShareLineupSlot[]>;
 

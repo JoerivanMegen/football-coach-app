@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { PageTopPadding, Spacing } from "@/constants/theme";
+import { Spacing } from "@/constants/theme";
 import type { PlayerAttendanceStats } from "@/features/player-stats/player-stats-types";
 import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
 import { playerStyles as styles } from "@/features/players/components/player-styles";
@@ -30,6 +30,8 @@ export function TeamStatsModal({
   const [fineJarCurrency, setFineJarCurrency] = useState<FineJarCurrency>(
     locale === "nl" ? "EUR" : "GBP",
   );
+  const [showFineJarStats, setShowFineJarStats] = useState(false);
+  const [showMatchDutyStats, setShowMatchDutyStats] = useState(false);
   const [sortKey, setSortKey] = useState<TeamStatsSortKey>("player");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const statsHeaderScrollRef = useRef<ScrollView>(null);
@@ -42,9 +44,22 @@ export function TeamStatsModal({
     if (!visible) return;
     void getTeamSettingsAsync()
       .then((settings) => {
+        const fineJarEnabled = settings?.fineJarEnabled ?? false;
+        const matchDutyEnabled = settings?.matchDutyEnabled ?? false;
         setFineJarCurrency(
           settings?.fineJarCurrency ?? (locale === "nl" ? "EUR" : "GBP"),
         );
+        setShowFineJarStats(fineJarEnabled);
+        setShowMatchDutyStats(matchDutyEnabled);
+        setSortKey((currentSortKey) => {
+          if (!fineJarEnabled && isFineJarSortKey(currentSortKey)) {
+            return "player";
+          }
+          if (!matchDutyEnabled && isMatchDutySortKey(currentSortKey)) {
+            return "player";
+          }
+          return currentSortKey;
+        });
       })
       .catch((error: unknown) => {
         console.warn("Failed to load Fine Jar currency for team stats", error);
@@ -74,7 +89,7 @@ export function TeamStatsModal({
         style={[
           styles.teamStatsModalScreen,
           {
-            paddingTop: safeAreaInsets.top + PageTopPadding,
+            paddingTop: safeAreaInsets.top + Spacing.two,
             paddingBottom: safeAreaInsets.bottom + Spacing.three,
           },
         ]}
@@ -142,6 +157,8 @@ export function TeamStatsModal({
                     sortKey,
                     sortDirection,
                     changeSort,
+                    showMatchDutyStats,
+                    showFineJarStats,
                   )}
                 </ThemedView>
               </ScrollView>
@@ -227,15 +244,23 @@ export function TeamStatsModal({
                     />
                     <TeamStatsValueCell value={formatNullableNumber(playerStats.matchGoalsPer90)} />
                     <TeamStatsValueCell value={formatNullableNumber(playerStats.matchAssistsPer90)} />
-                    <TeamStatsValueCell value={String(playerStats.matchDutiesAssigned)} />
-                    <TeamStatsValueCell value={String(playerStats.matchDutiesFulfilled)} />
-                    <TeamStatsValueCell
-                      value={formatPercentage(playerStats.matchDutyFulfillmentPercentage)}
-                    />
-                    <TeamStatsValueCell value={String(playerStats.fineCount)} />
-                    <TeamStatsValueCell
-                      value={formatCurrency(playerStats.fineAmountCents)}
-                    />
+                    {showMatchDutyStats ? (
+                      <>
+                        <TeamStatsValueCell value={String(playerStats.matchDutiesAssigned)} />
+                        <TeamStatsValueCell value={String(playerStats.matchDutiesFulfilled)} />
+                        <TeamStatsValueCell
+                          value={formatPercentage(playerStats.matchDutyFulfillmentPercentage)}
+                        />
+                      </>
+                    ) : null}
+                    {showFineJarStats ? (
+                      <>
+                        <TeamStatsValueCell value={String(playerStats.fineCount)} />
+                        <TeamStatsValueCell
+                          value={formatCurrency(playerStats.fineAmountCents)}
+                        />
+                      </>
+                    ) : null}
                     <ThemedView type="backgroundElement" style={styles.teamStatsRecentCell}>
                       <TeamStatsRecentRatings
                         ratings={playerStats.recentMatchRatings.map((rating) => rating.rating)}
@@ -259,6 +284,8 @@ function renderTeamStatsHeaderCells(
   sortKey: TeamStatsSortKey,
   sortDirection: "asc" | "desc",
   onSort: (key: TeamStatsSortKey) => void,
+  showMatchDutyStats: boolean,
+  showFineJarStats: boolean,
 ) {
   return ([
     [t("players.stats.columns.training_percentage"), "trainingAttendancePercentage"],
@@ -275,11 +302,19 @@ function renderTeamStatsHeaderCells(
     [t("players.stats.columns.average_rating"), "averageMatchRating"],
     [t("players.stats.columns.goals_per_90"), "matchGoalsPer90"],
     [t("players.stats.columns.assists_per_90"), "matchAssistsPer90"],
-    [t("players.stats.columns.duties"), "matchDutiesAssigned"],
-    [t("players.stats.columns.fulfilled"), "matchDutiesFulfilled"],
-    [t("players.stats.columns.duty_percentage"), "matchDutyFulfillmentPercentage"],
-    [t("players.stats.columns.fines"), "fineCount"],
-    [t("players.stats.columns.fine_amount"), "fineAmountCents"],
+    ...(showMatchDutyStats
+      ? [
+          [t("players.stats.columns.duties"), "matchDutiesAssigned"],
+          [t("players.stats.columns.fulfilled"), "matchDutiesFulfilled"],
+          [t("players.stats.columns.duty_percentage"), "matchDutyFulfillmentPercentage"],
+        ]
+      : []),
+    ...(showFineJarStats
+      ? [
+          [t("players.stats.columns.fines"), "fineCount"],
+          [t("players.stats.columns.fine_amount"), "fineAmountCents"],
+        ]
+      : []),
     [t("players.stats.columns.last_five"), "recentForm", styles.teamStatsRecentCell],
   ] as [string, TeamStatsSortKey, object?][]).map(([label, key, style]) => (
     <TeamStatsHeaderCell
@@ -292,6 +327,18 @@ function renderTeamStatsHeaderCells(
       style={style}
     />
   ));
+}
+
+function isMatchDutySortKey(sortKey: TeamStatsSortKey) {
+  return (
+    sortKey === "matchDutiesAssigned" ||
+    sortKey === "matchDutiesFulfilled" ||
+    sortKey === "matchDutyFulfillmentPercentage"
+  );
+}
+
+function isFineJarSortKey(sortKey: TeamStatsSortKey) {
+  return sortKey === "fineCount" || sortKey === "fineAmountCents";
 }
 
 function TeamStatsHeaderCell({

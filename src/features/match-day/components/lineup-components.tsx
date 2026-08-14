@@ -6,6 +6,8 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { OutlinedText } from "@/components/outlined-text";
+import { ActionColors } from "@/constants/theme";
 import { defaultMatchDurationMinutes, formationSlots, kitShirtPath, matchFormations, substituteSlots } from "@/features/match-day/match-day-config";
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
 import type { AssignmentSlot, DropTarget, JerseyResultBadges, LayoutBox, LineupAssignments, LineupKitSettings, MatchFormation, MatchResultSquadEntry, MatchSetupFormState, PitchLayout } from "@/features/match-day/match-day-view-types";
@@ -140,6 +142,7 @@ export function SubstituteBench({
   preferNicknames: boolean;
 }) {
   const { t } = useI18n();
+  const theme = useTheme();
   const [sectionLayout, setSectionLayout] = useState<LayoutBox | null>(null);
   const [gridLayout, setGridLayout] = useState<LayoutBox | null>(null);
   const [slotLayouts, setSlotLayouts] = useState<Record<string, LayoutBox>>({});
@@ -201,6 +204,8 @@ export function SubstituteBench({
                 dropTargets={dropTargets}
                 player={assignedPlayer}
                 preferNicknames={preferNicknames}
+                playerNameColor={theme.text}
+                playerNameShadow={false}
                 slot={slot}
                 slotStyle={[
                   styles.substituteSlot,
@@ -368,6 +373,8 @@ export function DraggableLineupSlot({
   onMovePlayer,
   onSelectSlot,
   player,
+  playerNameColor,
+  playerNameShadow,
   preferNicknames,
   showName,
   slot,
@@ -383,6 +390,8 @@ export function DraggableLineupSlot({
   onMovePlayer: (fromSlotId: string, toSlotId: string) => void;
   onSelectSlot: (slotId: string) => void;
   player: Player;
+  playerNameColor?: string;
+  playerNameShadow?: boolean;
   preferNicknames: boolean;
   showName?: boolean;
   slot: AssignmentSlot;
@@ -464,6 +473,8 @@ export function DraggableLineupSlot({
           isCaptain={isCaptain}
           kitSettings={kitSettings}
           player={player}
+          playerNameColor={playerNameColor}
+          playerNameShadow={playerNameShadow}
           isGoalkeeper={isGoalkeeper}
           showName={showName}
           preferNicknames={preferNicknames}
@@ -558,7 +569,7 @@ export function PlayerActionButton({
     >
       <SymbolView
         name={icon}
-        tintColor={danger ? "#ffffff" : theme.text}
+        tintColor={ActionColors.onAccent}
         size={18}
       />
     </Pressable>
@@ -866,6 +877,8 @@ export function LineupJersey({
   isGoalkeeper,
   kitSettings,
   player,
+  playerNameColor,
+  playerNameShadow = true,
   preferNicknames,
   resultBadges,
   showName,
@@ -876,6 +889,8 @@ export function LineupJersey({
   isGoalkeeper?: boolean;
   kitSettings: LineupKitSettings;
   player: Player;
+  playerNameColor?: string;
+  playerNameShadow?: boolean;
   preferNicknames?: boolean;
   resultBadges?: JerseyResultBadges | null;
   showName?: boolean;
@@ -926,20 +941,20 @@ export function LineupJersey({
             </ThemedText>
           </ThemedView>
         ) : null}
-        <ThemedText
+        <OutlinedText
+          color={kitNumberColor}
+          containerStyle={styles.jerseyNumberLayer}
+          outlineColor={getKitNumberOutlineColor(kitNumberColor)}
+          outlineWidth={1}
           type="smallBold"
           style={[
             styles.jerseyNumber,
             compact && styles.jerseyNumberCompact,
             dense && styles.jerseyNumberDense,
-            {
-              color: kitNumberColor,
-              textShadowColor: getKitNumberOutlineColor(kitNumberColor),
-            },
           ]}
         >
           {player.kitNumber ?? "-"}
-        </ThemedText>
+        </OutlinedText>
         {resultBadges ? (
           <JerseyResultBadgeOverlay badges={resultBadges} compact={compact} />
         ) : null}
@@ -958,6 +973,14 @@ export function LineupJersey({
               styles.jerseyName,
               compact && styles.jerseyNameCompact,
               dense && styles.jerseyNameDense,
+              playerNameColor ? { color: playerNameColor } : undefined,
+              !playerNameShadow
+                ? {
+                    textShadowColor: "transparent",
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 0,
+                  }
+                : undefined,
             ]}
             numberOfLines={compact ? 2 : 1}
           >
@@ -1297,7 +1320,12 @@ export function JerseyResultBadgeOverlay({
   );
 }
 
-function getKitNumberOutlineColor(color: string) { return color.toUpperCase() === "#111827" ? "#FFFFFF" : "#111827"; }
+function getKitNumberOutlineColor(color: string) {
+  const normalizedColor = color.trim().toUpperCase();
+  return normalizedColor === "#000000" || normalizedColor === "#111827"
+    ? "#FFFFFF"
+    : "#111827";
+}
 function normalizeMatchFormation(value: unknown): MatchFormation { return matchFormations.includes(value as MatchFormation) ? value as MatchFormation : "4-3-3"; }
 function getKitOutlineColor(color: string) {
   const normalizedColor = color.trim().toUpperCase();

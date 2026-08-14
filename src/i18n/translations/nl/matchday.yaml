@@ -197,10 +197,10 @@ share:
     night: Nacht
     stadium-day: Stadion overdag
     stadium-night: Stadion 's nachts
-  overlay: Overlay
+  overlay: Design
   overlays:
     classic: Klassiek
-    broadcast: Uitzending
+    broadcast: Broadcast
   close_preview: Deelvoorbeeld sluiten
   export: Downloaden
   exporting: Downloaden...
