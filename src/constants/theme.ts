@@ -34,7 +34,7 @@ export const Colors = {
     modalBackground: "#1d1f1e",
     headerBackground: "#1b1b1b",
     headerBorder: "#1C7C54",
-    headerLogo: "#1C7C54",
+    headerLogo: "#FFFFFF",
     headerMenu: "#FFFFFF",
     sideMenuBackground: "#1b1b1b",
     sideMenuSelected: "#2E3135",

@@ -462,7 +462,7 @@ export default function MatchDayScreen() {
       !validateMatchSetupForm(matchSetupForm, t, editingMatchHasResult) ||
       !validateMatchCaptain(matchSetupForm, t)
     ) {
-      return;
+      return false;
     }
 
     try {
@@ -518,12 +518,14 @@ export default function MatchDayScreen() {
       setMatchSetupForm(createEmptyMatchSetupFormState(clubLocation));
       setEditingMatchId(null);
       setIsMatchSetupOpen(false);
+      return true;
     } catch (error) {
       console.warn("Failed to save match", error);
       Alert.alert(
         t("matchday.errors.save_match.title"),
         t("matchday.errors.save_match.message"),
       );
+      return false;
     }
   }
 
@@ -964,7 +966,7 @@ function MatchSetupModal({
   mode: "create" | "edit";
   onChangeForm: Dispatch<SetStateAction<MatchSetupFormState>>;
   onClose: () => void;
-  onContinue: () => Promise<void> | void;
+  onContinue: () => Promise<boolean>;
   onShare: (form: MatchSetupFormState, players: Player[]) => void;
   preferNicknames: boolean;
   visible: boolean;
@@ -977,6 +979,7 @@ function MatchSetupModal({
   const [isGuestPlayerModalOpen, setIsGuestPlayerModalOpen] = useState(false);
   const [playerStats, setPlayerStats] = useState<PlayerAttendanceStats[]>([]);
   const [wizardStep, setWizardStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState(false);
   const [isMatchDataLoaded, setIsMatchDataLoaded] = useState(false);
   const hasInitializedCreateAvailability = useRef(false);
@@ -1174,8 +1177,36 @@ function MatchSetupModal({
       return;
     }
 
-    setWizardStep(0);
-    await onContinue();
+    if (isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (await onContinue()) {
+        setWizardStep(0);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleSaveAndShare() {
+    if (isSaving) {
+      return;
+    }
+
+    const shareForm = form;
+    const sharePlayers = availablePlayers;
+    setIsSaving(true);
+    try {
+      if (await onContinue()) {
+        setWizardStep(0);
+        onShare(shareForm, sharePlayers);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -1286,33 +1317,41 @@ function MatchSetupModal({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => onShare(form, availablePlayers)}
+                disabled={isSaving}
+                onPress={handleSaveAndShare}
                 style={({ pressed }) => [
                   styles.reviewActionButton,
                   styles.reviewShareButton,
                   pressed && styles.pressed,
+                  isSaving && styles.disabledButton,
                 ]}
               >
                 <ThemedText type="smallBold" style={styles.reviewActionText}>
-                  {t("common.share")}
+                  {isSaving
+                    ? t("matchday.result.actions.saving")
+                    : t("matchday.add_match.actions.save_and_share")}
                 </ThemedText>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
+                disabled={isSaving}
                 onPress={handleNext}
                 style={({ pressed }) => [
                   styles.reviewActionButton,
                   styles.reviewSaveButton,
                   pressed && styles.pressed,
+                  isSaving && styles.disabledButton,
                 ]}
               >
                 <ThemedText
                   type="smallBold"
                   style={[styles.reviewActionText, styles.reviewSaveButtonText]}
                 >
-                  {mode === "edit"
-                    ? t("matchday.add_match.actions.update")
-                    : t("common.save")}
+                  {isSaving
+                    ? t("matchday.result.actions.saving")
+                    : mode === "edit"
+                      ? t("matchday.add_match.actions.update")
+                      : t("common.save")}
                 </ThemedText>
               </Pressable>
             </ThemedView>

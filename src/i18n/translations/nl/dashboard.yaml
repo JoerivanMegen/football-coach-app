@@ -1,6 +1,5 @@
 header:
   title: Teamdashboard
-  subtitle: Ga meteen naar wat je team nu nodig heeft.
   injuries: "{{count}} geblesseerde speler"
   injuries_plural: "{{count}} geblesseerde spelers"
 next_match:

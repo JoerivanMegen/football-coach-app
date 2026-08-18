@@ -105,7 +105,6 @@ export const translations = {
     "dashboard": {
       "header": {
         "title": "Team dashboard",
-        "subtitle": "Jump straight into the next thing your team needs.",
         "injuries": "{{count}} injured player",
         "injuries_plural": "{{count}} injured players"
       },
@@ -389,6 +388,7 @@ export const translations = {
           "go_back": "Go back",
           "continue_anyway": "Continue anyway",
           "review": "Review",
+          "save_and_share": "Save and share",
           "update": "Update"
         },
         "validation": {
@@ -513,8 +513,9 @@ export const translations = {
           "broadcast": "Broadcast"
         },
         "close_preview": "Close share preview",
-        "export": "Export",
-        "exporting": "Exporting...",
+        "export": "Save to Photos",
+        "exporting": "Saving...",
+        "sharing": "Sharing...",
         "poster": {
           "opponent": "OPPONENT",
           "home_match": "Home match",
@@ -538,9 +539,21 @@ export const translations = {
             "message": "Open a match preview before exporting."
           },
           "export": {
-            "title": "Export failed",
-            "message": "Something went wrong while creating the match image."
+            "title": "Save failed",
+            "message": "Something went wrong while saving the match image."
+          },
+          "permission": {
+            "title": "Photos permission needed",
+            "message": "Allow Assistant Coach to add images to Photos to save this match image."
+          },
+          "share": {
+            "title": "Sharing unavailable",
+            "message": "This match image could not be shared right now."
           }
+        },
+        "saved": {
+          "title": "Saved to Photos",
+          "message": "The match image has been added to your Photos library."
         },
         "success": {
           "title": "Image created",
@@ -1376,7 +1389,6 @@ export const translations = {
     "dashboard": {
       "header": {
         "title": "Teamdashboard",
-        "subtitle": "Ga meteen naar wat je team nu nodig heeft.",
         "injuries": "{{count}} geblesseerde speler",
         "injuries_plural": "{{count}} geblesseerde spelers"
       },
@@ -1660,6 +1672,7 @@ export const translations = {
           "go_back": "Teruggaan",
           "continue_anyway": "Toch doorgaan",
           "review": "Controleren",
+          "save_and_share": "Opslaan en delen",
           "update": "Opslaan"
         },
         "validation": {
@@ -1784,8 +1797,9 @@ export const translations = {
           "broadcast": "Broadcast"
         },
         "close_preview": "Deelvoorbeeld sluiten",
-        "export": "Downloaden",
-        "exporting": "Downloaden...",
+        "export": "Bewaar in Foto's",
+        "exporting": "Opslaan...",
+        "sharing": "Delen...",
         "poster": {
           "opponent": "TEGENSTANDER",
           "home_match": "Thuiswedstrijd",
@@ -1809,9 +1823,21 @@ export const translations = {
             "message": "Open eerst een wedstrijdvoorbeeld voordat je exporteert."
           },
           "export": {
-            "title": "Download mislukt",
-            "message": "Er ging iets mis bij het maken van de wedstrijdafbeelding."
+            "title": "Opslaan mislukt",
+            "message": "Er ging iets mis bij het opslaan van de wedstrijdafbeelding."
+          },
+          "permission": {
+            "title": "Toegang tot Foto's nodig",
+            "message": "Geef Assistant Coach toestemming om afbeeldingen aan Foto's toe te voegen."
+          },
+          "share": {
+            "title": "Delen niet beschikbaar",
+            "message": "De wedstrijdafbeelding kan momenteel niet worden gedeeld."
           }
+        },
+        "saved": {
+          "title": "Opgeslagen in Foto's",
+          "message": "De wedstrijdafbeelding is aan je fotobibliotheek toegevoegd."
         },
         "success": {
           "title": "Afbeelding gemaakt",
@@ -2633,7 +2659,6 @@ export type TranslationKey =
   | "dashboard.actions.title"
   | "dashboard.header.injuries"
   | "dashboard.header.injuries_plural"
-  | "dashboard.header.subtitle"
   | "dashboard.header.title"
   | "dashboard.next_match.good_luck"
   | "dashboard.next_match.open_training"
@@ -2709,6 +2734,7 @@ export type TranslationKey =
   | "matchday.add_match.actions.continue_anyway"
   | "matchday.add_match.actions.go_back"
   | "matchday.add_match.actions.review"
+  | "matchday.add_match.actions.save_and_share"
   | "matchday.add_match.actions.update"
   | "matchday.add_match.availability.available"
   | "matchday.add_match.availability.description"
@@ -2882,6 +2908,10 @@ export type TranslationKey =
   | "matchday.share.errors.export.title"
   | "matchday.share.errors.no_image.message"
   | "matchday.share.errors.no_image.title"
+  | "matchday.share.errors.permission.message"
+  | "matchday.share.errors.permission.title"
+  | "matchday.share.errors.share.message"
+  | "matchday.share.errors.share.title"
   | "matchday.share.export"
   | "matchday.share.exporting"
   | "matchday.share.overlay"
@@ -2892,6 +2922,9 @@ export type TranslationKey =
   | "matchday.share.poster.opponent"
   | "matchday.share.poster.subs"
   | "matchday.share.poster.substitutes"
+  | "matchday.share.saved.message"
+  | "matchday.share.saved.title"
+  | "matchday.share.sharing"
   | "matchday.share.success.message"
   | "matchday.share.success.title"
   | "matchday.share.title"

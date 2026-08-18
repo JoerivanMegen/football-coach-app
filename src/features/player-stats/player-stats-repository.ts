@@ -237,12 +237,15 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
       ON events.id = event_attendance.event_id
      AND events.attendance_status = 'marked'
      AND events.season_id = ?
-     AND NOT EXISTS (
-       SELECT 1
-       FROM player_injuries
-       WHERE player_injuries.player_id = players.id
-         AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date(player_injuries.start_date)
-         AND (player_injuries.end_date IS NULL OR date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) < date(player_injuries.end_date))
+     AND (
+       event_attendance.is_present = 1
+       OR NOT EXISTS (
+         SELECT 1
+         FROM player_injuries
+         WHERE player_injuries.player_id = players.id
+           AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date(player_injuries.start_date)
+           AND (player_injuries.end_date IS NULL OR date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) < date(player_injuries.end_date))
+       )
      )
     LEFT JOIN event_player_signups
       ON event_player_signups.event_id = events.id
@@ -294,13 +297,6 @@ export async function listPlayerAttendanceStatsAsync(seasonId?: number) {
        AND events.season_id = ?
       WHERE event_attendance.is_present = 1
         AND event_attendance.match_rating IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1
-          FROM player_injuries
-          WHERE player_injuries.player_id = event_attendance.player_id
-            AND date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) >= date(player_injuries.start_date)
-            AND (player_injuries.end_date IS NULL OR date(substr(events.event_date, 7, 4) || '-' || substr(events.event_date, 4, 2) || '-' || substr(events.event_date, 1, 2)) < date(player_injuries.end_date))
-        )
       ORDER BY
         event_attendance.player_id,
         events.event_date DESC,
@@ -488,9 +484,6 @@ function aggregateMatchDayStatsByPlayerId(
     );
 
     for (const playerId of matchDutyPlayerIds) {
-      if (isPlayerInjuredOnDate(playerId, row.match_date, injuriesByPlayerId)) {
-        continue;
-      }
       const currentStats = getOrCreateMatchDayPlayerAggregate(
         statsByPlayerId,
         playerId,
@@ -513,13 +506,17 @@ function aggregateMatchDayStatsByPlayerId(
         continue;
       }
 
-      if (
-        isPlayerInjuredOnDate(
-          numericPlayerId,
-          row.match_date,
-          injuriesByPlayerId,
-        )
-      ) {
+      const stat = playerStats[playerId];
+      const attendedMatch = Boolean(
+        stat && stat.attendance !== "no-show",
+      );
+      const wasInjured = isPlayerInjuredOnDate(
+        numericPlayerId,
+        row.match_date,
+        injuriesByPlayerId,
+      );
+
+      if (wasInjured && !attendedMatch) {
         continue;
       }
 
@@ -528,11 +525,9 @@ function aggregateMatchDayStatsByPlayerId(
         numericPlayerId,
       );
       currentStats.squadMatches += 1;
-      const stat = playerStats[playerId];
-      const wasAvailable = playerStatuses[playerId] !== "unavailable";
-      if (wasAvailable && stat && stat.attendance !== "no-show") {
+      if (attendedMatch) {
         currentStats.attendedMatches += 1;
-        currentStats.lateCount += stat.attendance === "late" ? 1 : 0;
+        currentStats.lateCount += stat?.attendance === "late" ? 1 : 0;
       }
 
       if (

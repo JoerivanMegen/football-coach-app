@@ -968,6 +968,8 @@ export function LineupJersey({
           ]}
         >
           <ThemedText
+            adjustsFontSizeToFit
+            minimumFontScale={compact ? 0.62 : 0.72}
             type="default"
             style={[
               styles.jerseyName,
@@ -982,7 +984,7 @@ export function LineupJersey({
                   }
                 : undefined,
             ]}
-            numberOfLines={compact ? 2 : 1}
+            numberOfLines={1}
           >
             {formatPlayerName(player, preferNicknames ?? false)}
           </ThemedText>

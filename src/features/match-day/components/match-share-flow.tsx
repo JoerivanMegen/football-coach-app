@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import * as MediaLibrary from "expo-media-library/legacy";
 import * as Sharing from "expo-sharing";
 import { SymbolView } from "expo-symbols";
 import { useMemo, useRef, useState } from "react";
@@ -98,6 +99,7 @@ export function ShareMatchPreviewModal({
   >({});
   const [areColorControlsOpen, setAreColorControlsOpen] = useState(false);
   const [isExportingPoster, setIsExportingPoster] = useState(false);
+  const [isSharingPoster, setIsSharingPoster] = useState(false);
   const posterColors = {
     ...basePosterColors,
     ...posterColorOverrides,
@@ -135,9 +137,19 @@ export function ShareMatchPreviewModal({
         quality: 1,
         result: "tmpfile",
       });
-      const isSharingAvailable = await Sharing.isAvailableAsync();
+      const isMediaLibraryAvailable = await MediaLibrary.isAvailableAsync();
 
-      if (!isSharingAvailable) {
+      if (!isMediaLibraryAvailable) {
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+
+        if (isSharingAvailable) {
+          await Sharing.shareAsync(uri, {
+            dialogTitle: t("matchday.share.title"),
+            mimeType: "image/png",
+          });
+          return;
+        }
+
         Alert.alert(
           t("matchday.share.success.title"),
           t("matchday.share.success.message", { uri }),
@@ -145,10 +157,23 @@ export function ShareMatchPreviewModal({
         return;
       }
 
-      await Sharing.shareAsync(uri, {
-        dialogTitle: t("matchday.share.title"),
-        mimeType: "image/png",
-      });
+      const permission = await MediaLibrary.requestPermissionsAsync(true, [
+        "photo",
+      ]);
+
+      if (!permission.granted) {
+        Alert.alert(
+          t("matchday.share.errors.permission.title"),
+          t("matchday.share.errors.permission.message"),
+        );
+        return;
+      }
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert(
+        t("matchday.share.saved.title"),
+        t("matchday.share.saved.message"),
+      );
     } catch (error) {
       console.warn("Failed to export share image", error);
       Alert.alert(
@@ -157,6 +182,49 @@ export function ShareMatchPreviewModal({
       );
     } finally {
       setIsExportingPoster(false);
+    }
+  }
+
+  async function handleSharePoster() {
+    if (!preview || !posterRef.current) {
+      Alert.alert(
+        t("matchday.share.errors.no_image.title"),
+        t("matchday.share.errors.no_image.message"),
+      );
+      return;
+    }
+
+    try {
+      setIsSharingPoster(true);
+
+      const uri = await captureRef(posterRef, {
+        format: "png",
+        quality: 1,
+        result: "tmpfile",
+      });
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+
+      if (!isSharingAvailable) {
+        Alert.alert(
+          t("matchday.share.errors.share.title"),
+          t("matchday.share.errors.share.message"),
+        );
+        return;
+      }
+
+      await Sharing.shareAsync(uri, {
+        dialogTitle: t("matchday.share.title"),
+        mimeType: "image/png",
+        UTI: "public.png",
+      });
+    } catch (error) {
+      console.warn("Failed to share match image", error);
+      Alert.alert(
+        t("matchday.share.errors.share.title"),
+        t("matchday.share.errors.share.message"),
+      );
+    } finally {
+      setIsSharingPoster(false);
     }
   }
 
@@ -378,11 +446,32 @@ export function ShareMatchPreviewModal({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              disabled={!preview || isExportingPoster}
+              disabled={!preview || isExportingPoster || isSharingPoster}
+              onPress={handleSharePoster}
+              style={({ pressed }) => [
+                styles.sharePosterButton,
+                (!preview || isExportingPoster || isSharingPoster) &&
+                  styles.disabledButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <ThemedText
+                type="smallBold"
+                style={styles.sharePosterButtonText}
+              >
+                {isSharingPoster
+                  ? t("matchday.share.sharing")
+                  : t("common.share")}
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              disabled={!preview || isExportingPoster || isSharingPoster}
               onPress={handleExportPoster}
               style={({ pressed }) => [
                 styles.primaryButton,
-                (!preview || isExportingPoster) && styles.disabledButton,
+                (!preview || isExportingPoster || isSharingPoster) &&
+                  styles.disabledButton,
                 pressed && styles.pressed,
               ]}
             >

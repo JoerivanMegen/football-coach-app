@@ -1,6 +1,5 @@
 header:
   title: Team dashboard
-  subtitle: Jump straight into the next thing your team needs.
   injuries: "{{count}} injured player"
   injuries_plural: "{{count}} injured players"
 next_match:

@@ -105,6 +105,7 @@ add_match:
     go_back: Go back
     continue_anyway: Continue anyway
     review: Review
+    save_and_share: Save and share
     update: Update
   validation:
     opponent:
@@ -202,8 +203,9 @@ share:
     classic: Classic
     broadcast: Broadcast
   close_preview: Close share preview
-  export: Export
-  exporting: Exporting...
+  export: Save to Photos
+  exporting: Saving...
+  sharing: Sharing...
   poster:
     opponent: OPPONENT
     home_match: Home match
@@ -224,8 +226,17 @@ share:
       title: No image ready
       message: Open a match preview before exporting.
     export:
-      title: Export failed
-      message: Something went wrong while creating the match image.
+      title: Save failed
+      message: Something went wrong while saving the match image.
+    permission:
+      title: Photos permission needed
+      message: Allow Assistant Coach to add images to Photos to save this match image.
+    share:
+      title: Sharing unavailable
+      message: This match image could not be shared right now.
+  saved:
+    title: Saved to Photos
+    message: The match image has been added to your Photos library.
   success:
     title: Image created
     message: "The image was created here:\n{{uri}}"

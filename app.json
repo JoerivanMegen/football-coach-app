@@ -47,7 +47,17 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Assistant Coach to access your photos.",
+          "savePhotosPermission": "Allow Assistant Coach to save match images to your photos.",
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

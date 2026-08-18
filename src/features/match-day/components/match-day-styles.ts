@@ -1520,6 +1520,17 @@ export const matchDayStyles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: Spacing.three,
   },
+  sharePosterButton: {
+    alignItems: "center",
+    backgroundColor: ActionColors.warning,
+    borderRadius: Spacing.two,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: Spacing.three,
+  },
+  sharePosterButtonText: {
+    color: ActionColors.onAccent,
+  },
   primaryButton: {
     alignItems: "center",
     backgroundColor: "#1C7C54",

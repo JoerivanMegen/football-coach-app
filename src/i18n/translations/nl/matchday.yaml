@@ -105,6 +105,7 @@ add_match:
     go_back: Teruggaan
     continue_anyway: Toch doorgaan
     review: Controleren
+    save_and_share: Opslaan en delen
     update: Opslaan
   validation:
     opponent:
@@ -202,8 +203,9 @@ share:
     classic: Klassiek
     broadcast: Broadcast
   close_preview: Deelvoorbeeld sluiten
-  export: Downloaden
-  exporting: Downloaden...
+  export: Bewaar in Foto's
+  exporting: Opslaan...
+  sharing: Delen...
   poster:
     opponent: TEGENSTANDER
     home_match: Thuiswedstrijd
@@ -224,8 +226,17 @@ share:
       title: Geen afbeelding gereed
       message: Open eerst een wedstrijdvoorbeeld voordat je exporteert.
     export:
-      title: Download mislukt
-      message: Er ging iets mis bij het maken van de wedstrijdafbeelding.
+      title: Opslaan mislukt
+      message: Er ging iets mis bij het opslaan van de wedstrijdafbeelding.
+    permission:
+      title: Toegang tot Foto's nodig
+      message: Geef Assistant Coach toestemming om afbeeldingen aan Foto's toe te voegen.
+    share:
+      title: Delen niet beschikbaar
+      message: De wedstrijdafbeelding kan momenteel niet worden gedeeld.
+  saved:
+    title: Opgeslagen in Foto's
+    message: De wedstrijdafbeelding is aan je fotobibliotheek toegevoegd.
   success:
     title: Afbeelding gemaakt
     message: "De afbeelding is hier aangemaakt:\n{{uri}}"
