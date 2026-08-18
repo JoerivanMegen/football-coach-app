@@ -3,7 +3,6 @@ import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -15,8 +14,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
-import { LanguageSelectionModal } from "@/components/language-selection-modal";
-import { OnboardingTutorial } from "@/components/onboarding-tutorial";
 import { OutlinedText } from "@/components/outlined-text";
 import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import { ThemedText } from "@/components/themed-text";
@@ -35,11 +32,6 @@ import { listMatchDayMatchesAsync } from "@/features/match-day/match-day-reposit
 import type { MatchDayMatch } from "@/features/match-day/match-day-types";
 import { isTrainingAttendanceOverdue } from "@/features/notifications/match-result-notifications";
 import { listPlayersAsync } from "@/features/players/player-repository";
-import {
-  hasCompletedOnboardingAsync,
-  hasSelectedAppLocaleAsync,
-  setOnboardingCompletedAsync,
-} from "@/features/settings/app-preferences-repository";
 import {
   getTeamSettingsAsync,
   saveTeamSettingsAsync,
@@ -118,7 +110,7 @@ export default function HomeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
-  const { setLocale, t } = useI18n();
+  const { locale, t } = useI18n();
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [settingsForm, setSettingsForm] = useState<SaveTeamSettingsInput>(
     defaultTeamSettingsForm,
@@ -128,12 +120,6 @@ export default function HomeScreen() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [playerCount, setPlayerCount] = useState<number | null>(null);
   const [injuredPlayerCount, setInjuredPlayerCount] = useState(0);
-  const [hasTeamSettings, setHasTeamSettings] = useState(false);
-  const [isTutorialVisible, setIsTutorialVisible] = useState(false);
-  const [isLanguageSelectionVisible, setIsLanguageSelectionVisible] =
-    useState(false);
-  const [isInitialHomeStateLoaded, setIsInitialHomeStateLoaded] =
-    useState(false);
   const [overdueMatchResultCount, setOverdueMatchResultCount] = useState(0);
   const [hasTraining, setHasTraining] = useState(false);
   const [hasMatch, setHasMatch] = useState(false);
@@ -153,18 +139,9 @@ export default function HomeScreen() {
 
       async function loadHomeData() {
         try {
-          const [
-            settings,
-            players,
-            hasCompletedOnboarding,
-            hasSelectedLanguage,
-            matches,
-            events,
-          ] = await Promise.all([
+          const [settings, players, matches, events] = await Promise.all([
             getTeamSettingsAsync(),
             listPlayersAsync(),
-            hasCompletedOnboardingAsync(),
-            hasSelectedAppLocaleAsync(),
             listMatchDayMatchesAsync(),
             listEventsAsync(),
           ]);
@@ -178,11 +155,6 @@ export default function HomeScreen() {
             players.filter((player) => player.activeInjuryStartDate !== null)
               .length,
           );
-          setHasTeamSettings(Boolean(settings));
-          setIsLanguageSelectionVisible(
-            !hasCompletedOnboarding && !hasSelectedLanguage,
-          );
-          setIsTutorialVisible(!hasCompletedOnboarding && hasSelectedLanguage);
           setOverdueMatchResultCount(
             matches.filter((match) => isMatchResultOverdue(match, new Date()))
               .length,
@@ -206,9 +178,12 @@ export default function HomeScreen() {
           );
 
           if (!settings) {
-            setSettingsForm(defaultTeamSettingsForm);
+            setSettingsForm({
+              ...defaultTeamSettingsForm,
+              fineJarCurrency: locale === "nl" ? "EUR" : "GBP",
+            });
             setSettingsStep(0);
-            setIsSettingsModalVisible(hasCompletedOnboarding);
+            setIsSettingsModalVisible(true);
             return;
           }
 
@@ -235,10 +210,6 @@ export default function HomeScreen() {
           });
         } catch (error) {
           console.warn("Failed to load home data", error);
-        } finally {
-          if (isFocused) {
-            setIsInitialHomeStateLoaded(true);
-          }
         }
       }
 
@@ -247,7 +218,7 @@ export default function HomeScreen() {
       return () => {
         isFocused = false;
       };
-    }, []),
+    }, [locale]),
   );
 
   async function handleSaveSettings() {
@@ -291,19 +262,6 @@ export default function HomeScreen() {
     }
 
     setSettingsStep(1);
-  }
-
-  async function handleFinishTutorial() {
-    try {
-      await setOnboardingCompletedAsync(true);
-      setIsTutorialVisible(false);
-      if (!hasTeamSettings) {
-        setSettingsStep(0);
-        setIsSettingsModalVisible(true);
-      }
-    } catch (error) {
-      console.warn("Failed to save tutorial progress", error);
-    }
   }
 
   const contentPlatformStyle = Platform.select({
@@ -434,9 +392,6 @@ export default function HomeScreen() {
           <ThemedView style={styles.header}>
             <ThemedText type="subtitle" style={styles.title}>
               {t("dashboard.header.title")}
-            </ThemedText>
-            <ThemedText themeColor="textSecondary" style={styles.intro}>
-              {t("dashboard.header.subtitle")}
             </ThemedText>
             {injuredPlayerCount > 0 ? (
               <ThemedView type="backgroundElement" style={styles.injurySummary}>
@@ -650,30 +605,6 @@ export default function HomeScreen() {
         </ThemedView>
       </ScrollView>
 
-      <OnboardingTutorial
-        onFinish={handleFinishTutorial}
-        visible={isTutorialVisible}
-      />
-      <LanguageSelectionModal
-        visible={isLanguageSelectionVisible}
-        onSelect={async (locale) => {
-          await setLocale(locale);
-          setSettingsForm((current) => ({
-            ...current,
-            fineJarCurrency: locale === "nl" ? "EUR" : "GBP",
-          }));
-          setIsLanguageSelectionVisible(false);
-          setIsTutorialVisible(true);
-        }}
-      />
-      <Modal
-        animationType="none"
-        visible={!isInitialHomeStateLoaded}
-      >
-        <ThemedView type="modalBackground" style={styles.startupGate}>
-          <ActivityIndicator color={ActionColors.primary} size="large" />
-        </ThemedView>
-      </Modal>
       <TeamSettingsSetupModal
         error={settingsError}
         form={settingsForm}
@@ -683,7 +614,7 @@ export default function HomeScreen() {
         onContinue={handleContinueSettings}
         onSave={handleSaveSettings}
         step={settingsStep}
-        visible={isSettingsModalVisible && !isTutorialVisible}
+        visible={isSettingsModalVisible}
       />
     </>
   );
@@ -1571,11 +1502,6 @@ const styles = StyleSheet.create({
   intro: {
     maxWidth: 560,
   },
-  startupGate: {
-    alignItems: "center",
-    flex: 1,
-    justifyContent: "center",
-  },
   injurySummary: {
     alignItems: "center",
     alignSelf: "flex-start",
@@ -1720,6 +1646,7 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: "center",
+    backgroundColor: ActionColors.primary,
     borderRadius: Spacing.three,
     height: 52,
     justifyContent: "center",

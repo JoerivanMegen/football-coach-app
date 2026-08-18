@@ -260,9 +260,12 @@ export default function MatchDayScreen() {
       );
     } catch (error) {
       console.warn("Failed to load match day matches", error);
-      Alert.alert("Could not load matches", "Please try again.");
+      Alert.alert(
+        t("matchday.errors.load.title"),
+        t("matchday.errors.load.message"),
+      );
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let isMounted = true;
@@ -300,7 +303,6 @@ export default function MatchDayScreen() {
       })
       .catch((error: unknown) => {
         console.warn("Failed to load match day matches", error);
-        Alert.alert("Could not load matches", "Please try again.");
       });
 
     return () => {

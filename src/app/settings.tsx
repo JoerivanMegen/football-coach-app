@@ -441,7 +441,7 @@ export default function SettingsScreen() {
     try {
       await clearAllUserDataAsync();
       await cancelAllAssistantCoachNotificationsAsync();
-      router.replace("/");
+      await reloadAppAsync();
     } catch (deleteError) {
       console.warn("Failed to delete app data", deleteError);
       Alert.alert(

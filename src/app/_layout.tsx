@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { AppStartupGate } from '@/components/app-startup-gate';
 import { getDatabaseAsync } from '@/db/database';
 import { configureNotificationPresentation } from '@/features/notifications/match-result-notifications';
 import { I18nProvider } from '@/i18n/i18n-provider';
@@ -44,14 +45,16 @@ export default function TabLayout() {
   return (
     <I18nProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <AppHeader />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="settings" />
-          <Stack.Screen name="fine-jar" />
-          <Stack.Screen name="seasons" />
-          <Stack.Screen name="season-summary" />
-        </Stack>
+        <AppStartupGate>
+          <AppHeader />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="fine-jar" />
+            <Stack.Screen name="seasons" />
+            <Stack.Screen name="season-summary" />
+          </Stack>
+        </AppStartupGate>
       </ThemeProvider>
     </I18nProvider>
   );

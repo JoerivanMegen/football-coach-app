@@ -4,6 +4,24 @@ import { APP_LOCALES, DEFAULT_LOCALE, type AppLocale } from "@/i18n/locales";
 const ONBOARDING_COMPLETED_KEY = "onboarding_completed";
 const APP_LOCALE_KEY = "app_locale";
 
+type AppPreferencesChangeListener = () => void;
+
+const appPreferencesChangeListeners = new Set<AppPreferencesChangeListener>();
+
+export function subscribeToAppPreferencesChanges(
+  listener: AppPreferencesChangeListener,
+) {
+  appPreferencesChangeListeners.add(listener);
+
+  return () => {
+    appPreferencesChangeListeners.delete(listener);
+  };
+}
+
+function notifyAppPreferencesChanged() {
+  appPreferencesChangeListeners.forEach((listener) => listener());
+}
+
 export async function hasCompletedOnboardingAsync() {
   const db = await getDatabaseAsync();
   const row = await db.getFirstAsync<{ value: string }>(
@@ -26,6 +44,7 @@ export async function setOnboardingCompletedAsync(isCompleted: boolean) {
     ONBOARDING_COMPLETED_KEY,
     String(isCompleted),
   );
+  notifyAppPreferencesChanged();
 }
 
 export async function getAppLocaleAsync(): Promise<AppLocale> {
@@ -55,4 +74,5 @@ export async function setAppLocaleAsync(locale: AppLocale) {
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
     [APP_LOCALE_KEY, locale],
   );
+  notifyAppPreferencesChanged();
 }
