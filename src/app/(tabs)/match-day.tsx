@@ -34,6 +34,7 @@ import { listGuestPlayersAsync } from "@/features/match-day/guest-player-reposit
 import {
   createMatchDayMatchAsync,
   deleteMatchDayMatchAsync,
+  deleteMatchDayMatchResultAsync,
   listMatchDayMatchesAsync,
   updateMatchDayMatchAsync,
   updateMatchDayMatchResultAsync,
@@ -344,6 +345,10 @@ export default function MatchDayScreen() {
   }
 
   function openEditMatchWizard(match: MatchDayMatch) {
+    if (hasMatchResult(match)) {
+      return;
+    }
+
     setEditingMatchId(match.id);
     setMatchSetupForm(createMatchSetupFormStateFromMatch(match));
     setIsMatchSetupOpen(true);
@@ -546,6 +551,41 @@ export default function MatchDayScreen() {
     );
   }
 
+  function confirmDeleteMatchResult(match: MatchDayMatch) {
+    Alert.alert(
+      t("matchday.confirm.delete_result_title"),
+      t("matchday.confirm.delete_result_message"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("matchday.overview.actions.delete_result"),
+          style: "destructive",
+          onPress: () => {
+            void handleDeleteMatchResult(match);
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteMatchResult(match: MatchDayMatch) {
+    try {
+      await deleteMatchDayMatchResultAsync(match.id);
+      await cancelMatchResultReminderAsync(match.id);
+      setResultMatchId((currentMatchId) =>
+        currentMatchId === match.id ? null : currentMatchId,
+      );
+      setExpandedMatchId(match.id);
+      await loadMatches();
+    } catch (error) {
+      console.warn("Failed to delete match result", error);
+      Alert.alert(
+        t("matchday.errors.delete_result.title"),
+        t("matchday.errors.delete_result.message"),
+      );
+    }
+  }
+
   async function handleDeleteMatch(match: MatchDayMatch) {
     try {
       await deleteMatchDayMatchAsync(match.id);
@@ -607,6 +647,7 @@ export default function MatchDayScreen() {
             preferNicknames={preferNicknames}
             teamName={teamName}
             onDeleteMatch={confirmDeleteMatch}
+            onDeleteResult={confirmDeleteMatchResult}
             onEditMatch={openEditMatchWizard}
             onEditResult={openResultWizard}
             onShareMatch={openSavedMatchSharePreview}
@@ -1408,6 +1449,7 @@ function MatchDayMatchList({
   matchDurationMinutes,
   matches,
   onDeleteMatch,
+  onDeleteResult,
   onEditMatch,
   onEditResult,
   onShareMatch,
@@ -1421,6 +1463,7 @@ function MatchDayMatchList({
   matchDurationMinutes: number;
   matches: MatchDayMatch[];
   onDeleteMatch: (match: MatchDayMatch) => void;
+  onDeleteResult: (match: MatchDayMatch) => void;
   onEditMatch: (match: MatchDayMatch) => void;
   onEditResult: (match: MatchDayMatch) => void;
   onShareMatch: (match: MatchDayMatch) => void;
@@ -1442,6 +1485,7 @@ function MatchDayMatchList({
         isExpanded={isExpanded}
         match={match}
         onDelete={() => onDeleteMatch(match)}
+        onDeleteResult={() => onDeleteResult(match)}
         onEdit={() => onEditMatch(match)}
         onEditResult={() => onEditResult(match)}
         onShare={() => onShareMatch(match)}

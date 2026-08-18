@@ -13,6 +13,7 @@ overview:
     delete: Wedstrijd verwijderen
     add_result: Uitslag toevoegen
     edit_result: Uitslag bewerken
+    delete_result: Uitslag verwijderen
     share: Delen
   result:
     title: Uitslag
@@ -254,7 +255,12 @@ errors:
     title: Wedstrijd kon niet worden opgeslagen
     message: Controleer de wedstrijdgegevens en probeer het opnieuw.
   save_result: Uitslag kon niet worden opgeslagen
+  delete_result:
+    title: Uitslag kon niet worden verwijderd
+    message: Probeer het opnieuw.
   delete: Wedstrijd kon niet worden verwijderd
 confirm:
   delete_title: Wedstrijd verwijderen?
   delete_message: "Hiermee verwijder je de opgeslagen wedstrijd tegen {{opponent}} definitief."
+  delete_result_title: Wedstrijduitslag verwijderen?
+  delete_result_message: Hiermee verwijder je de uitslag en alle spelersstatistieken die bij de uitslag zijn ingevoerd. De wedstrijdinstellingen, beschikbaarheid en opstelling blijven behouden.

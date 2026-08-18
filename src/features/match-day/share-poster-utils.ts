@@ -192,7 +192,7 @@ export function getShareSubstituteLabel(
     return "";
   }
 
-  return `${substitute.kitNumber ?? "-"} ${formatPlayerName(
+  return `${substitute.kitNumber ?? " "} ${formatPlayerName(
     substitute,
     preferNicknames,
   )}`;
@@ -290,4 +290,3 @@ export function darkenHexColor(hexColor: string, amount: number) {
 
   return `#${nextColor}`;
 }
-

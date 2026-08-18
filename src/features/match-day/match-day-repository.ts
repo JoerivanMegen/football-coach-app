@@ -179,6 +179,25 @@ export async function updateMatchDayMatchResultAsync(input: UpdateMatchDayMatchR
   );
 }
 
+export async function deleteMatchDayMatchResultAsync(matchId: number) {
+  const db = await getDatabaseAsync();
+  await ensureMatchDayStorageAsync();
+
+  await db.runAsync(
+    `
+      UPDATE match_day_matches
+      SET
+        own_score = NULL,
+        opponent_score = NULL,
+        result_notes = '',
+        player_result_stats_json = '{}',
+        fulfilled_match_duty_player_ids_json = '[]'
+      WHERE id = ?
+    `,
+    [matchId],
+  );
+}
+
 async function ensureMatchDayStorageAsync() {
   const db = await getDatabaseAsync();
 

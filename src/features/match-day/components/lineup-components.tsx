@@ -899,6 +899,15 @@ export function LineupJersey({
   const kitNumberColor = usesGoalkeeperKit
     ? "#ffffff"
     : kitSettings.kitNumberColor;
+  const playerDisplayName = formatPlayerName(
+    player,
+    preferNicknames ?? false,
+  );
+  const playerNameSize = getLineupPlayerNameSize(
+    playerDisplayName,
+    compact,
+    dense,
+  );
 
   return (
     <ThemedView
@@ -953,7 +962,7 @@ export function LineupJersey({
             dense && styles.jerseyNumberDense,
           ]}
         >
-          {player.kitNumber ?? "-"}
+          {player.kitNumber ?? " "}
         </OutlinedText>
         {resultBadges ? (
           <JerseyResultBadgeOverlay badges={resultBadges} compact={compact} />
@@ -968,13 +977,13 @@ export function LineupJersey({
           ]}
         >
           <ThemedText
-            adjustsFontSizeToFit
-            minimumFontScale={compact ? 0.62 : 0.72}
+            allowFontScaling={false}
             type="default"
             style={[
               styles.jerseyName,
               compact && styles.jerseyNameCompact,
               dense && styles.jerseyNameDense,
+              playerNameSize,
               playerNameColor ? { color: playerNameColor } : undefined,
               !playerNameShadow
                 ? {
@@ -986,12 +995,33 @@ export function LineupJersey({
             ]}
             numberOfLines={1}
           >
-            {formatPlayerName(player, preferNicknames ?? false)}
+            {playerDisplayName}
           </ThemedText>
         </ThemedView>
       ) : null}
     </ThemedView>
   );
+}
+
+function getLineupPlayerNameSize(
+  name: string,
+  compact?: boolean,
+  dense?: boolean,
+) {
+  const baseFontSize = dense ? 14 : 16;
+  const minimumFontSize = dense ? 8 : compact ? 9 : 10;
+  const availableTextWidth = dense ? 70 : compact ? 88 : 100;
+  const estimatedTextWidth =
+    Math.max(Array.from(name.trim()).length, 1) * baseFontSize * 0.72;
+  const fontSize = Math.max(
+    minimumFontSize,
+    Math.min(baseFontSize, (baseFontSize * availableTextWidth) / estimatedTextWidth),
+  );
+
+  return {
+    fontSize,
+    lineHeight: Math.ceil(fontSize + 4),
+  };
 }
 
 function getMatchdayRatingPillStyle(rating: number) {

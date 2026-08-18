@@ -961,28 +961,31 @@ function TeamSettingsSetupModal({
                 {error}
               </ThemedText>
             ) : null}
+
+            {step === 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  "dashboard.setup.actions.continue_team_settings",
+                )}
+                onPress={onContinue}
+                style={({ pressed }) => [
+                  styles.settingsSaveButton,
+                  styles.settingsNextButton,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <ThemedText
+                  type="smallBold"
+                  style={styles.settingsSaveButtonText}
+                >
+                  {t("common.next")}
+                </ThemedText>
+              </Pressable>
+            ) : null}
           </ScrollView>
 
-          {step === 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t(
-                "dashboard.setup.actions.continue_team_settings",
-              )}
-              onPress={onContinue}
-              style={({ pressed }) => [
-                styles.settingsSaveButton,
-                pressed && styles.pressed,
-              ]}
-            >
-              <ThemedText
-                type="smallBold"
-                style={styles.settingsSaveButtonText}
-              >
-                {t("common.next")}
-              </ThemedText>
-            </Pressable>
-          ) : (
+          {step === 1 ? (
             <ThemedView style={styles.settingsFooter}>
               <Pressable
                 accessibilityRole="button"
@@ -1024,7 +1027,7 @@ function TeamSettingsSetupModal({
                 </ThemedText>
               </Pressable>
             </ThemedView>
-          )}
+          ) : null}
         </ThemedView>
       </KeyboardAvoidingView>
     </Modal>
@@ -1666,6 +1669,7 @@ const styles = StyleSheet.create({
   settingsModalCard: {
     borderRadius: Spacing.three,
     gap: Spacing.three,
+    height: "92%",
     maxHeight: "92%",
     maxWidth: 520,
     padding: Spacing.three,
@@ -1678,7 +1682,7 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   settingsModalScroll: {
-    flexGrow: 0,
+    flex: 1,
   },
   settingsModalForm: {
     gap: Spacing.three,
@@ -1805,10 +1809,13 @@ const styles = StyleSheet.create({
   },
   settingsSaveButton: {
     alignItems: "center",
-    backgroundColor: "#536DFE",
+    backgroundColor: ActionColors.primary,
     borderRadius: Spacing.two,
     justifyContent: "center",
     minHeight: 48,
+  },
+  settingsNextButton: {
+    backgroundColor: ActionColors.primary,
   },
   settingsFooter: {
     flexDirection: "row",

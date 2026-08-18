@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Platform, Pressable, TextInput } from 'react-native';
+import { Keyboard, Platform, Pressable, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -167,7 +167,10 @@ function EventDatePickerField({ value, onChange }: EventDatePickerFieldProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('training.add_training.details.open_date_picker')}
-        onPress={() => setIsOpen(true)}
+        onPress={() => {
+          Keyboard.dismiss();
+          setIsOpen(true);
+        }}
         style={({ pressed }) => [
           styles.datePickerButton,
           { backgroundColor: theme.backgroundElement },
@@ -228,7 +231,10 @@ function EventTimePickerField({ value, onChange }: EventTimePickerFieldProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('training.add_training.details.open_time_picker')}
-        onPress={() => setIsOpen(true)}
+        onPress={() => {
+          Keyboard.dismiss();
+          setIsOpen(true);
+        }}
         style={({ pressed }) => [
           styles.datePickerButton,
           { backgroundColor: theme.backgroundElement },

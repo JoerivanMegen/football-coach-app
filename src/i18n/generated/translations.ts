@@ -277,6 +277,7 @@ export const translations = {
           "delete": "Delete match",
           "add_result": "Add result",
           "edit_result": "Edit result",
+          "delete_result": "Delete result",
           "share": "Share"
         },
         "result": {
@@ -577,11 +578,17 @@ export const translations = {
           "message": "Please check the match details and try again."
         },
         "save_result": "Could not save result",
+        "delete_result": {
+          "title": "Could not delete result",
+          "message": "Please try again."
+        },
         "delete": "Could not delete match"
       },
       "confirm": {
         "delete_title": "Delete match?",
-        "delete_message": "This will permanently delete the saved match against {{opponent}}."
+        "delete_message": "This will permanently delete the saved match against {{opponent}}.",
+        "delete_result_title": "Delete match result?",
+        "delete_result_message": "This removes the score and all player statistics entered with the result. The match setup, availability, and lineup will be kept."
       }
     },
     "navigation": {
@@ -1561,6 +1568,7 @@ export const translations = {
           "delete": "Wedstrijd verwijderen",
           "add_result": "Uitslag toevoegen",
           "edit_result": "Uitslag bewerken",
+          "delete_result": "Uitslag verwijderen",
           "share": "Delen"
         },
         "result": {
@@ -1861,11 +1869,17 @@ export const translations = {
           "message": "Controleer de wedstrijdgegevens en probeer het opnieuw."
         },
         "save_result": "Uitslag kon niet worden opgeslagen",
+        "delete_result": {
+          "title": "Uitslag kon niet worden verwijderd",
+          "message": "Probeer het opnieuw."
+        },
         "delete": "Wedstrijd kon niet worden verwijderd"
       },
       "confirm": {
         "delete_title": "Wedstrijd verwijderen?",
-        "delete_message": "Hiermee verwijder je de opgeslagen wedstrijd tegen {{opponent}} definitief."
+        "delete_message": "Hiermee verwijder je de opgeslagen wedstrijd tegen {{opponent}} definitief.",
+        "delete_result_title": "Wedstrijduitslag verwijderen?",
+        "delete_result_message": "Hiermee verwijder je de uitslag en alle spelersstatistieken die bij de uitslag zijn ingevoerd. De wedstrijdinstellingen, beschikbaarheid en opstelling blijven behouden."
       }
     },
     "navigation": {
@@ -2816,8 +2830,12 @@ export type TranslationKey =
   | "matchday.add_match.validation.time.message"
   | "matchday.add_match.validation.time.title"
   | "matchday.confirm.delete_message"
+  | "matchday.confirm.delete_result_message"
+  | "matchday.confirm.delete_result_title"
   | "matchday.confirm.delete_title"
   | "matchday.errors.delete"
+  | "matchday.errors.delete_result.message"
+  | "matchday.errors.delete_result.title"
   | "matchday.errors.load.message"
   | "matchday.errors.load.title"
   | "matchday.errors.save_match.message"
@@ -2825,6 +2843,7 @@ export type TranslationKey =
   | "matchday.errors.save_result"
   | "matchday.overview.actions.add_result"
   | "matchday.overview.actions.delete"
+  | "matchday.overview.actions.delete_result"
   | "matchday.overview.actions.edit"
   | "matchday.overview.actions.edit_result"
   | "matchday.overview.actions.share"

@@ -1,7 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Platform, Pressable, TextInput } from "react-native";
+import { Keyboard, Platform, Pressable, TextInput } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -94,7 +94,10 @@ export function MatchDatePickerField({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("common.fields.date.choose")}
-        onPress={() => setIsOpen(true)}
+        onPress={() => {
+          Keyboard.dismiss();
+          setIsOpen(true);
+        }}
         style={({ pressed }) => [
           styles.pickerButton,
           { backgroundColor: theme.backgroundElement },
@@ -168,7 +171,10 @@ export function MatchTimePickerField({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("common.fields.time.choose")}
-        onPress={() => setIsOpen(true)}
+        onPress={() => {
+          Keyboard.dismiss();
+          setIsOpen(true);
+        }}
         style={({ pressed }) => [
           styles.pickerButton,
           { backgroundColor: theme.backgroundElement },

@@ -11,9 +11,9 @@ import type { MatchDayMatch } from "@/features/match-day/match-day-types";
 import { formatIsoDateForDisplay, getMatchCategoryIcon, hasMatchResult, hasMatchStarted, isMatchResultActionDue } from "@/features/match-day/match-day-utils";
 import { useI18n } from "@/i18n/i18n-provider";
 
-export function MatchOverviewCard({ children, isExpanded, match, onDelete, onEdit, onEditResult, onShare, onToggle, teamName }: {
+export function MatchOverviewCard({ children, isExpanded, match, onDelete, onDeleteResult, onEdit, onEditResult, onShare, onToggle, teamName }: {
   children: ReactNode; isExpanded: boolean; match: MatchDayMatch;
-  onDelete: () => void; onEdit: () => void; onEditResult: () => void;
+  onDelete: () => void; onDeleteResult: () => void; onEdit: () => void; onEditResult: () => void;
   onShare: () => void; onToggle: () => void; teamName: string;
 }) {
   const { t } = useI18n();
@@ -80,7 +80,11 @@ export function MatchOverviewCard({ children, isExpanded, match, onDelete, onEdi
                   : styles.resultMatchButtonText
               }
             />
-            <CardAction label={t("matchday.overview.actions.edit")} color={ActionColors.warning} icon={{ ios: "pencil", android: "edit", web: "edit" }} onPress={onEdit} buttonStyle={styles.editMatchButton} textStyle={styles.editMatchButtonText} />
+            {hasResult ? (
+              <CardAction label={t("matchday.overview.actions.delete_result")} color={ActionColors.warning} icon={{ ios: "eraser", android: "restart_alt", web: "restart_alt" }} onPress={onDeleteResult} buttonStyle={styles.editMatchButton} textStyle={styles.editMatchButtonText} />
+            ) : (
+              <CardAction label={t("matchday.overview.actions.edit")} color={ActionColors.warning} icon={{ ios: "pencil", android: "edit", web: "edit" }} onPress={onEdit} buttonStyle={styles.editMatchButton} textStyle={styles.editMatchButtonText} />
+            )}
             <CardAction label={t("matchday.overview.actions.delete")} color={ActionColors.danger} icon={{ ios: "trash", android: "delete", web: "delete" }} onPress={onDelete} buttonStyle={styles.deleteMatchButton} textStyle={styles.deleteMatchButtonText} />
           </ThemedView>
         </ThemedView>

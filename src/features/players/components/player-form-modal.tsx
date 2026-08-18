@@ -312,37 +312,46 @@ export function PlayerFormModal({
                 />
               </ThemedView>
             ) : null}
+            {!isBirthDatePickerOpen && !isInjuryDatePickerOpen ? (
+              <ThemedView style={styles.formActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onClose}
+                  style={({ pressed }) => [
+                    styles.secondaryButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <ThemedText type="smallBold">
+                    {t("common.cancel")}
+                  </ThemedText>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isSaving}
+                  onPress={onSave}
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    pressed && styles.pressed,
+                    isSaving && styles.disabledButton,
+                  ]}
+                >
+                  <ThemedText
+                    type="smallBold"
+                    style={styles.primaryButtonText}
+                  >
+                    {isSaving
+                      ? t("players.form.saving")
+                      : t(
+                          editing
+                            ? "players.form.update"
+                            : "players.form.save",
+                        )}
+                  </ThemedText>
+                </Pressable>
+              </ThemedView>
+            ) : null}
           </ScrollView>
-          {!isBirthDatePickerOpen && !isInjuryDatePickerOpen ? (
-            <ThemedView style={styles.formActions}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onClose}
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <ThemedText type="smallBold">{t("common.cancel")}</ThemedText>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSaving}
-                onPress={onSave}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && styles.pressed,
-                  isSaving && styles.disabledButton,
-                ]}
-              >
-                <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                  {isSaving
-                    ? t("players.form.saving")
-                    : t(editing ? "players.form.update" : "players.form.save")}
-                </ThemedText>
-              </Pressable>
-            </ThemedView>
-          ) : null}
         </ThemedView>
       </KeyboardAvoidingView>
     </Modal>

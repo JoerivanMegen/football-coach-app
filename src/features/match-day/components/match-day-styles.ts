@@ -1263,13 +1263,13 @@ export const matchDayStyles = StyleSheet.create({
     flexDirection: "row",
     gap: Spacing.half,
     justifyContent: "center",
-    maxWidth: 100,
+    width: 108,
   },
   jerseyNameRowCompact: {
-    maxWidth: 88,
+    width: 96,
   },
   jerseyNameRowDense: {
-    maxWidth: 74,
+    width: 78,
   },
   captainBadge: {
     alignItems: "center",
@@ -1316,7 +1316,7 @@ export const matchDayStyles = StyleSheet.create({
     color: "#ffffff",
     flexShrink: 1,
     lineHeight: 16,
-    maxWidth: 100,
+    maxWidth: 108,
     paddingHorizontal: Spacing.one,
     textAlign: "center",
     textShadowColor: "#000000",
@@ -1324,11 +1324,11 @@ export const matchDayStyles = StyleSheet.create({
     textShadowRadius: 4,
   },
   jerseyNameCompact: {
-    maxWidth: 84,
+    maxWidth: 96,
   },
   jerseyNameDense: {
     lineHeight: 16,
-    maxWidth: 72,
+    maxWidth: 78,
   },
   jerseyResultOverlay: {
     backgroundColor: "transparent",

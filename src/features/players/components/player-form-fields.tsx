@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { SymbolView } from "expo-symbols";
-import { Platform, Pressable, StyleSheet, TextInput } from "react-native";
+import { Keyboard, Platform, Pressable, StyleSheet, TextInput } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -55,7 +55,10 @@ export function BirthDatePickerField({ isOpen, value, onOpen, onChange, onClose 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("players.form.birth_date")}
-        onPress={onOpen}
+        onPress={() => {
+          Keyboard.dismiss();
+          onOpen();
+        }}
         style={({ pressed }) => [styles.datePickerButton, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}
       >
         <SymbolView name={{ ios: "calendar", android: "calendar_month", web: "calendar_month" }} tintColor={theme.text} size={18} />
@@ -100,7 +103,10 @@ export function InjuryDatePickerField({ isOpen, label, value, onOpen, onChange, 
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
-        onPress={onOpen}
+        onPress={() => {
+          Keyboard.dismiss();
+          onOpen();
+        }}
         style={({ pressed }) => [styles.datePickerButton, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}
       >
         <SymbolView name={{ ios: "calendar", android: "calendar_month", web: "calendar_month" }} tintColor={theme.text} size={18} />

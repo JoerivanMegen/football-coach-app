@@ -1,4 +1,10 @@
-import type { AssignmentSlot, FormationOption, LineupKitSettings, MatchFormation, PitchSlot } from "@/features/match-day/match-day-view-types";
+import type {
+  AssignmentSlot,
+  FormationOption,
+  LineupKitSettings,
+  MatchFormation,
+  PitchSlot,
+} from "@/features/match-day/match-day-view-types";
 
 export const matchFormationOptions = [
   { label: "4-3-3", value: "4-3-3" },
@@ -154,9 +160,9 @@ export const formationSlots = {
     createPitchSlot(1, "15%", "38%"),
     createPitchSlot(2, "15%", "62%"),
     createPitchSlot(3, "33%", "50%"),
-    createPitchSlot(4, "48%", "34%"),
-    createPitchSlot(5, "48%", "66%"),
-    createPitchSlot(6, "60%", "50%"),
+    createPitchSlot(4, "43%", "30%"), //
+    createPitchSlot(5, "43%", "70%"), //
+    createPitchSlot(6, "55%", "50%"), //
     createPitchSlot(7, "69%", "18%"),
     createPitchSlot(8, "71%", "38%"),
     createPitchSlot(9, "71%", "62%"),
@@ -179,10 +185,10 @@ export const formationSlots = {
   "4-1-3-2": [
     createPitchSlot(1, "18%", "38%"),
     createPitchSlot(2, "18%", "62%"),
-    createPitchSlot(3, "44%", "24%"),
-    createPitchSlot(4, "43%", "50%"),
-    createPitchSlot(5, "44%", "76%"),
-    createPitchSlot(6, "60%", "50%"),
+    createPitchSlot(3, "39%", "24%"),
+    createPitchSlot(4, "38%", "50%"),
+    createPitchSlot(5, "39%", "76%"),
+    createPitchSlot(6, "53%", "50%"),
     createPitchSlot(7, "69%", "18%"),
     createPitchSlot(8, "71%", "38%"),
     createPitchSlot(9, "71%", "62%"),
@@ -190,5 +196,3 @@ export const formationSlots = {
     createPitchSlot(11, "88%", "50%"),
   ],
 } satisfies Record<MatchFormation, PitchSlot[]>;
-
-
