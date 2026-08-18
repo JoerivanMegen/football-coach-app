@@ -5,6 +5,7 @@ import { SymbolView } from "expo-symbols";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -110,6 +111,36 @@ const colorOptions = [
   "#EF4444",
   "#7F1D1D",
   "#FACC15",
+] as const;
+
+const legalLinks = [
+  {
+    key: "privacy",
+    url: "https://assistantcoachinfo.github.io/privacy/",
+    icon: {
+      ios: "hand.raised.fill",
+      android: "privacy_tip",
+      web: "privacy_tip",
+    },
+  },
+  {
+    key: "terms",
+    url: "https://assistantcoachinfo.github.io/terms/",
+    icon: {
+      ios: "doc.text.fill",
+      android: "description",
+      web: "description",
+    },
+  },
+  {
+    key: "support",
+    url: "https://assistantcoachinfo.github.io/support/",
+    icon: {
+      ios: "questionmark.circle.fill",
+      android: "help",
+      web: "help",
+    },
+  },
 ] as const;
 
 export default function SettingsScreen() {
@@ -435,6 +466,18 @@ export default function SettingsScreen() {
       );
     } finally {
       setIsOpeningTutorial(false);
+    }
+  }
+
+  async function handleOpenLegalLink(url: string) {
+    try {
+      await Linking.openURL(url);
+    } catch (linkError) {
+      console.warn("Failed to open legal or support page", linkError);
+      Alert.alert(
+        t("settings.errors.external_link.title"),
+        t("settings.errors.external_link.message"),
+      );
     }
   }
 
@@ -950,6 +993,59 @@ export default function SettingsScreen() {
                   : t("backup.restore.action")}
               </ThemedText>
             </Pressable>
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView type="backgroundElement" style={styles.panel}>
+          <ThemedView style={styles.sectionHeader}>
+            <SymbolView
+              name={{
+                ios: "checkmark.shield.fill",
+                android: "verified_user",
+                web: "verified_user",
+              }}
+              size={22}
+              tintColor={theme.text}
+            />
+            <ThemedText type="default">{t("settings.legal.title")}</ThemedText>
+          </ThemedView>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t("settings.legal.description")}
+          </ThemedText>
+          <ThemedView style={styles.legalLinks}>
+            {legalLinks.map((link) => (
+              <Pressable
+                key={link.key}
+                accessibilityRole="link"
+                accessibilityLabel={t(`settings.legal.${link.key}`)}
+                onPress={() => void handleOpenLegalLink(link.url)}
+                style={({ pressed }) => [
+                  styles.legalLinkButton,
+                  { borderColor: theme.backgroundSelected },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <ThemedView style={styles.legalLinkLabel}>
+                  <SymbolView
+                    name={link.icon}
+                    size={20}
+                    tintColor="#1C7C54"
+                  />
+                  <ThemedText type="smallBold">
+                    {t(`settings.legal.${link.key}`)}
+                  </ThemedText>
+                </ThemedView>
+                <SymbolView
+                  name={{
+                    ios: "arrow.up.right",
+                    android: "open_in_new",
+                    web: "open_in_new",
+                  }}
+                  size={17}
+                  tintColor={theme.textSecondary}
+                />
+              </Pressable>
+            ))}
           </ThemedView>
         </ThemedView>
 
@@ -1795,6 +1891,23 @@ const styles = StyleSheet.create({
     color: "#1C7C54",
   },
   seasonHistory: {
+    gap: Spacing.two,
+  },
+  legalLinks: {
+    gap: Spacing.two,
+  },
+  legalLinkButton: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    minHeight: 48,
+    paddingHorizontal: Spacing.three,
+  },
+  legalLinkLabel: {
+    alignItems: "center",
+    flexDirection: "row",
     gap: Spacing.two,
   },
   seasonHistoryButton: {

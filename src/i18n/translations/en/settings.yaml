@@ -11,6 +11,12 @@ introduction:
   title: Introduction
   description: Revisit the short guide to players, training, Match Day, sharing and settings.
   action: View introduction again
+legal:
+  title: Legal and support
+  description: Read Assistant Coach's policies or get help.
+  privacy: Privacy Policy
+  terms: Terms of Use
+  support: Support
 team:
   title: Team and kit
   name: Team name
@@ -116,6 +122,9 @@ errors:
   tutorial:
     title: Could not open tutorial
     message: Please try again.
+  external_link:
+    title: Page could not be opened
+    message: Check your internet connection and try again.
   season_check:
     title: Could not check season
     message: Please try again.

@@ -11,6 +11,12 @@ introduction:
   title: Introductie
   description: Bekijk de korte uitleg over spelers, trainingen, Match day, delen en instellingen opnieuw.
   action: Introductie opnieuw bekijken
+legal:
+  title: Juridisch en ondersteuning
+  description: Lees het beleid van Assistant Coach of vraag om hulp.
+  privacy: Privacybeleid
+  terms: Gebruiksvoorwaarden
+  support: Ondersteuning
 team:
   title: Team en tenue
   name: Teamnaam
@@ -116,6 +122,9 @@ errors:
   tutorial:
     title: Introductie kon niet worden geopend
     message: Probeer het opnieuw.
+  external_link:
+    title: Pagina kon niet worden geopend
+    message: Controleer je internetverbinding en probeer het opnieuw.
   season_check:
     title: Seizoen kon niet worden gecontroleerd
     message: Probeer het opnieuw.

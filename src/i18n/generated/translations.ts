@@ -955,6 +955,13 @@ export const translations = {
         "description": "Revisit the short guide to players, training, Match Day, sharing and settings.",
         "action": "View introduction again"
       },
+      "legal": {
+        "title": "Legal and support",
+        "description": "Read Assistant Coach's policies or get help.",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Use",
+        "support": "Support"
+      },
       "team": {
         "title": "Team and kit",
         "name": "Team name",
@@ -1077,6 +1084,10 @@ export const translations = {
         "tutorial": {
           "title": "Could not open tutorial",
           "message": "Please try again."
+        },
+        "external_link": {
+          "title": "Page could not be opened",
+          "message": "Check your internet connection and try again."
         },
         "season_check": {
           "title": "Could not check season",
@@ -2215,6 +2226,13 @@ export const translations = {
         "description": "Bekijk de korte uitleg over spelers, trainingen, Match day, delen en instellingen opnieuw.",
         "action": "Introductie opnieuw bekijken"
       },
+      "legal": {
+        "title": "Juridisch en ondersteuning",
+        "description": "Lees het beleid van Assistant Coach of vraag om hulp.",
+        "privacy": "Privacybeleid",
+        "terms": "Gebruiksvoorwaarden",
+        "support": "Ondersteuning"
+      },
       "team": {
         "title": "Team en tenue",
         "name": "Teamnaam",
@@ -2337,6 +2355,10 @@ export const translations = {
         "tutorial": {
           "title": "Introductie kon niet worden geopend",
           "message": "Probeer het opnieuw."
+        },
+        "external_link": {
+          "title": "Pagina kon niet worden geopend",
+          "message": "Controleer je internetverbinding en probeer het opnieuw."
         },
         "season_check": {
           "title": "Seizoen kon niet worden gecontroleerd",
@@ -3137,6 +3159,8 @@ export type TranslationKey =
   | "settings.actions.save"
   | "settings.actions.saved"
   | "settings.actions.saving"
+  | "settings.errors.external_link.message"
+  | "settings.errors.external_link.title"
   | "settings.errors.load"
   | "settings.errors.match_minutes"
   | "settings.errors.save"
@@ -3173,6 +3197,11 @@ export type TranslationKey =
   | "settings.language.dutch"
   | "settings.language.english"
   | "settings.language.title"
+  | "settings.legal.description"
+  | "settings.legal.privacy"
+  | "settings.legal.support"
+  | "settings.legal.terms"
+  | "settings.legal.title"
   | "settings.match_preferences.decrease_match_minutes"
   | "settings.match_preferences.fine_jar.currency.description"
   | "settings.match_preferences.fine_jar.currency.dollar"
