@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/assistant-coach-app-icon-1024.png",
-      "bundleIdentifier": "com.joerivanmegen.football-coach-app"
+      "bundleIdentifier": "com.joerivanmegen.football-coach-app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "allowBackup": true,
@@ -49,6 +52,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f1477750-7fa7-4d19-930a-c02da31495f4"
+      }
     }
   }
 }
