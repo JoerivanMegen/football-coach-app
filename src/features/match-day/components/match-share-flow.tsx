@@ -917,18 +917,20 @@ function SharePosterOverlay({
         fill={posterColors.infoPanelColor}
       />
       <Line x1="424" y1="244" x2="424" y2="284" stroke="#D1D5DB" />
-      <Path
-        d="M0 1153 H354 Q364 1153 359 1167 L334 1233 H0 Z"
-        fill="url(#primaryPanel)"
-        stroke="#FFFFFF"
-        strokeWidth="3"
-      />
-      <Path
-        d="M364 1153 H1038 Q1062 1153 1052 1177 L1018 1311 H0 V1233 H334 Z"
-        fill="url(#secondaryPanel)"
-        stroke="#FFFFFF"
-        strokeWidth="3"
-      />
+      <G transform="translate(0 20)">
+        <Path
+          d="M0 1153 H354 Q364 1153 359 1167 L334 1233 H0 Z"
+          fill="url(#primaryPanel)"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+        />
+        <Path
+          d="M364 1153 H1038 Q1062 1153 1052 1177 L1018 1311 H0 V1233 H334 Z"
+          fill="url(#secondaryPanel)"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+        />
+      </G>
     </Svg>
   );
 }
@@ -982,98 +984,91 @@ function BroadcastPosterOverlay({
       </Defs>
 
       <Rect x="0" y="0" width="1080" height="1350" fill="rgba(0,0,0,0.18)" />
-      <Path
-        d="M66 62 H682 L648 218 H66 Q58 218 58 210 V70 Q58 62 66 62 Z"
-        fill="url(#broadcastTitle)"
-        stroke="#FFFFFF"
-        strokeLinejoin="round"
-        strokeWidth="3"
-      />
-      <Path
-        d="M66 62 H682 L674 82 H130 L102 218 H66 Q58 218 58 210 V70 Q58 62 66 62 Z"
-        fill="url(#broadcastDark)"
-        opacity="0.82"
-      />
-      <Path
-        d="M84 218 H620 L596 294 H66 Q58 294 58 286 V234 Z"
-        fill="url(#broadcastValue)"
-        stroke="#FFFFFF"
-        strokeLinejoin="round"
-        strokeWidth="3"
-      />
-      <Path
-        d="M58 236 H486 L464 292 H58 Z"
-        fill="url(#broadcastValue)"
-        opacity="0.92"
-      />
-      <Path d="M505 246 H521 L493 286 H477 Z" fill="url(#broadcastAccent)" />
-      <Path d="M527 246 H543 L515 286 H499 Z" fill="url(#broadcastAccent)" />
-      <Path d="M549 246 H565 L537 286 H521 Z" fill="url(#broadcastAccent)" />
-      <Path d="M571 246 H587 L559 286 H543 Z" fill="url(#broadcastAccent)" />
-      <Path d="M593 246 H609 L581 286 H565 Z" fill="url(#broadcastAccent)" />
-      {hasResult ? (
-        <>
-          <Rect
-            x="690"
-            y="74"
-            width="158"
-            height="186"
-            rx="8"
-            fill={homeScorePanelFill}
-          />
-          <Rect
-            x="866"
-            y="74"
-            width="158"
-            height="186"
-            rx="8"
-            fill={awayScorePanelFill}
-          />
-          <Path d="M866 74 H926 L900 260 H866 Z" fill="url(#broadcastDark)" />
-        </>
-      ) : null}
-      <Rect
-        x="58"
-        y="302"
-        width="966"
-        height="76"
-        rx="16"
-        fill="url(#broadcastAccent)"
-      />
-      <Line
-        x1="532"
-        y1="320"
-        x2="532"
-        y2="360"
-        stroke={posterColors.infoTextColor}
-      />
-      <Rect
-        x="46"
-        y="1150"
-        width="988"
-        height="142"
-        rx="16"
-        fill="url(#broadcastDark)"
-        stroke="#FFFFFF"
-        strokeWidth="3"
-      />
-      <Path
-        d="M58 1178 H204 L230 1224 L204 1264 H58 Z"
-        fill="url(#broadcastTitle)"
-        stroke="#FFFFFF"
-        strokeWidth="3"
-      />
-      {[402, 532, 662, 792, 922].map((x) => (
-        <Line
-          key={x}
-          x1={x}
-          y1="1174"
-          x2={x}
-          y2="1268"
+      <G transform="translate(0 -40)">
+        <Path
+          d="M66 62 H682 L648 218 H66 Q58 218 58 210 V70 Q58 62 66 62 Z"
+          fill="url(#broadcastTitle)"
           stroke="#FFFFFF"
-          strokeOpacity="0.55"
+          strokeLinejoin="round"
+          strokeWidth="3"
         />
-      ))}
+        <Path
+          d="M66 62 H682 L674 82 H130 L102 218 H66 Q58 218 58 210 V70 Q58 62 66 62 Z"
+          fill="url(#broadcastDark)"
+          opacity="0.82"
+        />
+        <Path
+          d="M84 218 H620 L596 294 H66 Q58 294 58 286 V234 Z"
+          fill="url(#broadcastValue)"
+          stroke="#FFFFFF"
+          strokeLinejoin="round"
+          strokeWidth="3"
+        />
+        <Path
+          d="M58 236 H486 L464 292 H58 Z"
+          fill="url(#broadcastValue)"
+          opacity="0.92"
+        />
+        <Path d="M505 246 H521 L493 286 H477 Z" fill="url(#broadcastAccent)" />
+        <Path d="M527 246 H543 L515 286 H499 Z" fill="url(#broadcastAccent)" />
+        <Path d="M549 246 H565 L537 286 H521 Z" fill="url(#broadcastAccent)" />
+        <Path d="M571 246 H587 L559 286 H543 Z" fill="url(#broadcastAccent)" />
+        <Path d="M593 246 H609 L581 286 H565 Z" fill="url(#broadcastAccent)" />
+        {hasResult ? (
+          <>
+            <Rect
+              x="690"
+              y="74"
+              width="158"
+              height="186"
+              rx="8"
+              fill={homeScorePanelFill}
+            />
+            <Rect
+              x="866"
+              y="74"
+              width="158"
+              height="186"
+              rx="8"
+              fill={awayScorePanelFill}
+            />
+            <Path d="M866 74 H926 L900 260 H866 Z" fill="url(#broadcastDark)" />
+          </>
+        ) : null}
+        <Rect
+          x="58"
+          y="302"
+          width="966"
+          height="76"
+          rx="16"
+          fill="url(#broadcastAccent)"
+        />
+        <Line
+          x1="532"
+          y1="320"
+          x2="532"
+          y2="360"
+          stroke={posterColors.infoTextColor}
+        />
+      </G>
+      <G transform="translate(0 20)">
+        <Rect
+          x="46"
+          y="1150"
+          width="988"
+          height="142"
+          rx="16"
+          fill="url(#broadcastDark)"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+        />
+        <Path
+          d="M58 1178 H204 L230 1224 L204 1264 H58 Z"
+          fill="url(#broadcastTitle)"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+        />
+      </G>
     </Svg>
   );
 }

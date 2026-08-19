@@ -431,8 +431,6 @@ export const matchDayStyles = StyleSheet.create({
   },
   sharePosterLogoFrame: {
     alignItems: "center",
-    backgroundColor: "rgba(17, 24, 39, 0.1)",
-    borderRadius: Spacing.two,
     height: 74,
     justifyContent: "center",
     position: "absolute",
