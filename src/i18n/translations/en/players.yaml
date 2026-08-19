@@ -160,3 +160,4 @@ errors:
     message: Please try again.
 confirm:
   delete_title: Delete player
+  delete_message: "Delete {{name}}? This will remove the player from the active squad list."

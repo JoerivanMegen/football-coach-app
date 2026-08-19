@@ -632,7 +632,7 @@ export const translations = {
         },
         "training": {
           "eyebrow": "Training",
-          "title": "Keep attendance effortless",
+          "title": "Keep attendance effortlessly",
           "description": "Schedule training sessions, record who attended and follow participation throughout the season."
         },
         "matchday": {
@@ -844,7 +844,8 @@ export const translations = {
         }
       },
       "confirm": {
-        "delete_title": "Delete player"
+        "delete_title": "Delete player",
+        "delete_message": "Delete {{name}}? This will remove the player from the active squad list."
       }
     },
     "seasons": {
@@ -2135,7 +2136,8 @@ export const translations = {
         }
       },
       "confirm": {
-        "delete_title": "Speler verwijderen"
+        "delete_title": "Speler verwijderen",
+        "delete_message": "{{name}} verwijderen? Hiermee verwijder je de speler uit de actieve spelersgroep."
       }
     },
     "seasons": {
@@ -2989,6 +2991,7 @@ export type TranslationKey =
   | "onboarding.slides.welcome.description"
   | "onboarding.slides.welcome.eyebrow"
   | "onboarding.slides.welcome.title"
+  | "players.confirm.delete_message"
   | "players.confirm.delete_title"
   | "players.errors.delete.message"
   | "players.errors.delete.title"

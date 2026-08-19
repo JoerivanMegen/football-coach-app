@@ -463,7 +463,7 @@ export default function PlayersScreen() {
 
   function handleArchivePlayer(player: Player) {
     const playerName = `${player.firstName} ${player.lastName}`;
-    const message = `Delete ${playerName}? This will remove the player from the active squad list.`;
+    const message = t("players.confirm.delete_message", { name: playerName });
 
     if (Platform.OS === "web") {
       if (globalThis.confirm(message)) {

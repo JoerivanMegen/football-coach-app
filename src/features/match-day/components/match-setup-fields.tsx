@@ -5,6 +5,7 @@ import { Keyboard, Platform, Pressable, TextInput } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ActionColors } from "@/constants/theme";
 import { formatDateForDisplay, formatTimeForDisplay } from "@/features/events/components/event-wizard/event-details-step";
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
 import type { MatchCategory, MatchLocation } from "@/features/match-day/match-day-view-types";
@@ -67,7 +68,7 @@ export function MatchDatePickerField({
   onChange: (value: string) => void;
   value: string;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const selectedDate = parseDisplayDateToDate(value) ?? new Date();
@@ -121,7 +122,9 @@ export function MatchDatePickerField({
       {isOpen ? (
         <>
           <DateTimePicker
-            display={Platform.OS === "ios" ? "spinner" : "calendar"}
+            accentColor={ActionColors.primary}
+            display={Platform.OS === "ios" ? "inline" : "calendar"}
+            locale={locale === "nl" ? "nl_NL" : "en_GB"}
             mode="date"
             maximumDate={maximumDate}
             onDismiss={handleDismiss}

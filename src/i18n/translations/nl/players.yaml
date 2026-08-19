@@ -160,3 +160,4 @@ errors:
     message: Probeer het opnieuw.
 confirm:
   delete_title: Speler verwijderen
+  delete_message: "{{name}} verwijderen? Hiermee verwijder je de speler uit de actieve spelersgroep."

@@ -5,6 +5,7 @@ import { Keyboard, Platform, Pressable, TextInput } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ActionColors } from '@/constants/theme';
 import { eventWizardStyles as styles } from '@/features/events/components/event-wizard/event-wizard-styles';
 import { MatchLocations } from '@/features/events/components/event-wizard/event-wizard-types';
 import type {
@@ -143,7 +144,7 @@ type EventDatePickerFieldProps = {
 
 function EventDatePickerField({ value, onChange }: EventDatePickerFieldProps) {
   const theme = useTheme();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const selectedDate = parseDisplayDateToDate(value) ?? new Date();
 
@@ -187,7 +188,9 @@ function EventDatePickerField({ value, onChange }: EventDatePickerFieldProps) {
       {isOpen ? (
         <>
           <DateTimePicker
-            display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+            accentColor={ActionColors.primary}
+            display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+            locale={locale === 'nl' ? 'nl_NL' : 'en_GB'}
             mode="date"
             onDismiss={handleDismiss}
             onValueChange={handleValueChange}
