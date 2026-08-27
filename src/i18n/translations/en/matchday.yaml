@@ -81,11 +81,17 @@ add_match:
     previous: Previous guest players
     empty: No previous guest players yet.
     added: Added
+    add_existing: "Add {{name}} to this match"
+    delete:
+      action: "Delete guest player {{name}}"
+      title: Delete guest player?
+      message: "Remove {{name}} from the reusable guest-player list? Historical matches will be kept intact."
+      error_title: Could not delete guest player
     error:
       title: Could not add guest player
     limit:
       title: Guest player limit reached
-      message: You can add up to 10 guest players, using kit numbers 70 to 79.
+      message: You can add up to 10 guest players per match.
   lineup:
     formation: Formation
     select_formation: Select formation

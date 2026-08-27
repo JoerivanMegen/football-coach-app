@@ -9,6 +9,7 @@ type GuestPlayerRow = {
   id: number;
   name: string;
   position: string;
+  is_active: number;
   created_at: string;
   updated_at: string;
 };
@@ -43,12 +44,13 @@ export async function addGuestPlayerAsync(
 
   if (existing) {
     await db.runAsync(
-      "UPDATE guest_players SET position = ?, updated_at = datetime('now') WHERE id = ?",
+      "UPDATE guest_players SET position = ?, is_active = 1, updated_at = datetime('now') WHERE id = ?",
       [position, existing.id],
     );
     return mapGuestPlayerRow({
       ...existing,
       position,
+      is_active: 1,
       updated_at: new Date().toISOString(),
     });
   }
@@ -69,6 +71,15 @@ export async function addGuestPlayerAsync(
   return mapGuestPlayerRow(row);
 }
 
+export async function archiveGuestPlayerAsync(playerId: number) {
+  const db = await getDatabaseAsync();
+  await ensureGuestPlayerStorageAsync();
+  await db.runAsync(
+    "UPDATE guest_players SET is_active = 0, updated_at = datetime('now') WHERE id = ?",
+    [Math.abs(playerId)],
+  );
+}
+
 async function ensureGuestPlayerStorageAsync() {
   const db = await getDatabaseAsync();
   await db.execAsync(`
@@ -76,6 +87,7 @@ async function ensureGuestPlayerStorageAsync() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL COLLATE NOCASE UNIQUE,
       position TEXT NOT NULL DEFAULT 'midfielder',
+      is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -86,6 +98,11 @@ async function ensureGuestPlayerStorageAsync() {
   if (!columns.some((column) => column.name === "position")) {
     await db.execAsync(
       "ALTER TABLE guest_players ADD COLUMN position TEXT NOT NULL DEFAULT 'midfielder'",
+    );
+  }
+  if (!columns.some((column) => column.name === "is_active")) {
+    await db.execAsync(
+      "ALTER TABLE guest_players ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1",
     );
   }
 }
@@ -102,7 +119,7 @@ function mapGuestPlayerRow(row: GuestPlayerRow): Player {
       ? (row.position as PlayerPosition)
       : "midfielder",
     notes: "",
-    isActive: true,
+    isActive: row.is_active !== 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     activeInjuryStartDate: null,

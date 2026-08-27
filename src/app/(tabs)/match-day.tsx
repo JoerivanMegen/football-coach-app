@@ -1024,14 +1024,16 @@ function MatchSetupModal({
   const [isDraggingPlayer, setIsDraggingPlayer] = useState(false);
   const [isMatchDataLoaded, setIsMatchDataLoaded] = useState(false);
   const hasInitializedCreateAvailability = useRef(false);
-  const matchGuestPlayers = form.guestPlayerIds.flatMap(
-    (guestPlayerId, index) => {
-      const player = guestPlayers.find(
-        (guestPlayer) => guestPlayer.id === guestPlayerId,
-      );
-      return player ? [{ ...player, kitNumber: 70 + index }] : [];
-    },
+  const numberedPlayers = applyGuestKitNumbers(
+    [...players, ...guestPlayers],
+    form.guestPlayerIds,
   );
+  const matchGuestPlayers = form.guestPlayerIds.flatMap((guestPlayerId) => {
+    const player = numberedPlayers.find(
+      (numberedPlayer) => numberedPlayer.id === guestPlayerId,
+    );
+    return player ? [player] : [];
+  });
   const matchPlayers = [...players, ...matchGuestPlayers];
   const availablePlayers = matchPlayers.filter(
     (player) => form.playerStatuses[player.id] === "available",
@@ -1157,6 +1159,34 @@ function MatchSetupModal({
         ...currentForm.playerStatuses,
         [player.id]: "available",
       },
+    }));
+  }
+
+  function deleteGuestFromHistory(player: Player) {
+    setGuestPlayers((currentPlayers) =>
+      currentPlayers.filter((currentPlayer) => currentPlayer.id !== player.id),
+    );
+    onChangeForm((currentForm) => ({
+      ...currentForm,
+      captainPlayerId:
+        currentForm.captainPlayerId === player.id
+          ? null
+          : currentForm.captainPlayerId,
+      guestPlayerIds: currentForm.guestPlayerIds.filter(
+        (guestPlayerId) => guestPlayerId !== player.id,
+      ),
+      lineupAssignments: removePlayerFromAssignments(
+        currentForm.lineupAssignments,
+        player.id,
+      ),
+      matchDutyPlayerIds: currentForm.matchDutyPlayerIds.filter(
+        (playerId) => playerId !== player.id,
+      ),
+      playerStatuses: Object.fromEntries(
+        Object.entries(currentForm.playerStatuses).filter(
+          ([playerId]) => Number(playerId) !== player.id,
+        ),
+      ),
     }));
   }
 
@@ -1437,6 +1467,7 @@ function MatchSetupModal({
           visible={isGuestPlayerModalOpen}
           onAddGuest={addGuestToMatch}
           onClose={() => setIsGuestPlayerModalOpen(false)}
+          onDeleteGuest={deleteGuestFromHistory}
         />
       </KeyboardAvoidingView>
     </Modal>
@@ -1985,9 +2016,26 @@ function getAssignedStarters(form: MatchSetupFormState, players: Player[]) {
 }
 
 function applyGuestKitNumbers(players: Player[], guestPlayerIds: number[]) {
-  const kitNumberByGuestId = new Map(
-    guestPlayerIds.map((playerId, index) => [playerId, 70 + index]),
+  const usedKitNumbers = new Set(
+    players.flatMap((player) =>
+      !player.isGuest &&
+      typeof player.kitNumber === "number" &&
+      player.kitNumber > 0
+        ? [player.kitNumber]
+        : [],
+    ),
   );
+  const kitNumberByGuestId = new Map<number, number>();
+  let nextAvailableKitNumber = 1;
+
+  for (const guestPlayerId of guestPlayerIds) {
+    while (usedKitNumbers.has(nextAvailableKitNumber)) {
+      nextAvailableKitNumber += 1;
+    }
+    kitNumberByGuestId.set(guestPlayerId, nextAvailableKitNumber);
+    usedKitNumbers.add(nextAvailableKitNumber);
+    nextAvailableKitNumber += 1;
+  }
 
   return players.map((player) => {
     const guestKitNumber = kitNumberByGuestId.get(player.id);

@@ -4,7 +4,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { ActionColors, Spacing } from '@/constants/theme';
 import { listEventAttendancePlayersAsync } from '@/features/events/event-repository';
 import type { CoachEvent, EventAttendancePlayer } from '@/features/events/event-types';
 import { isTrainingAttendanceOverdue } from '@/features/notifications/match-result-notifications';
@@ -292,7 +292,7 @@ function EventExpandedActions({
             ]}>
             <SymbolView
               name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-              tintColor="#F59E0B"
+              tintColor={ActionColors.warning}
               size={18}
             />
             <ThemedText
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notificationDot: {
-    backgroundColor: '#FF7A1A',
+    backgroundColor: ActionColors.warning,
     borderColor: '#ffffff',
     borderRadius: 999,
     borderWidth: 2,
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     width: 56,
   },
   latePlayerText: {
-    color: '#F59E0B',
+    color: ActionColors.warning,
   },
   emptySectionPanel: {
     borderRadius: Spacing.three,
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
   },
   editEventButton: {
     backgroundColor: 'transparent',
-    borderColor: '#F59E0B',
+    borderColor: ActionColors.warning,
     borderWidth: 1.5,
   },
   cancelEventButton: {
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     color: '#1C7C54',
   },
   editEventButtonText: {
-    color: '#F59E0B',
+    color: ActionColors.warning,
   },
   cancelEventButtonText: {
     color: '#B42318',
