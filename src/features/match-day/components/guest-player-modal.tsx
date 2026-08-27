@@ -4,9 +4,10 @@ import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Te
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ActionColors } from "@/constants/theme";
 import { PlayerRoleOption } from "@/features/match-day/components/match-availability-step";
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
-import { addGuestPlayerAsync } from "@/features/match-day/guest-player-repository";
+import { addGuestPlayerAsync, archiveGuestPlayerAsync } from "@/features/match-day/guest-player-repository";
 import { getPlayerPositionLabel } from "@/features/players/player-position-labels";
 import { PLAYER_POSITIONS, type Player, type PlayerPosition } from "@/features/players/player-types";
 import { useTheme } from "@/hooks/use-theme";
@@ -17,12 +18,14 @@ export function GuestPlayerModal({
   matchGuestPlayerIds,
   onAddGuest,
   onClose,
+  onDeleteGuest,
   visible,
 }: {
   guestPlayers: Player[];
   matchGuestPlayerIds: number[];
   onAddGuest: (player: Player) => void;
   onClose: () => void;
+  onDeleteGuest: (player: Player) => void;
   visible: boolean;
 }) {
   const { locale, t } = useI18n();
@@ -30,6 +33,7 @@ export function GuestPlayerModal({
   const [name, setName] = useState("");
   const [position, setPosition] = useState<PlayerPosition>("midfielder");
   const [isSaving, setIsSaving] = useState(false);
+  const reusableGuestPlayers = guestPlayers.filter((player) => player.isActive);
 
   async function handleAddName() {
     if (!name.trim() || isSaving) {
@@ -57,6 +61,37 @@ export function GuestPlayerModal({
     setName("");
     setPosition("midfielder");
     onClose();
+  }
+
+  function confirmDeleteGuest(player: Player) {
+    const playerName = formatPlayerDisplayName(player);
+    Alert.alert(
+      t("matchday.add_match.guest_players.delete.title"),
+      t("matchday.add_match.guest_players.delete.message", {
+        name: playerName,
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("common.delete"),
+          style: "destructive",
+          onPress: () => void handleDeleteGuest(player),
+        },
+      ],
+    );
+  }
+
+  async function handleDeleteGuest(player: Player) {
+    try {
+      await archiveGuestPlayerAsync(player.id);
+      onDeleteGuest(player);
+    } catch (error) {
+      console.warn("Failed to delete guest player", error);
+      Alert.alert(
+        t("matchday.add_match.guest_players.delete.error_title"),
+        t("common.errors.generic_message"),
+      );
+    }
   }
 
   return (
@@ -126,9 +161,15 @@ export function GuestPlayerModal({
                 pressed && styles.pressed,
               ]}
             >
-              <ThemedText type="smallBold" style={styles.primaryButtonText}>
-                {t("common.add")}
-              </ThemedText>
+              <SymbolView
+                name={{
+                  ios: "plus",
+                  android: "add",
+                  web: "add",
+                }}
+                tintColor={ActionColors.onAccent}
+                size={22}
+              />
             </Pressable>
           </ThemedView>
 
@@ -156,44 +197,81 @@ export function GuestPlayerModal({
               keyboardShouldPersistTaps="handled"
               style={styles.guestHistoryList}
             >
-              {guestPlayers.length > 0 ? (
-                guestPlayers.map((player) => {
+              {reusableGuestPlayers.length > 0 ? (
+                reusableGuestPlayers.map((player) => {
                   const isAdded = matchGuestPlayerIds.includes(player.id);
                   return (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityState={{ disabled: isAdded }}
-                      disabled={isAdded}
+                    <ThemedView
+                      type="backgroundElement"
                       key={player.id}
-                      onPress={() => onAddGuest(player)}
-                      style={({ pressed }) => [
-                        styles.guestHistoryRow,
-                        { backgroundColor: theme.backgroundElement },
-                        pressed && styles.pressed,
-                      ]}
+                      style={styles.guestHistoryRow}
                     >
-                      <ThemedText
-                        type="smallBold"
-                        numberOfLines={1}
+                      <ThemedView
+                        type="backgroundElement"
                         style={styles.guestHistoryName}
                       >
-                        {formatPlayerDisplayName(player)}
-                      </ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary">
-                        {getPlayerPositionLabel(player.position, locale)}
-                      </ThemedText>
-                      <ThemedText
-                        type="small"
-                        themeColor={isAdded ? "textSecondary" : undefined}
-                        style={
-                          !isAdded ? styles.guestHistoryAddText : undefined
-                        }
+                        <ThemedText type="smallBold" numberOfLines={1}>
+                          {formatPlayerDisplayName(player)}
+                        </ThemedText>
+                        <ThemedText type="small" themeColor="textSecondary">
+                          {getPlayerPositionLabel(player.position, locale)}
+                        </ThemedText>
+                      </ThemedView>
+                      <ThemedView
+                        type="backgroundElement"
+                        style={styles.guestHistoryActions}
                       >
-                        {isAdded
-                          ? t("matchday.add_match.guest_players.added")
-                          : t("common.add")}
-                      </ThemedText>
-                    </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t(
+                            "matchday.add_match.guest_players.delete.action",
+                            { name: formatPlayerDisplayName(player) },
+                          )}
+                          onPress={() => confirmDeleteGuest(player)}
+                          style={({ pressed }) => [
+                            styles.guestSquareAction,
+                            styles.guestSquareDeleteAction,
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <SymbolView
+                            name={{
+                              ios: "trash",
+                              android: "delete",
+                              web: "delete",
+                            }}
+                            tintColor={ActionColors.onAccent}
+                            size={20}
+                          />
+                        </Pressable>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={t(
+                            "matchday.add_match.guest_players.add_existing",
+                            { name: formatPlayerDisplayName(player) },
+                          )}
+                          accessibilityState={{ disabled: isAdded }}
+                          disabled={isAdded}
+                          onPress={() => onAddGuest(player)}
+                          style={({ pressed }) => [
+                            styles.guestSquareAction,
+                            styles.guestSquareAddAction,
+                            isAdded && styles.buttonDisabled,
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <SymbolView
+                            name={{
+                              ios: "plus",
+                              android: "add",
+                              web: "add",
+                            }}
+                            tintColor={ActionColors.onAccent}
+                            size={20}
+                          />
+                        </Pressable>
+                      </ThemedView>
+                    </ThemedView>
                   );
                 })
               ) : (

@@ -81,11 +81,17 @@ add_match:
     previous: Eerdere gastspelers
     empty: Nog geen eerdere gastspelers.
     added: Toegevoegd
+    add_existing: "Voeg {{name}} toe aan deze wedstrijd"
+    delete:
+      action: "Gastspeler {{name}} verwijderen"
+      title: Gastspeler verwijderen?
+      message: "{{name}} uit de lijst met herbruikbare gastspelers verwijderen? Eerdere wedstrijden blijven intact."
+      error_title: Gastspeler kon niet worden verwijderd
     error:
       title: Gastspeler kon niet worden toegevoegd
     limit:
       title: Limiet voor gastspelers bereikt
-      message: Je kunt maximaal 10 gastspelers toevoegen met rugnummers 70 tot en met 79.
+      message: Je kunt maximaal 10 gastspelers per wedstrijd toevoegen.
   lineup:
     formation: Formatie
     select_formation: Formatie kiezen

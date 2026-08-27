@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-export const DATABASE_VERSION = 27;
+export const DATABASE_VERSION = 28;
 
 type UserVersionRow = {
   user_version: number;
@@ -499,6 +499,7 @@ export async function migrateDatabase(db: SQLiteDatabase) {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL COLLATE NOCASE UNIQUE,
           position TEXT NOT NULL DEFAULT 'midfielder',
+          is_active INTEGER NOT NULL DEFAULT 1,
           created_at TEXT NOT NULL DEFAULT (datetime('now')),
           updated_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
@@ -760,6 +761,17 @@ export async function migrateDatabase(db: SQLiteDatabase) {
         );
       }
       await db.execAsync("PRAGMA user_version = 27");
+    });
+  }
+
+  if (currentVersion < 28) {
+    await db.withTransactionAsync(async () => {
+      await ensureGuestPlayersColumnAsync(
+        db,
+        "is_active",
+        "INTEGER NOT NULL DEFAULT 1",
+      );
+      await db.execAsync("PRAGMA user_version = 28");
     });
   }
 }

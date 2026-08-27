@@ -359,12 +359,19 @@ export const translations = {
           "previous": "Previous guest players",
           "empty": "No previous guest players yet.",
           "added": "Added",
+          "add_existing": "Add {{name}} to this match",
+          "delete": {
+            "action": "Delete guest player {{name}}",
+            "title": "Delete guest player?",
+            "message": "Remove {{name}} from the reusable guest-player list? Historical matches will be kept intact.",
+            "error_title": "Could not delete guest player"
+          },
           "error": {
             "title": "Could not add guest player"
           },
           "limit": {
             "title": "Guest player limit reached",
-            "message": "You can add up to 10 guest players, using kit numbers 70 to 79."
+            "message": "You can add up to 10 guest players per match."
           }
         },
         "lineup": {
@@ -1651,12 +1658,19 @@ export const translations = {
           "previous": "Eerdere gastspelers",
           "empty": "Nog geen eerdere gastspelers.",
           "added": "Toegevoegd",
+          "add_existing": "Voeg {{name}} toe aan deze wedstrijd",
+          "delete": {
+            "action": "Gastspeler {{name}} verwijderen",
+            "title": "Gastspeler verwijderen?",
+            "message": "{{name}} uit de lijst met herbruikbare gastspelers verwijderen? Eerdere wedstrijden blijven intact.",
+            "error_title": "Gastspeler kon niet worden verwijderd"
+          },
           "error": {
             "title": "Gastspeler kon niet worden toegevoegd"
           },
           "limit": {
             "title": "Limiet voor gastspelers bereikt",
-            "message": "Je kunt maximaal 10 gastspelers toevoegen met rugnummers 70 tot en met 79."
+            "message": "Je kunt maximaal 10 gastspelers per wedstrijd toevoegen."
           }
         },
         "lineup": {
@@ -2765,7 +2779,12 @@ export type TranslationKey =
   | "matchday.add_match.availability.title"
   | "matchday.add_match.close"
   | "matchday.add_match.edit_title"
+  | "matchday.add_match.guest_players.add_existing"
   | "matchday.add_match.guest_players.added"
+  | "matchday.add_match.guest_players.delete.action"
+  | "matchday.add_match.guest_players.delete.error_title"
+  | "matchday.add_match.guest_players.delete.message"
+  | "matchday.add_match.guest_players.delete.title"
   | "matchday.add_match.guest_players.description"
   | "matchday.add_match.guest_players.empty"
   | "matchday.add_match.guest_players.error.title"

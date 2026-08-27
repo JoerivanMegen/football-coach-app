@@ -1636,7 +1636,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   actionNotificationDot: {
-    backgroundColor: "#FF7A1A",
+    backgroundColor: ActionColors.warning,
     borderColor: "#ffffff",
     borderRadius: 999,
     borderWidth: 2,

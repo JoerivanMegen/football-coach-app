@@ -50,7 +50,7 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 export const ActionColors = {
   primary: "#1C7C54",
   info: "#2563EB",
-  warning: "#F59E0B",
+  warning: "#FF7A1A",
   warningText: "#111827",
   danger: "#B42318",
   onAccent: "#FFFFFF",

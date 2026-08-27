@@ -106,7 +106,7 @@ export const matchDayStyles = StyleSheet.create({
     gap: Spacing.one,
   },
   matchActionDueDot: {
-    backgroundColor: "#FF7A1A",
+    backgroundColor: ActionColors.warning,
     borderColor: "#ffffff",
     borderRadius: 999,
     borderWidth: 2,
@@ -148,7 +148,7 @@ export const matchDayStyles = StyleSheet.create({
   },
   shareMatchButton: {
     alignItems: "center",
-    backgroundColor: "#FF7A1A",
+    backgroundColor: ActionColors.warning,
     borderRadius: Spacing.two,
     flex: 1,
     flexDirection: "row",
@@ -196,7 +196,7 @@ export const matchDayStyles = StyleSheet.create({
   editMatchButton: {
     alignItems: "center",
     backgroundColor: "transparent",
-    borderColor: "#F59E0B",
+    borderColor: ActionColors.warning,
     borderRadius: Spacing.two,
     borderWidth: 1.5,
     flexDirection: "row",
@@ -209,7 +209,7 @@ export const matchDayStyles = StyleSheet.create({
     flex: 1,
   },
   editMatchButtonText: {
-    color: "#F59E0B",
+    color: ActionColors.warning,
     flexShrink: 1,
     lineHeight: 18,
     textAlign: "center",
@@ -268,6 +268,7 @@ export const matchDayStyles = StyleSheet.create({
     gap: Spacing.three,
     maxHeight: "75%",
     maxWidth: 520,
+    overflow: "hidden",
     padding: Spacing.three,
     width: "100%",
   },
@@ -286,34 +287,54 @@ export const matchDayStyles = StyleSheet.create({
   },
   guestAddButton: {
     alignItems: "center",
-    alignSelf: "stretch",
-    backgroundColor: "#1C7C54",
+    backgroundColor: ActionColors.primary,
     borderRadius: Spacing.two,
+    height: 48,
     justifyContent: "center",
-    minWidth: 72,
-    paddingHorizontal: Spacing.three,
+    width: 48,
   },
   buttonDisabled: {
     opacity: 0.45,
   },
   guestHistorySection: {
+    flexShrink: 1,
     gap: Spacing.two,
+    minHeight: 0,
   },
   guestHistoryList: {
+    flexShrink: 1,
     maxHeight: 280,
+    minHeight: 0,
   },
   guestHistoryRow: {
     alignItems: "center",
     borderRadius: Spacing.two,
     flexDirection: "row",
     gap: Spacing.two,
-    justifyContent: "space-between",
     marginBottom: Spacing.one,
     minHeight: 48,
     paddingHorizontal: Spacing.two,
   },
   guestHistoryName: {
     flex: 1,
+    gap: Spacing.one,
+  },
+  guestHistoryActions: {
+    flexDirection: "row",
+    gap: Spacing.one,
+  },
+  guestSquareAction: {
+    alignItems: "center",
+    borderRadius: Spacing.two,
+    height: 42,
+    justifyContent: "center",
+    width: 42,
+  },
+  guestSquareAddAction: {
+    backgroundColor: ActionColors.primary,
+  },
+  guestSquareDeleteAction: {
+    backgroundColor: ActionColors.danger,
   },
   guestHistoryAddText: {
     color: "#536DFE",
@@ -679,7 +700,7 @@ export const matchDayStyles = StyleSheet.create({
   addGuestPlayerButton: {
     alignItems: "center",
     alignSelf: "stretch",
-    backgroundColor: "#536DFE",
+    backgroundColor: ActionColors.warning,
     borderRadius: Spacing.two,
     flexDirection: "row",
     gap: Spacing.one,
@@ -1490,7 +1511,7 @@ export const matchDayStyles = StyleSheet.create({
     borderWidth: 1.5,
   },
   reviewShareButton: {
-    backgroundColor: "#FF7A1A",
+    backgroundColor: ActionColors.warning,
   },
   reviewSaveButton: {
     backgroundColor: ActionColors.primary,
