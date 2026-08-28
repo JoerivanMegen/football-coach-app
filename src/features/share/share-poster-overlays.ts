@@ -13,7 +13,8 @@ export type SharePosterTextPieceId =
   | "subThree"
   | "subFour"
   | "subFive"
-  | "subSix";
+  | "subSix"
+  | "subSeven";
 
 export type SharePosterMovablePieceId = SharePosterTextPieceId | "logo";
 
@@ -50,6 +51,7 @@ export const sharePosterTextPieces = [
   { id: "subFour", label: "Sub 4" },
   { id: "subFive", label: "Sub 5" },
   { id: "subSix", label: "Sub 6" },
+  { id: "subSeven", label: "Sub 7" },
 ] satisfies { id: SharePosterTextPieceId; label: string }[];
 
 export const sharePosterMovablePieces = [
@@ -68,12 +70,13 @@ export const defaultSharePosterPositionsByOverlayStyle = {
     dateLabel: { x: 474, y: 274 },
     dateValue: { x: 536, y: 274 },
     subsTitle: { x: 72, y: 1223 },
-    subOne: { x: 400, y: 1223 },
-    subTwo: { x: 540, y: 1223 },
-    subThree: { x: 680, y: 1223 },
-    subFour: { x: 400, y: 1283 },
-    subFive: { x: 540, y: 1283 },
-    subSix: { x: 680, y: 1283 },
+    subOne: { x: 390, y: 1225 },
+    subTwo: { x: 480, y: 1270 },
+    subThree: { x: 570, y: 1225 },
+    subFour: { x: 660, y: 1270 },
+    subFive: { x: 750, y: 1225 },
+    subSix: { x: 840, y: 1270 },
+    subSeven: { x: 930, y: 1225 },
     logo: { x: 830, y: 1146 },
   },
   broadcast: {
@@ -86,12 +89,13 @@ export const defaultSharePosterPositionsByOverlayStyle = {
     dateLabel: { x: 578, y: 310 },
     dateValue: { x: 648, y: 310 },
     subsTitle: { x: 82, y: 1252 },
-    subOne: { x: 310, y: 1226 },
-    subTwo: { x: 310, y: 1276 },
-    subThree: { x: 510, y: 1226 },
-    subFour: { x: 510, y: 1276 },
-    subFive: { x: 710, y: 1226 },
-    subSix: { x: 710, y: 1276 },
+    subOne: { x: 280, y: 1240 },
+    subTwo: { x: 390, y: 1240 },
+    subThree: { x: 500, y: 1240 },
+    subFour: { x: 610, y: 1240 },
+    subFive: { x: 720, y: 1240 },
+    subSix: { x: 830, y: 1240 },
+    subSeven: { x: 940, y: 1240 },
     logo: { x: 830, y: 1134 },
   },
 } satisfies Record<SharePosterOverlayStyle, SharePosterPositionMap>;

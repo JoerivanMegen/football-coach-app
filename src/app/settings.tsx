@@ -18,6 +18,7 @@ import Svg, { ClipPath, Defs, G, Path, Rect } from "react-native-svg";
 
 import { StepperArrowButton } from "@/components/stepper-arrow-button";
 import { OutlinedText } from "@/components/outlined-text";
+import { OnboardingTutorial } from "@/components/onboarding-tutorial";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -52,7 +53,6 @@ import type {
   SeasonCompletionStatus,
   UnpaidFineResolution,
 } from "@/features/seasons/season-types";
-import { setOnboardingCompletedAsync } from "@/features/settings/app-preferences-repository";
 import {
   getTeamSettingsAsync,
   saveTeamSettingsAsync,
@@ -158,7 +158,7 @@ export default function SettingsScreen() {
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isRestoringBackup, setIsRestoringBackup] = useState(false);
   const [isDeletingData, setIsDeletingData] = useState(false);
-  const [isOpeningTutorial, setIsOpeningTutorial] = useState(false);
+  const [isTutorialVisible, setIsTutorialVisible] = useState(false);
   const [activeSeason, setActiveSeason] = useState<Season | null>(null);
   const [endedSeasons, setEndedSeasons] = useState<Season[]>([]);
   const [isEndingSeason, setIsEndingSeason] = useState(false);
@@ -454,20 +454,8 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleOpenTutorial() {
-    setIsOpeningTutorial(true);
-    try {
-      await setOnboardingCompletedAsync(false);
-      router.replace("/");
-    } catch (tutorialError) {
-      console.warn("Failed to reopen tutorial", tutorialError);
-      Alert.alert(
-        t("settings.errors.tutorial.title"),
-        t("settings.errors.tutorial.message"),
-      );
-    } finally {
-      setIsOpeningTutorial(false);
-    }
+  function handleOpenTutorial() {
+    setIsTutorialVisible(true);
   }
 
   async function handleOpenLegalLink(url: string) {
@@ -614,11 +602,12 @@ export default function SettingsScreen() {
   });
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.background }}
-      contentInset={insets}
-      contentContainerStyle={[styles.screen, contentPlatformStyle]}
-    >
+    <>
+      <ScrollView
+        style={{ backgroundColor: theme.background }}
+        contentInset={insets}
+        contentContainerStyle={[styles.screen, contentPlatformStyle]}
+      >
       <ThemedView style={styles.container}>
         <View style={styles.heading}>
           <ThemedText type="subtitle">{t("navigation.settings")}</ThemedText>
@@ -648,12 +637,10 @@ export default function SettingsScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("settings.introduction.action")}
-            disabled={isOpeningTutorial}
-            onPress={() => void handleOpenTutorial()}
+            onPress={handleOpenTutorial}
             style={({ pressed }) => [
               styles.tutorialButton,
               pressed && styles.pressed,
-              isOpeningTutorial && styles.disabledButton,
             ]}
           >
             <ThemedText type="smallBold" style={styles.tutorialButtonText}>
@@ -1113,8 +1100,14 @@ export default function SettingsScreen() {
               : t("settings.actions.save")}
           </ThemedText>
         </Pressable>
-      </ThemedView>
-    </ScrollView>
+        </ThemedView>
+      </ScrollView>
+      <OnboardingTutorial
+        finalActionLabelKey="common.close"
+        onFinish={() => setIsTutorialVisible(false)}
+        visible={isTutorialVisible}
+      />
+    </>
   );
 }
 
