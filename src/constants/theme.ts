@@ -56,6 +56,23 @@ export const ActionColors = {
   onAccent: "#FFFFFF",
 } as const;
 
+export function getSelectedSwatchBorderColor(
+  color: string,
+  defaultBorderColor: string,
+) {
+  const normalizedColor = color.trim().toUpperCase();
+
+  if (normalizedColor === "#FFFFFF") {
+    return "#111827";
+  }
+
+  if (normalizedColor === "#000000" || normalizedColor === "#111827") {
+    return "#FFFFFF";
+  }
+
+  return defaultBorderColor;
+}
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */
