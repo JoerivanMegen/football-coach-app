@@ -12,7 +12,6 @@ import Svg, {
   Path,
   Rect,
   Stop,
-  Image as SvgImage,
   Text as SvgText,
 } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
@@ -536,12 +535,21 @@ function ShareMatchPosterPreview({
         opponentScore={preview.opponentScore}
         overlayStyle={overlayStyle}
         ownScore={preview.ownScore}
-        playerResultStats={preview.playerResultStats}
         posterColors={posterColors}
         positions={positions}
         preferNicknames={preferNicknames}
         substitutes={substitutes.map(({ player }) => player)}
         teamName={teamName}
+      />
+
+      <SharePosterSubstituteLayer
+        kitSettings={kitSettings}
+        matchDurationMinutes={matchDurationMinutes}
+        overlayStyle={overlayStyle}
+        playerResultStats={preview.playerResultStats}
+        positions={positions}
+        preferNicknames={preferNicknames}
+        substitutes={substitutes.map(({ player }) => player)}
       />
 
       <ThemedView
@@ -591,6 +599,7 @@ function ShareMatchPosterPreview({
                       )
                     : undefined
                 }
+                displayScale={0.98}
                 showName
               />
             </ThemedView>
@@ -716,7 +725,6 @@ function SharePosterTextLayer({
   opponentScore,
   overlayStyle,
   ownScore,
-  playerResultStats,
   posterColors,
   positions,
   preferNicknames,
@@ -728,7 +736,6 @@ function SharePosterTextLayer({
   opponentScore?: number;
   overlayStyle: SharePosterOverlayStyle;
   ownScore?: number;
-  playerResultStats?: MatchPlayerResultStats;
   posterColors: PosterColorSettings;
   positions: (typeof defaultSharePosterPositionsByOverlayStyle)[SharePosterOverlayStyle];
   preferNicknames: boolean;
@@ -744,6 +751,10 @@ function SharePosterTextLayer({
       style={styles.posterOverlay}
     >
       {sharePosterTextPieces.map((textPiece) => {
+        if (getSharePosterSubstituteIndex(textPiece.id) !== undefined) {
+          return null;
+        }
+
         if (
           !hasResult &&
           (textPiece.id === "homeScore" || textPiece.id === "awayScore")
@@ -798,25 +809,8 @@ function SharePosterTextLayer({
             substitutes: t("matchday.share.poster.substitutes"),
           },
         );
-        const showSubstituteIcon =
-          getSharePosterSubstituteMinutesPlayed(
-            textPiece.id,
-            substitutes,
-            playerResultStats,
-          ) > 0;
-
         return (
           <G key={textPiece.id}>
-            {showSubstituteIcon ? (
-              <SvgImage
-                href={require("@/assets/images/match-day/sub-on.png")}
-                width={24}
-                height={24}
-                x={position.x - 10}
-                y={position.y - textConfig.fontSize - 8}
-                preserveAspectRatio="xMidYMid meet"
-              />
-            ) : null}
             <SvgText
               fill={textShadowColor}
               fontSize={textConfig.fontSize}
@@ -846,21 +840,82 @@ function SharePosterTextLayer({
   );
 }
 
-function getSharePosterSubstituteMinutesPlayed(
-  pieceId: SharePosterTextPieceId,
-  substitutes: Player[],
-  playerResultStats?: MatchPlayerResultStats,
-) {
-  const substituteIndex = getSharePosterSubstituteIndex(pieceId);
-  const substitute =
-    typeof substituteIndex === "number" ? substitutes[substituteIndex] : null;
+function SharePosterSubstituteLayer({
+  kitSettings,
+  matchDurationMinutes,
+  overlayStyle,
+  playerResultStats,
+  positions,
+  preferNicknames,
+  substitutes,
+}: {
+  kitSettings: LineupKitSettings;
+  matchDurationMinutes: number;
+  overlayStyle: SharePosterOverlayStyle;
+  playerResultStats?: MatchPlayerResultStats;
+  positions: (typeof defaultSharePosterPositionsByOverlayStyle)[SharePosterOverlayStyle];
+  preferNicknames: boolean;
+  substitutes: Player[];
+}) {
+  return (
+    <ThemedView pointerEvents="none" style={styles.sharePosterSubstituteLayer}>
+      {substitutes.map((player, index) => {
+        const positionId = sharePosterSubstitutePositionIds[index];
+        const position = positionId ? positions[positionId] : null;
 
-  if (!substitute) {
-    return 0;
-  }
+        if (!position) {
+          return null;
+        }
 
-  return playerResultStats?.[substitute.id]?.minutesPlayed ?? 0;
+        return (
+          <ThemedView
+            key={player.id}
+            style={[
+              styles.sharePosterSubstitute,
+              overlayStyle === "classic"
+                ? styles.sharePosterSubstituteClassic
+                : styles.sharePosterSubstituteBroadcast,
+              {
+                left: `${(position.x / 1080) * 100}%`,
+                top: `${(position.y / 1350) * 100}%`,
+              },
+            ]}
+          >
+            <LineupJersey
+              dense
+              isGoalkeeper={player.position === "goalkeeper"}
+              kitSettings={kitSettings}
+              player={player}
+              playerNameColor="#FFFFFF"
+              preferNicknames={preferNicknames}
+              resultBadges={
+                playerResultStats
+                  ? getJerseyResultBadges(
+                      playerResultStats[player.id],
+                      "substitute",
+                      matchDurationMinutes,
+                    )
+                  : undefined
+              }
+              resultBadgesCompact
+              showName
+            />
+          </ThemedView>
+        );
+      })}
+    </ThemedView>
+  );
 }
+
+const sharePosterSubstitutePositionIds = [
+  "subOne",
+  "subTwo",
+  "subThree",
+  "subFour",
+  "subFive",
+  "subSix",
+  "subSeven",
+] as const satisfies SharePosterTextPieceId[];
 
 function SharePosterOverlay({
   hasResult,

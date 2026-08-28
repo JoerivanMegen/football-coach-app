@@ -470,6 +470,7 @@ export function DraggableLineupSlot({
       >
         <LineupJersey
           compact={compact}
+          displayScale={0.98}
           isCaptain={isCaptain}
           kitSettings={kitSettings}
           player={player}
@@ -873,6 +874,7 @@ export function PlayerPickerSheet({
 export function LineupJersey({
   compact,
   dense,
+  displayScale = 1,
   isCaptain,
   isGoalkeeper,
   kitSettings,
@@ -881,10 +883,12 @@ export function LineupJersey({
   playerNameShadow = true,
   preferNicknames,
   resultBadges,
+  resultBadgesCompact,
   showName,
 }: {
   compact?: boolean;
   dense?: boolean;
+  displayScale?: number;
   isCaptain?: boolean;
   isGoalkeeper?: boolean;
   kitSettings: LineupKitSettings;
@@ -893,6 +897,7 @@ export function LineupJersey({
   playerNameShadow?: boolean;
   preferNicknames?: boolean;
   resultBadges?: JerseyResultBadges | null;
+  resultBadgesCompact?: boolean;
   showName?: boolean;
 }) {
   const usesGoalkeeperKit = isGoalkeeper || player.position === "goalkeeper";
@@ -907,6 +912,7 @@ export function LineupJersey({
     playerDisplayName,
     compact,
     dense,
+    displayScale,
   );
 
   return (
@@ -915,6 +921,11 @@ export function LineupJersey({
         styles.jerseyWrapper,
         compact && styles.jerseyWrapperCompact,
         dense && styles.jerseyWrapperDense,
+        displayScale !== 1
+          ? {
+              width: (dense ? 78 : compact ? 96 : 108) * displayScale,
+            }
+          : undefined,
       ]}
     >
       <ThemedView
@@ -923,6 +934,12 @@ export function LineupJersey({
           usesGoalkeeperKit && styles.goalkeeperJerseyShape,
           compact && styles.jerseyShapeCompact,
           dense && styles.jerseyShapeDense,
+          displayScale !== 1
+            ? {
+                height: (dense ? 45 : compact ? 54 : 72) * displayScale,
+                width: (dense ? 53 : compact ? 64 : 84) * displayScale,
+              }
+            : undefined,
         ]}
       >
         <LineupJerseyShape
@@ -960,12 +977,22 @@ export function LineupJersey({
             styles.jerseyNumber,
             compact && styles.jerseyNumberCompact,
             dense && styles.jerseyNumberDense,
+            displayScale !== 1
+              ? {
+                  fontSize: (dense ? 13 : compact ? 16 : 24) * displayScale,
+                  lineHeight: (dense ? 16 : compact ? 19 : 28) * displayScale,
+                  marginTop: (dense ? 6 : compact ? 8 : 10) * displayScale,
+                }
+              : undefined,
           ]}
         >
           {player.kitNumber ?? " "}
         </OutlinedText>
         {resultBadges ? (
-          <JerseyResultBadgeOverlay badges={resultBadges} compact={compact} />
+          <JerseyResultBadgeOverlay
+            badges={resultBadges}
+            compact={compact || resultBadgesCompact}
+          />
         ) : null}
       </ThemedView>
       {!compact || showName ? (
@@ -974,6 +1001,9 @@ export function LineupJersey({
             styles.jerseyNameRow,
             compact && styles.jerseyNameRowCompact,
             dense && styles.jerseyNameRowDense,
+            displayScale !== 1
+              ? { width: (dense ? 78 : compact ? 96 : 108) * displayScale }
+              : undefined,
           ]}
         >
           <ThemedText
@@ -983,6 +1013,12 @@ export function LineupJersey({
               styles.jerseyName,
               compact && styles.jerseyNameCompact,
               dense && styles.jerseyNameDense,
+              displayScale !== 1
+                ? {
+                    maxWidth:
+                      (dense ? 78 : compact ? 96 : 108) * displayScale,
+                  }
+                : undefined,
               playerNameSize,
               playerNameColor ? { color: playerNameColor } : undefined,
               !playerNameShadow
@@ -1007,6 +1043,7 @@ function getLineupPlayerNameSize(
   name: string,
   compact?: boolean,
   dense?: boolean,
+  scale = 1,
 ) {
   const baseFontSize = dense ? 14 : 16;
   const minimumFontSize = dense ? 8 : compact ? 9 : 10;
@@ -1019,8 +1056,8 @@ function getLineupPlayerNameSize(
   );
 
   return {
-    fontSize,
-    lineHeight: Math.ceil(fontSize + 4),
+    fontSize: fontSize * scale,
+    lineHeight: Math.ceil((fontSize + 4) * scale),
   };
 }
 

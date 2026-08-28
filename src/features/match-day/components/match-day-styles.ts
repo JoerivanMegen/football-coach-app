@@ -452,12 +452,29 @@ export const matchDayStyles = StyleSheet.create({
     transform: [{ translateX: -40 }, { translateY: -43 }],
     width: 79,
   },
+  sharePosterSubstituteLayer: {
+    ...StyleSheet.absoluteFill,
+    position: "absolute",
+    zIndex: 3,
+  },
+  sharePosterSubstitute: {
+    alignItems: "center",
+    position: "absolute",
+    width: 78,
+  },
+  sharePosterSubstituteClassic: {
+    transform: [{ translateX: -39 }, { translateY: -31 }, { scale: 0.52 }],
+  },
+  sharePosterSubstituteBroadcast: {
+    transform: [{ translateX: -39 }, { translateY: -31 }, { scale: 0.58 }],
+  },
   sharePosterLogoFrame: {
     alignItems: "center",
     height: 74,
     justifyContent: "center",
     position: "absolute",
     width: 74,
+    zIndex: 2,
   },
   sharePosterLogo: {
     height: 58,

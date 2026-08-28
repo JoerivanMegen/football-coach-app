@@ -142,6 +142,7 @@ export function getSharePosterTextConfig(
     case "subFour":
     case "subFive":
     case "subSix":
+    case "subSeven":
       return createSharePosterTextConfig(
         getShareSubstituteLabel(pieceId, substitutes, preferNicknames),
         24,
@@ -208,6 +209,7 @@ export function getSharePosterSubstituteIndex(pieceId: SharePosterTextPieceId) {
     subFour: 3,
     subFive: 4,
     subSix: 5,
+    subSeven: 6,
   };
 
   return substituteIndexByPieceId[pieceId];
@@ -233,6 +235,7 @@ export function getSharePosterTextColor(
       case "subFour":
       case "subFive":
       case "subSix":
+      case "subSeven":
         return posterColors.valueTextColor;
       case "locationLabel":
       case "locationValue":
@@ -257,6 +260,7 @@ export function getSharePosterTextColor(
     case "subFour":
     case "subFive":
     case "subSix":
+    case "subSeven":
       return posterColors.valueTextColor;
     case "awayScore":
       return location === "home"
