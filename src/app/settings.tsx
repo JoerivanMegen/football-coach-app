@@ -23,6 +23,7 @@ import { ThemedView } from "@/components/themed-view";
 import {
   AppHeaderHeight,
   BottomTabInset,
+  getSelectedSwatchBorderColor,
   MaxContentWidth,
   PageTopPadding,
   Spacing,
@@ -1649,27 +1650,42 @@ function SettingsColorField({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const theme = useTheme();
+
   return (
     <ThemedView style={styles.fieldGroup}>
       <ThemedText type="smallBold">{label}</ThemedText>
       <ThemedView style={styles.swatchRow}>
-        {colorOptions.map((color) => (
-          <Pressable
-            key={`${label}-${color}`}
-            accessibilityRole="button"
-            accessibilityLabel={`${label} ${color}`}
-            accessibilityState={{
-              selected: value.toUpperCase() === color,
-            }}
-            onPress={() => onChange(color)}
-            style={({ pressed }) => [
-              styles.swatch,
-              { backgroundColor: color },
-              value.toUpperCase() === color && styles.swatchSelected,
-              pressed && styles.pressed,
-            ]}
-          />
-        ))}
+        {colorOptions.map((color) => {
+          const isSelected = value.toUpperCase() === color;
+          return (
+            <Pressable
+              key={`${label}-${color}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${label} ${color}`}
+              accessibilityState={{ selected: isSelected }}
+              onPress={() => onChange(color)}
+              style={({ pressed }) => [
+                styles.swatch,
+                { backgroundColor: color },
+                isSelected && styles.swatchSelected,
+                isSelected && {
+                  borderColor: getSelectedSwatchBorderColor(color, theme.text),
+                },
+                pressed && styles.pressed,
+              ]}
+            >
+              {isSelected ? (
+                <SymbolView
+                  name={{ ios: "checkmark", android: "check", web: "check" }}
+                  tintColor={color === "#FFFFFF" ? "#111827" : "#FFFFFF"}
+                  size={14}
+                  weight="bold"
+                />
+              ) : null}
+            </Pressable>
+          );
+        })}
       </ThemedView>
     </ThemedView>
   );
@@ -1807,10 +1823,12 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   swatch: {
+    alignItems: "center",
     borderColor: "#D1D5DB",
     borderRadius: Spacing.one,
     borderWidth: 1,
     height: 27,
+    justifyContent: "center",
     width: 27,
   },
   swatchSelected: {

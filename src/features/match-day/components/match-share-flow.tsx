@@ -19,6 +19,7 @@ import { captureRef } from "react-native-view-shot";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { getSelectedSwatchBorderColor } from "@/constants/theme";
 import { LineupJersey } from "@/features/match-day/components/lineup-components";
 import { matchDayStyles as styles } from "@/features/match-day/components/match-day-styles";
 import {
@@ -661,6 +662,8 @@ function SharePosterColorField({
   onChange: (color: string) => void;
   value: string;
 }) {
+  const theme = useTheme();
+
   return (
     <ThemedView style={styles.shareColorField}>
       <ThemedView style={styles.shareColorFieldHeader}>
@@ -670,21 +673,38 @@ function SharePosterColorField({
       </ThemedView>
 
       <ThemedView style={styles.shareColorSwatchRow}>
-        {sharePosterColorOptions.map((color) => (
-          <Pressable
-            key={`${label}-${color}`}
-            accessibilityRole="button"
-            accessibilityLabel={`${label} ${color}`}
-            accessibilityState={{ selected: value === color }}
-            onPress={() => onChange(color)}
-            style={({ pressed }) => [
-              styles.shareColorSwatch,
-              { backgroundColor: color },
-              value === color && styles.shareColorSwatchSelected,
-              pressed && styles.pressed,
-            ]}
-          />
-        ))}
+        {sharePosterColorOptions.map((color) => {
+          const isSelected = value.toUpperCase() === color.toUpperCase();
+          return (
+            <Pressable
+              key={`${label}-${color}`}
+              accessibilityRole="button"
+              accessibilityLabel={`${label} ${color}`}
+              accessibilityState={{ selected: isSelected }}
+              onPress={() => onChange(color)}
+              style={({ pressed }) => [
+                styles.shareColorSwatch,
+                { backgroundColor: color },
+                isSelected && styles.shareColorSwatchSelected,
+                isSelected && {
+                  borderColor: getSelectedSwatchBorderColor(color, theme.text),
+                },
+                pressed && styles.pressed,
+              ]}
+            >
+              {isSelected ? (
+                <SymbolView
+                  name={{ ios: "checkmark", android: "check", web: "check" }}
+                  tintColor={
+                    color.toUpperCase() === "#FFFFFF" ? "#111827" : "#FFFFFF"
+                  }
+                  size={14}
+                  weight="bold"
+                />
+              ) : null}
+            </Pressable>
+          );
+        })}
       </ThemedView>
     </ThemedView>
   );

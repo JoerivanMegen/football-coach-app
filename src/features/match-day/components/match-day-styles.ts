@@ -417,10 +417,12 @@ export const matchDayStyles = StyleSheet.create({
     gap: Spacing.one,
   },
   shareColorSwatch: {
+    alignItems: "center",
     borderColor: "#D1D5DB",
     borderRadius: Spacing.one,
     borderWidth: 1,
     height: 28,
+    justifyContent: "center",
     width: 28,
   },
   shareColorSwatchSelected: {
