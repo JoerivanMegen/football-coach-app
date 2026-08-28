@@ -1,7 +1,15 @@
 import { Image } from "expo-image";
 import { SymbolView, type SymbolViewProps } from "expo-symbols";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import {
+  Animated,
+  Modal,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+} from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -69,18 +77,120 @@ const tutorialSlides: TutorialSlide[] = [
 ];
 
 export function OnboardingTutorial({
+  finalActionLabelKey = "onboarding.actions.finish",
   onFinish,
   visible,
 }: {
+  finalActionLabelKey?: TranslationKey;
   onFinish: () => Promise<void> | void;
   visible: boolean;
 }) {
   const theme = useTheme();
   const { t } = useI18n();
+  const { width: windowWidth } = useWindowDimensions();
   const [slideIndex, setSlideIndex] = useState(0);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [slideTranslateX] = useState(() => new Animated.Value(0));
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const slide = tutorialSlides[slideIndex];
   const isLastSlide = slideIndex === tutorialSlides.length - 1;
+  const transitionDistance = Math.min(windowWidth, 520);
+
+  const returnSlideToCenter = useCallback(() => {
+    Animated.spring(slideTranslateX, {
+      damping: 20,
+      mass: 0.7,
+      stiffness: 220,
+      toValue: 0,
+      useNativeDriver: true,
+    }).start();
+  }, [slideTranslateX]);
+
+  const moveToSlide = useCallback(
+    (direction: -1 | 1) => {
+      const nextSlideIndex = slideIndex + direction;
+
+      if (
+        isTransitioning ||
+        nextSlideIndex < 0 ||
+        nextSlideIndex >= tutorialSlides.length
+      ) {
+        returnSlideToCenter();
+        return;
+      }
+
+      setIsTransitioning(true);
+      Animated.timing(slideTranslateX, {
+        duration: 180,
+        easing: (value) => 1 - Math.pow(1 - value, 3),
+        toValue: direction > 0 ? -transitionDistance : transitionDistance,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished) {
+          setIsTransitioning(false);
+          returnSlideToCenter();
+          return;
+        }
+
+        setSlideIndex(nextSlideIndex);
+        slideTranslateX.setValue(
+          direction > 0 ? transitionDistance : -transitionDistance,
+        );
+
+        requestAnimationFrame(() => {
+          Animated.timing(slideTranslateX, {
+            duration: 200,
+            easing: (value) => 1 - Math.pow(1 - value, 3),
+            toValue: 0,
+            useNativeDriver: true,
+          }).start(() => {
+            setIsTransitioning(false);
+          });
+        });
+      });
+    },
+    [
+      returnSlideToCenter,
+      isTransitioning,
+      slideIndex,
+      slideTranslateX,
+      transitionDistance,
+    ],
+  );
+
+  const swipeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gestureState) =>
+          !isFinishing &&
+          Math.abs(gestureState.dx) > 12 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.25,
+        onPanResponderMove: (_, gestureState) => {
+          const isPastStart = slideIndex === 0 && gestureState.dx > 0;
+          const isPastEnd = isLastSlide && gestureState.dx < 0;
+          slideTranslateX.setValue(
+            isPastStart || isPastEnd ? gestureState.dx * 0.25 : gestureState.dx,
+          );
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (Math.abs(gestureState.dx) < 50) {
+            returnSlideToCenter();
+            return;
+          }
+
+          moveToSlide(gestureState.dx < 0 ? 1 : -1);
+        },
+        onPanResponderTerminate: returnSlideToCenter,
+      }),
+    [
+      isFinishing,
+      isLastSlide,
+      moveToSlide,
+      returnSlideToCenter,
+      slideIndex,
+      slideTranslateX,
+    ],
+  );
 
   async function finishTutorial() {
     if (isFinishing) {
@@ -91,6 +201,7 @@ export function OnboardingTutorial({
     try {
       await onFinish();
       setSlideIndex(0);
+      slideTranslateX.setValue(0);
     } finally {
       setIsFinishing(false);
     }
@@ -107,6 +218,7 @@ export function OnboardingTutorial({
         <ThemedView
           type="modalBackground"
           style={[styles.card, { backgroundColor: theme.modalBackground }]}
+          {...swipeResponder.panHandlers}
         >
           <Pressable
             accessibilityRole="button"
@@ -126,42 +238,57 @@ export function OnboardingTutorial({
             />
           </Pressable>
 
-          <ThemedView
-            type="backgroundSelected"
+          <Animated.View
             style={[
-              styles.visualPlaceholder,
-              slideIndex === 0 && styles.welcomeVisual,
+              styles.animatedSlide,
+              { transform: [{ translateX: slideTranslateX }] },
             ]}
           >
-            {slideIndex === 0 ? (
-              <Image
-                accessibilityLabel="Assistant Coach"
-                contentFit="contain"
-                source={require("@/assets/images/assistant-coach-app-icon-1024.png")}
-                style={styles.welcomeLogo}
-              />
-            ) : (
-              <SymbolView
-                name={slide.icon}
-                type="monochrome"
-                colors={ActionColors.onAccent}
-                tintColor={ActionColors.onAccent}
-                size={72}
-              />
-            )}
-          </ThemedView>
+            <ScrollView
+              contentContainerStyle={styles.slideContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <ThemedView
+                type="backgroundSelected"
+                style={[
+                  styles.visualPlaceholder,
+                  slideIndex === 0 && styles.welcomeVisual,
+                ]}
+              >
+                {slideIndex === 0 ? (
+                  <Image
+                    accessibilityLabel="Assistant Coach"
+                    contentFit="contain"
+                    source={require("@/assets/images/assistant-coach-app-icon-1024.png")}
+                    style={styles.welcomeLogo}
+                  />
+                ) : (
+                  <SymbolView
+                    name={slide.icon}
+                    type="monochrome"
+                    colors={ActionColors.onAccent}
+                    tintColor={ActionColors.onAccent}
+                    size={72}
+                  />
+                )}
+              </ThemedView>
 
-          <ThemedView style={styles.copy}>
-            <ThemedText type="smallBold" style={styles.eyebrow}>
-              {t(slide.eyebrowKey)}
-            </ThemedText>
-            <ThemedText type="subtitle" style={styles.title}>
-              {t(slide.titleKey)}
-            </ThemedText>
-            <ThemedText themeColor="textSecondary" style={styles.description}>
-              {t(slide.descriptionKey)}
-            </ThemedText>
-          </ThemedView>
+              <ThemedView style={styles.copy}>
+                <ThemedText type="smallBold" style={styles.eyebrow}>
+                  {t(slide.eyebrowKey)}
+                </ThemedText>
+                <ThemedText type="subtitle" style={styles.title}>
+                  {t(slide.titleKey)}
+                </ThemedText>
+                <ThemedText
+                  themeColor="textSecondary"
+                  style={styles.description}
+                >
+                  {t(slide.descriptionKey)}
+                </ThemedText>
+              </ThemedView>
+            </ScrollView>
+          </Animated.View>
 
           <ThemedView style={styles.progress}>
             {tutorialSlides.map((item, index) => (
@@ -179,7 +306,7 @@ export function OnboardingTutorial({
             {slideIndex > 0 ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setSlideIndex((current) => current - 1)}
+                onPress={() => moveToSlide(-1)}
                 style={({ pressed }) => [
                   styles.backButton,
                   pressed && styles.pressed,
@@ -199,7 +326,7 @@ export function OnboardingTutorial({
               onPress={() =>
                 isLastSlide
                   ? void finishTutorial()
-                  : setSlideIndex((current) => current + 1)
+                  : moveToSlide(1)
               }
               style={({ pressed }) => [
                 styles.nextButton,
@@ -208,7 +335,7 @@ export function OnboardingTutorial({
               ]}
             >
               <ThemedText type="smallBold" style={styles.nextButtonText}>
-                {isLastSlide ? t("onboarding.actions.finish") : t("common.next")}
+                {isLastSlide ? t(finalActionLabelKey) : t("common.next")}
               </ThemedText>
             </Pressable>
           </ThemedView>
@@ -229,10 +356,20 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Spacing.four,
     gap: Spacing.three,
+    height: "85%",
+    maxHeight: 590,
     maxWidth: 520,
+    overflow: "hidden",
     padding: Spacing.three,
     position: "relative",
     width: "100%",
+  },
+  slideContent: {
+    gap: Spacing.three,
+    paddingTop: Spacing.two,
+  },
+  animatedSlide: {
+    flex: 1,
   },
   closeButton: {
     alignItems: "center",
@@ -249,7 +386,6 @@ const styles = StyleSheet.create({
     aspectRatio: 16 / 9,
     borderRadius: Spacing.three,
     justifyContent: "center",
-    marginTop: Spacing.two,
     overflow: "hidden",
     width: "100%",
   },
